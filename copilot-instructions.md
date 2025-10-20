@@ -2,25 +2,37 @@
 description: Project-specific agent instructions. Edit to reflect new project rules.
 ---
 
-# Agent rules
+# Agent Rules
 
+## Core Development Methodology
+This project follows a strict, verifiable, and incremental development process. Adherence to this methodology is mandatory for all contributions. It is designed to prevent self-deception and ensure correctness.
+
+**1. Architectural Pattern: Functional Core, Imperative Shell**
+   - **Functional Core:** All core logic (primitives, compiler, math) MUST be implemented as pure functions with zero side effects. This is our reusable, testable engine.
+   - **Imperative Shell:** All side effects (file I/O, tests, logging) MUST be in the outer shell.
+   - Refer to `Design/shim_build/17_design_pattern.md` for the full specification.
+
+**2. Workflow: Test-Driven Development (TDD)**
+   - All new functionality MUST be built using the Red-Green-Refactor cycle.
+   - **RED:** First, write a failing test that defines the desired functionality.
+   - **GREEN:** Write the simplest possible *real* code in the Functional Core to make the test pass. No placeholders.
+   - **REFACTOR:** Clean up the code and run tests again to ensure they still pass.
+
+**3. Documentation: QA Logs**
+   - After every successful TDD cycle, a new QA log entry MUST be created in the `qa_logs/` directory.
+   - The log MUST document the goal, the TDD process, and the outcome, providing a clear audit trail of what was built and why.
+
+**4. Verification Principles**
+   - **Design by Contract:** Use tests to enforce the mathematical properties (preconditions, postconditions, invariants) defined in the design documents.
+   - **Behavior-Driven:** Frame tests and logs using a "Given-When-Then" structure to describe the observable behavior of the system.
+   - **Formal Verification:** Treat the mathematical lemmas in the design documents as proof obligations that are computationally verified by our tests.
+
+## General Rules
 - Branching: `copilot/*` => open PRs to `test`.
 - CI must pass on PRs.
 - Keep copies of evidence in `qa_logs/`.
 
-
 ## Testing guidance
-- Prefer small, focused unit tests alongside new modules (happy path + 1 edge)
-- Keep quick lane fast; exclude heavy/archived/synthetic content from default discovery
-- Use repository `pyproject.toml` pytest settings; run with `pytest -q` unless a specific suite is needed
-
-## Editor and lint configuration
-- Single source of truth: `pyproject.toml` (Pylint config under `[tool.pylint.*]`)
-- VS Code convenience: set `python.defaultInterpreterPath` to the venv; optionally pass `--rcfile=${workspaceFolder}/pyproject.toml`
-- Avoid hiding folders with `files.exclude` unless intentionally removing them from Explorer
-
-## PR checklist (v4.0)
-- Add at least one unit test for any new public function
-- Update `README.md` if surface changes (commands/paths/workflows)
-- Attach lint/test output in Phase QA; save in `qa_logs/`
+- Prefer small, focused unit tests built via the TDD cycle.
+- Use repository `pyproject.toml` pytest settings; run with `pytest -q`.
 
