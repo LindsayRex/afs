@@ -27,6 +27,31 @@ This project follows a strict, verifiable, and incremental development process. 
    - **Behavior-Driven:** Frame tests and logs using a "Given-When-Then" structure to describe the observable behavior of the system.
    - **Formal Verification:** Treat the mathematical lemmas in the design documents as proof obligations that are computationally verified by our tests.
 
+# Computable Flow Shim and the TDD/DbC/BDD methodology:
+
+Unit/Contract Tests (Functional Core):
+These verify that each module (e.g., FDA estimator, primitive operator) satisfies its mathematical contract in isolation. For example, estimate_gamma must return the algebraic minimum eigenvalue for any operator you give it. This is like testing the radiator with water on a bench.
+
+Behavior/Integration Tests (Imperative Shell):
+These verify that, when modules are composed (e.g., compiler → runtime → controller → FDA), the system as a whole behaves as specified. For example, running a full flow and checking that the controller refuses to run unstable systems, or that energy decreases over time. This is like putting the radiator in the car and driving.
+
+Design by Contract:
+Each module must declare and enforce its preconditions, postconditions, and invariants. But some contracts only make sense in context (e.g., Lyapunov descent is only meaningful when the flow is running).
+
+Boundaries of Execution:
+The pattern encourages you to test modules in isolation where possible, but also to write system-level tests that exercise the full pipeline. Some contracts (like cooling the engine) can only be verified in integration.
+
+What this means for your workflow:
+
+It's normal and correct to have both isolated (unit/contract) tests and integrated (behavior/system) tests.
+If a module's contract can only be meaningfully tested in context, write a system-level test for it.
+Don't force artificial isolation if the contract is inherently systemic—test it as part of the whole.
+If you ever feel like you're "jumping through hoops" to test a module in isolation, ask:
+
+Is this contract meaningful outside the system? If not, write a behavior/integration test instead.
+Is the test verifying a real property, or just making the test pass? Only keep tests that enforce real contracts or behaviors.
+
+
 ## General Rules
 - Branching: `copilot/*` => open PRs to `test`.
 - CI must pass on PRs.

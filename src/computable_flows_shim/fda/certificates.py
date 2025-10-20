@@ -7,27 +7,28 @@ import jax.numpy as jnp
 
 def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_iterations: int = 20) -> float:
     """
-    Estimates the spectral gap (smallest eigenvalue) of a linear operator using the inverse power method.
+    Estimates the spectral gap (minimum eigenvalue for symmetric matrices, Gershgorin lower bound for non-symmetric).
     """
     dim = input_shape[0]
-    L_matrix = jax.vmap(L_apply)(jnp.eye(dim))
+    # Construct L as a matrix where columns are L_apply(e_i); transpose to row-major
+    L_matrix = jax.vmap(L_apply)(jnp.eye(dim)).T
 
-    v = jax.random.normal(key, input_shape)
-    v = v / jnp.linalg.norm(v)
-
-    for _ in range(num_iterations):
-        # Solve L*w = v for w
-        w = jax.scipy.linalg.solve(L_matrix, v)
-        v = w / jnp.linalg.norm(w)
-
-    # The smallest eigenvalue is 1 / (v^T * L * v)
-    # Since L*v is not available, we use v^T * w, where w = L_inv*v
-    # and eigenvalue of L_inv is 1/eigenvalue of L
-    # so smallest eigenvalue of L is 1/largest eigenvalue of L_inv
-    # Rayleigh quotient for L_inv is (v^T * L_inv * v) / (v^T * v) = v^T * w
-    largest_eigval_inv = jnp.dot(v, w)
-    
-    return float(1.0 / largest_eigval_inv)
+    # Check symmetry
+    is_symmetric = jnp.allclose(L_matrix, L_matrix.T, atol=1e-8)
+    if is_symmetric:
+        eigvals = jnp.linalg.eigh(L_matrix)[0]
+        eigvals_real = jnp.real(eigvals)
+        return float(jnp.min(eigvals_real))
+    else:
+        # Gershgorin lower bound: min_i (diag - sum off-diag)
+        diag = jnp.diag(L_matrix)
+        # For each row, sum abs of off-diagonal elements
+        off_diag_sum = jnp.array([
+            jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
+            for i in range(dim)
+        ])
+        gershgorin_bounds = diag - off_diag_sum
+        return float(jnp.min(gershgorin_bounds))
 
 def estimate_eta_dd(L_apply: Callable, input_shape: tuple, eps: float = 1e-9) -> float:
     """

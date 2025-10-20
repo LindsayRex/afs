@@ -25,15 +25,15 @@ def run_certified(
     # This will need to be generalized later.
     input_shape = initial_state['x'].shape
     
+    # Check Diagonal Dominance (η) first (tests expect this check before spectral gap)
+    eta = estimate_eta_dd(compiled.L_apply, input_shape)
+    if eta >= 1.0:
+        raise ValueError(f"System is not diagonally dominant: eta ({eta:.4f}) >= 1.0.")
+
     # Check Spectral Gap (γ)
     gamma = estimate_gamma(compiled.L_apply, key, input_shape)
     if gamma <= 0:
         raise ValueError(f"System is unstable: Spectral gap (gamma) is non-positive ({gamma:.4f}).")
-
-    # Check Diagonal Dominance (η)
-    eta = estimate_eta_dd(compiled.L_apply, input_shape)
-    if eta >= 1.0:
-        raise ValueError(f"System is not diagonally dominant: eta ({eta:.4f}) >= 1.0.")
 
     # --- Phase 2: Main Loop ---
     state = initial_state
