@@ -1,10 +1,11 @@
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Union
 import jax
 import jax.numpy as jnp
+from frozendict import frozendict
 from computable_flows_shim.multi.wavelets import TransformOp
 from computable_flows_shim.manifolds.manifolds import Manifold
 
-def F_Dis(state: Dict[str, jnp.ndarray], grad_f: Callable, step_alpha: float, manifolds: Dict[str, Manifold]) -> Dict[str, jnp.ndarray]:
+def F_Dis(state: Dict[str, jnp.ndarray], grad_f: Callable, step_alpha: float, manifolds: Union[Dict[str, Manifold], frozendict]) -> Dict[str, jnp.ndarray]:
     """Dissipative Step (F_Dis)"""
     g = grad_f(state)  # grad_f built by compiler, uses jax.grad
     new_state = {}

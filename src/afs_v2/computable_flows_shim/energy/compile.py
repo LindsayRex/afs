@@ -1,56 +1,45 @@
 from .specs import EnergySpec, TermSpec
 from computable_flows_shim.runtime.step import CompiledEnergy
 from computable_flows_shim.ops import Op
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Tuple
 import jax
 import jax.numpy as jnp
+from .atoms import ATOM_REGISTRY
 
-# A simple mapping to determine if a term is smooth or requires a proximal operator.
-# This would be more sophisticated in a real implementation.
-SMOOTH_TERMS = {"quadratic"}
-PROXIMAL_TERMS = {"l1"}
+def _partition_and_compile_terms(
+    terms: List[TermSpec], op_registry: Dict[str, Op]
+) -> Tuple[List[Callable], List[Callable]]:
+    """
+    Partitions terms and compiles them using the ATOM_REGISTRY.
+    Returns a list of smooth functions and a list of proximal functions.
+    """
+    smooth_term_fns = []
+    proximal_term_fns = []
 
-def _partition_terms(terms: List[TermSpec]) -> (List[TermSpec], List[TermSpec]):
-    """Partitions terms into smooth and proximal lists."""
-    smooth_terms = [t for t in terms if t.type in SMOOTH_TERMS]
-    proximal_terms = [t for t in terms if t.type in PROXIMAL_TERMS]
-    return smooth_terms, proximal_terms
+    for term in terms:
+        atom = ATOM_REGISTRY.get(term.type)
+        if not atom:
+            raise NotImplementedError(f"Atom type '{term.type}' not found in registry.")
 
-def _compile_smooth_term_function(term: TermSpec, op: Op) -> Callable:
-    """Creates a JAX function for a single smooth term."""
-    if term.type == "quadratic":
-        def term_fn(state):
-            # E.g., weight * ||Op(x) - y||^2
-            x = state[term.op] # This is a simplification, state mapping will be more complex
-            y = state[term.target]
-            residual = op(x) - y
-            return term.weight * jnp.sum(residual ** 2)
-        return term_fn
-    else:
-        raise NotImplementedError(f"Smooth term type '{term.type}' not implemented.")
+        op = op_registry.get(term.op)
+        if not op:
+            raise ValueError(f"Operator '{term.op}' not found in op_registry.")
 
-def _compile_proximal_term_function(term: TermSpec, op: Op) -> Callable:
-    """Creates a JAX proximal operator for a single proximal term."""
-    if term.type == "l1":
-        def prox_fn(x, alpha):
-            # soft thresholding: sign(x) * max(|x| - alpha, 0)
-            return jnp.sign(x) * jnp.maximum(jnp.abs(x) - alpha * term.weight, 0)
-        return prox_fn
-    else:
-        raise NotImplementedError(f"Proximal term type '{term.type}' not implemented.")
+        if atom.kind == 'smooth':
+            smooth_term_fns.append(atom.compiler(term, op))
+        elif atom.kind == 'nonsmooth':
+            proximal_term_fns.append(atom.compiler(term, op))
+
+    return smooth_term_fns, proximal_term_fns
 
 
 def compile_energy(spec: EnergySpec, op_registry: Dict[str, Op]) -> CompiledEnergy:
     """
     Compiles an EnergySpec into a JAX-jittable CompiledEnergy object.
     """
-    smooth_terms, proximal_terms = _partition_terms(spec.terms)
+    smooth_term_fns, proximal_term_fns = _partition_and_compile_terms(spec.terms, op_registry)
 
     # --- Compile f(x) and its gradient ---
-    smooth_term_fns = [
-        _compile_smooth_term_function(t, op_registry[t.op]) for t in smooth_terms
-    ]
-
     def f_value(state):
         total_energy = 0.0
         for fn in smooth_term_fns:
@@ -59,20 +48,13 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Op]) -> CompiledEner
 
     f_grad = jax.grad(f_value)
 
-
     # --- Compile g(x)'s proximal operator ---
-    proximal_term_fns = [
-        _compile_proximal_term_function(t, op_registry[t.op]) for t in proximal_terms
-    ]
-    
     def g_prox(state, step_alpha, W):
-        # This is a simplified prox application. A real implementation would
-        # handle compositions and transforms correctly.
         x = state['main'] # Simplification
-        for prox_fn in proximal_term_fns:
+        # Proximal operators are composed by applying them sequentially
+        for prox_fn in reversed(proximal_term_fns):
             x = prox_fn(x, step_alpha)
         return {'main': x}
-
 
     # --- Placeholder for L_apply and W ---
     def L_apply(v):
@@ -80,7 +62,6 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Op]) -> CompiledEner
         return v
 
     from computable_flows_shim.multi.wavelets import TransformOp
-    # A real implementation would select this from the spec.transforms
     W = TransformOp(
         name="placeholder",
         forward=lambda x: x,
@@ -94,3 +75,19 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Op]) -> CompiledEner
         W=W,
         L_apply=L_apply
     )
+
+def _compile_smooth_term_function(term: TermSpec, op: Op) -> Callable:
+    """Creates a JAX function for a single smooth term."""
+    if term.type == "quadratic":
+        def term_fn(state):
+            # E.g., weight * ||Op(x) - y||^2
+            # This is a simplification, state and op mapping will be more complex
+            x = state.get(term.variable) 
+            if x is None: return 0.0 # Or handle error appropriately
+            
+            target = state.get(term.target)
+            if target is None: return 0.0 # Or handle error
+
+            residual = op(x) - target
+            return term.weight * jnp.sum(residual ** 2)
+        return term_fn

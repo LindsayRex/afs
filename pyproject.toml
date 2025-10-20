@@ -1,5 +1,5 @@
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = [".", "src/afs_v2"]
 testpaths = ["tests"]
 addopts = [
     "--strict-markers",
@@ -16,7 +16,7 @@ addopts = [
   "-ra",
   "-q"
 ]
-python_files = ["test_*.py", "*_test.py"]
+python_files = ["test_*.py", "*_test.py", "*_integration.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 markers = [

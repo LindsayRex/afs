@@ -6,6 +6,7 @@ class TermSpec:
     type: str
     op: str
     weight: float
+    variable: str # The state variable this term applies to
     target: str = ""
     # Add other relevant fields from your design
 

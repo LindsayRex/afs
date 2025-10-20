@@ -30,3 +30,5 @@ mkdocs-material
 # Checkpointing
 orbax-checkpoint
 
+frozendict
+

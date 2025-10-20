@@ -1,6 +1,7 @@
-from typing import Dict, Callable
+from typing import Dict, Callable, Union
 from dataclasses import dataclass
 import jax
+from frozendict import frozendict
 from .primitives import F_Dis, F_Proj, F_Multi_forward, F_Multi_inverse, F_Con
 from computable_flows_shim.energy.specs import EnergySpec
 from computable_flows_shim.multi.wavelets import TransformOp
@@ -17,10 +18,10 @@ class CompiledEnergy:
     L_apply: Callable
 
 def run_flow_step(
-    state: Dict[str, jax.numpy.ndarray],
     compiled: CompiledEnergy,
-    step_alpha: float,
-    manifolds: Dict[str, Manifold]
+    manifolds: Union[Dict[str, Manifold], frozendict],
+    state: Dict[str, jax.numpy.ndarray],
+    step_alpha: float
 ) -> Dict[str, jax.numpy.ndarray]:
     """
     Executes one step of the compiled flow.
@@ -33,15 +34,15 @@ def run_flow_step(
     # Multiscale transform (forward)
     # Note: This is a simplified example. A real implementation would handle
     # multiple state variables and transforms.
-    u = F_Multi_forward(z['main'], compiled.W)
+    u = F_Multi_forward(z['x'], compiled.W)
     
     # Projective/proximal step
-    u_prox = F_Proj({'main': u}, compiled.g_prox, step_alpha, compiled.W)['main']
+    u_prox = F_Proj({'x': u}, compiled.g_prox, step_alpha, compiled.W)['x']
     
     # Multiscale transform (inverse)
     z_new = F_Multi_inverse(u_prox, compiled.W)
     
     # Optional conservative step
-    # final_state = F_Con({'main': z_new}, H=None, dt=1.0)
+    # final_state = F_Con({'x': z_new}, H=None, dt=1.0)
     
-    return {'main': z_new}
+    return {'x': z_new, 'y': state['y']}
