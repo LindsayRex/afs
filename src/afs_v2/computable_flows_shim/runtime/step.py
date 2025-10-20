@@ -37,7 +37,7 @@ def run_flow_step(
     u = F_Multi_forward(z['x'], compiled.W)
     
     # Projective/proximal step
-    u_prox = F_Proj({'x': u}, compiled.g_prox, step_alpha, compiled.W)['x']
+    u_prox = F_Proj({'main': u}, compiled.g_prox, step_alpha, compiled.W)['main']
     
     # Multiscale transform (inverse)
     z_new = F_Multi_inverse(u_prox, compiled.W)
