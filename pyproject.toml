@@ -36,7 +36,6 @@ norecursedirs = [
   "logs",
   "outputs",
   ".venv",
-  ".venv",
   "venv",
   "build",
   "dist",
@@ -51,21 +50,11 @@ norecursedirs = [
 py-version = "3.12"
 init-hook = "import sys, pathlib; sys.path.insert(0, str(pathlib.Path.cwd()))"
 
-# Regexes against FULL PATHS to exclude entire trees.
-# These are robust across nested folders and OS paths.
-ignore-paths = [
-  "(^|.*/)(\\.venv)(/|$)",
-  "(^|.*/)(\\.git)(/|$)",
-  "(^|.*/)(__pycache__)(/|$)",
-  "(^|.*/)(\\.pytest_cache)(/|$)",
-  "(^|.*/)(\\.vscode)(/|$)",
-  "(^|.*/)(\\.github)(/|$)",
-  "(^|.*/)(jax-docs)(/|$)",
-  "(^|.*/)(outputs)(/|$)",
-  "(^|.*/)(archive)(/|$)",
-  "(^|.*/)(background)(/|$)",
-  "(^|.*/)(Design)(/|$)"
-]
+# Files or directories to be skipped by basename
+ignore = [".venv", "venv", "__pycache__", ".git", "outputs", "archive", "background", "Design", "logs", "pm", "qa_logs"]
+
+# Regex patterns for paths to ignore (full paths)
+ignore-paths = [".*\\.venv.*", ".*venv.*", ".*__pycache__.*"]
 
 # File name patterns (regex) to skip
 ignore-patterns = [
@@ -117,11 +106,3 @@ max-parents = 8
 [tool.pylint.variables]
 additional-builtins = ["_"]
 dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_"
-[tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths = ["tests"]
-addopts = ["--junitxml=outputs/test-results.xml","-q"]
-
-[tool.pylint.main]
-py-version = "3.12"
-init-hook = "import sys, pathlib; sys.path.insert(0, str(pathlib.Path.cwd()))"
