@@ -16,22 +16,20 @@ def run_certified(
 ) -> Dict[str, jnp.ndarray]:
     """
     Runs a full flow for a fixed number of iterations, enforcing certificates.
-    
-    This is the main entry point for the flight controller.
     """
     state = initial_state
     energy = compiled.f_value(state)
     
-    step_function = _step_function_for_testing or run_flow_step
-    
-    # This is a simple, non-JITted loop for now.
+    # Use the provided step function for testing, or the real one by default
+    step_func = _step_function_for_testing or run_flow_step
+
     for _ in range(num_iterations):
-        state = step_function(state, compiled, step_alpha)
+        state = step_func(state, compiled, step_alpha)
         new_energy = compiled.f_value(state)
         
-        # Certificate Check 1: Lyapunov Descent
+        # Lyapunov Descent Certificate Check
         if new_energy > energy:
-            raise ValueError(f"Lyapunov descent violated: Energy increased from {energy} to {new_energy}")
+            raise ValueError("Lyapunov descent violated: Energy increased.")
             
         energy = new_energy
         
