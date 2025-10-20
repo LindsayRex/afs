@@ -5,13 +5,17 @@ import sys
 from pathlib import Path
 import jax
 import jax.numpy as jnp
+import tempfile
+import os
+import pyarrow.parquet as pq
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from computable_flows_shim.energy.specs import EnergySpec, TermSpec, StateSpec
 from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.api import Op
-from computable_flows_shim.runtime.step import run_flow_step
+from computable_flows_shim.runtime.engine import run_flow_step, run_flow
+from computable_flows_shim.telemetry import TelemetryManager
 
 class IdentityOp(Op):
     def __call__(self, x):
@@ -48,3 +52,43 @@ def test_forward_backward_step():
     #    x_new = sign(1.9) * max(|1.9| - 0.05, 0) = 1.85
     expected_x = 1.85
     assert jnp.isclose(final_state['x'], expected_x)
+
+def test_run_flow_with_telemetry():
+    """
+    Tests that the runtime engine can execute a full flow and record telemetry.
+    """
+    # GIVEN a simple energy functional, a telemetry manager, and a temporary directory
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+        ],
+        state=StateSpec(shapes={'x': [1], 'y': [1]})
+    )
+    op_registry = {'I': IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
+    
+    with tempfile.TemporaryDirectory() as temp_dir:
+        tm = TelemetryManager(base_path=temp_dir, flow_name="test_flow")
+        
+        # WHEN we run the flow
+        run_flow(
+            initial_state=initial_state,
+            compiled=compiled,
+            num_iters=3,
+            step_alpha=0.1,
+            telemetry_manager=tm
+        )
+        tm.flush()
+
+        # THEN the telemetry parquet file should be created and contain the correct data
+        telemetry_path = os.path.join(tm.run_path, "telemetry.parquet")
+        assert os.path.exists(telemetry_path)
+        
+        table = pq.read_table(telemetry_path)
+        assert table.num_rows == 3
+        assert "iter" in table.column_names
+        assert "E" in table.column_names
+        
+        iters = table.column("iter").to_pylist()
+        assert iters == [0, 1, 2]

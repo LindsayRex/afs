@@ -74,6 +74,29 @@ def test_F_Proj_l1():
     expected_x = jnp.array([1.45, -0.15, 0.75])
     assert jnp.allclose(final_state['x'], expected_x)
 
+def test_F_Proj_l1_contract():
+    """
+    Given: A state and a proximal operator for an L1 term.
+    When: We apply the projective primitive F_Proj.
+    Then: The new state should be the result of applying the proximal operator.
+    """
+    # GIVEN a state and a proximal operator for w*||x||_1
+    initial_state = {'x': jnp.array([1.5, -0.2, 0.8])}
+    weight = 0.5
+    step_alpha = 0.1
+    threshold = step_alpha * weight
+
+    def prox_g(state, alpha):
+        x = state['x']
+        return {'x': jnp.sign(x) * jnp.maximum(jnp.abs(x) - alpha * weight, 0)}
+
+    # WHEN we apply the projective flow
+    final_state = F_Proj(initial_state, prox_g, step_alpha)
+
+    # THEN the new state should be the result of soft-thresholding
+    expected_x = jnp.array([1.45, -0.15, 0.75])
+    assert jnp.allclose(final_state['x'], expected_x)
+
 def test_F_Multi():
     """
     Tests the multiscale transform primitive's forward and inverse operations.
@@ -95,11 +118,62 @@ def test_F_Multi():
     # THEN the reconstructed vector should be identical to the original.
     assert jnp.allclose(x, x_reconstructed)
 
+def test_F_Multi_contract():
+    """
+    Given: A state and a multiscale transform operator.
+    When: We apply the forward and inverse multiscale transforms.
+    Then: The reconstructed state should be identical to the original.
+    """
+    # GIVEN a simple identity transform object
+    class IdentityTransform:
+        def forward(self, x):
+            return x
+        def inverse(self, x):
+            return x
+
+    W = IdentityTransform()
+    x = jnp.array([1.0, 2.0, 3.0])
+
+    # WHEN we apply the forward and then the inverse transform
+    u = F_Multi_forward(x, W)
+    x_reconstructed = F_Multi_inverse(u, W)
+
+    # THEN the reconstructed vector should be identical to the original.
+    assert jnp.allclose(x, x_reconstructed)
+
+def test_F_Multi_contract_jaxwt():
+    """
+    Given: A state and a jaxwt wavelet transform.
+    When: We apply the forward and inverse multiscale transforms.
+    Then: The reconstructed state should be identical to the original.
+    """
+    import jaxwt
+    # GIVEN a jaxwt wavelet transform
+    W = jaxwt.dwt_nD
+    W_inv = jaxwt.idwt_nD
+    
+    class JaxwtTransform:
+        def forward(self, x):
+            return W(x, 'db1', level=1)
+        def inverse(self, x):
+            return W_inv(x, 'db1')
+
+    W_op = JaxwtTransform()
+    x = jnp.ones((4, 4))
+
+    # WHEN we apply the forward and then the inverse transform
+    u = F_Multi_forward(x, W_op)
+    x_reconstructed = F_Multi_inverse(u, W_op)
+
+    # THEN the reconstructed vector should be identical to the original.
+    assert jnp.allclose(x, x_reconstructed)
+
 def test_F_Con():
     """
     Tests the conservative (symplectic) step.
     This test computationally verifies Lemma 2: Energy Conservation in Conservative Flows.
     """
+
     # GIVEN a simple harmonic oscillator Hamiltonian
     def H(state):
         return 0.5 * (state['p']**2 + state['q']**2)
@@ -118,11 +192,34 @@ def test_F_Con():
     assert jnp.allclose(final_state['q'], expected_q, atol=1e-3)
     assert jnp.allclose(final_state['p'], expected_p, atol=1e-3)
 
+def test_F_Con_energy_conservation():
+    """
+    Tests that the conservative step conserves energy over a short trajectory.
+    """
+    # GIVEN a simple harmonic oscillator Hamiltonian
+    def H(state):
+        return 0.5 * (state['p']**2 + state['q']**2)
+
+    initial_state = {'q': jnp.array(1.0), 'p': jnp.array(0.0)}
+    dt = 0.1
+    num_steps = 100
+
+    # WHEN we apply the conservative flow for multiple steps
+    state = initial_state
+    initial_energy = H(state)
+    for _ in range(num_steps):
+        state = F_Con(state, H, dt)
+    final_energy = H(state)
+
+    # THEN the energy should be conserved within a small tolerance.
+    assert jnp.allclose(initial_energy, final_energy, atol=1e-3)
+
 def test_F_Ann():
     """
     Tests the annealing/stochastic step.
     This test computationally verifies Lemma 5: Global Exploration via Stochastic Flows.
     """
+
     # GIVEN an initial state and a random key
     initial_state = {'x': jnp.zeros(100)}
     key = jax.random.PRNGKey(0)
