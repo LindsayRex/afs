@@ -24,7 +24,25 @@ class CompileReport:
 def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEnergy:
     """
     Compiles an energy specification.
+    
+    Args:
+        spec: Energy specification to compile
+        op_registry: Registry of operator functions
+        
+    Returns:
+        Compiled energy functions
+        
+    Raises:
+        ValueError: If unknown atom type is encountered
     """
+    
+    # Validate atom types
+    known_atom_types = {'quadratic', 'tikhonov', 'l1'}
+    for term in spec.terms:
+        if term.type not in known_atom_types:
+            raise ValueError(f"Unknown atom type: {term.type}. Known types: {known_atom_types}")
+    
+    # --- Compile the smooth part (f) ---
     
     # --- Compile the smooth part (f) ---
     def f_value(state: Dict[str, jnp.ndarray]) -> Any:
