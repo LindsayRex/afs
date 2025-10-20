@@ -13,9 +13,42 @@
             margin: 0;
             padding: 20px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
+        }
+
+        .flow-selector {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 16px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+
+        .flow-selector select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .flow-selector select:focus {
+            outline: none;
+            border-color: #3B82F6;
+        }
+
+        .flow-selector label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 4px;
+            opacity: 0.8;
         }
 
         .hud-container {
@@ -147,30 +180,121 @@
             margin-bottom: 4px;
         }
 
-        .control-group input {
-            width: 100px;
+        .particles-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
         }
 
-        button {
-            background: #3B82F6;
-            color: white;
+        .energy-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, #3B82F6, transparent);
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .timeline-container {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .timeline-bar {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #3B82F6, #10B981, #EF4444);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
             border: none;
+            color: white;
             padding: 8px 16px;
-            border-radius: 4px;
+            border-radius: 20px;
             cursor: pointer;
             font-size: 12px;
         }
 
-        button:hover {
-            background: #2563EB;
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-theme {
+            background: #f8fafc;
+            color: #1e293b;
+        }
+
+        body.light-theme .card {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.1);
+            color: #1e293b;
+        }
+
+        body.light-theme .sparsity-bar {
+            background: #e2e8f0;
+        }
+
+        .sound-toggle {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
+    <!-- Flow Selector -->
+    <div class="flow-selector">
+        <label for="flowSelect">Active Flow:</label>
+        <select id="flowSelect">
+            <option value="deconv_wavelet_v1">deconv_wavelet_v1</option>
+            <option value="sparse_reconstruction">sparse_reconstruction</option>
+            <option value="multiscale_denoising">multiscale_denoising</option>
+            <option value="flow_test_sweep_001">flow_test_sweep_001</option>
+            <option value="wavelet_compression_v2">wavelet_compression_v2</option>
+        </select>
+    </div>
+
     <div class="hud-container">
+        <!-- Particle System Container -->
+        <div class="particles-container" id="particlesContainer"></div>
+
         <!-- Stability Card -->
         <div class="card stability-card">
-            <h3>Stability Monitor</h3>
+            <h3>Stability Monitor - <span id="currentFlowName">deconv_wavelet_v1</span></h3>
 
             <div class="metric-row">
                 <div class="health-indicator" id="healthIndicator"></div>
@@ -210,6 +334,17 @@
                 </div>
             </div>
 
+            <!-- Timeline Section -->
+            <div class="timeline-container">
+                <div class="timeline-header">
+                    <span>Optimization Progress</span>
+                    <span id="timelinePercent">0%</span>
+                </div>
+                <div class="timeline-bar">
+                    <div class="timeline-progress" id="timelineProgress"></div>
+                </div>
+            </div>
+
             <div class="event-ticker" id="eventTicker">
                 <div class="event-item">System initialized</div>
                 <div class="event-item sparsity-event">Solution became more sparse (0.25 → 0.15) - good compression achieved</div>
@@ -226,15 +361,160 @@
         </div>
         <button id="triggerCompression">Trigger Compression Event</button>
         <button id="addSparsityEvent">Add Sparsity Event</button>
+        <button id="simulateOptimization">Simulate Full Optimization</button>
     </div>
 
-    <script>
-        // Demo data
-        let currentSparsity = 0.15;
-        let sparsityHistory = [0.25, 0.22, 0.18, 0.15, 0.12, 0.10];
+    <!-- UI Controls -->
+    <button class="theme-toggle" id="themeToggle">🌙 Dark Mode</button>
+    <button class="sound-toggle" id="soundToggle">🔊 Sound On</button>
 
-        // Update sparsity visualization
-        function updateSparsity(sparsity) {
+    <script>
+        // Flow configurations - in real implementation, this would come from telemetry
+        const flows = {
+            'deconv_wavelet_v1': {
+                name: 'deconv_wavelet_v1',
+                sparsity: 0.12,
+                health: 'GREEN',
+                detailLevel: 'Level 4/6',
+                view: 'db4 wavelet',
+                activeTerms: 4,
+                description: 'Deconvolution with wavelet regularization'
+            },
+            'sparse_reconstruction': {
+                name: 'sparse_reconstruction',
+                sparsity: 0.08,
+                health: 'GREEN',
+                detailLevel: 'Level 2/4',
+                view: 'haar wavelet',
+                activeTerms: 3,
+                description: 'Sparse signal reconstruction'
+            },
+            'multiscale_denoising': {
+                name: 'multiscale_denoising',
+                sparsity: 0.25,
+                health: 'AMBER',
+                detailLevel: 'Level 3/5',
+                view: 'db2 wavelet',
+                activeTerms: 5,
+                description: 'Multiscale denoising flow'
+            },
+            'flow_test_sweep_001': {
+                name: 'flow_test_sweep_001',
+                sparsity: 0.35,
+                health: 'RED',
+                detailLevel: 'Level 1/3',
+                view: 'graph view',
+                activeTerms: 2,
+                description: 'Test sweep for parameter optimization'
+            },
+            'wavelet_compression_v2': {
+                name: 'wavelet_compression_v2',
+                sparsity: 0.05,
+                health: 'GREEN',
+                detailLevel: 'Level 5/7',
+                view: 'coif4 wavelet',
+                activeTerms: 6,
+                description: 'Advanced wavelet compression v2'
+            }
+        };
+
+        // Demo data
+        let currentFlow = 'deconv_wavelet_v1';
+        let currentSparsity = flows[currentFlow].sparsity;
+        let sparsityHistory = [0.25, 0.22, 0.18, 0.15, 0.12, 0.10];
+        let optimizationProgress = 0;
+        let soundEnabled = true;
+        let isDarkTheme = true;
+
+        // Particle system for sparse solutions
+        function createEnergyParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'energy-particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            document.getElementById('particlesContainer').appendChild(particle);
+
+            anime({
+                targets: particle,
+                opacity: [0, 1, 0],
+                scale: [0, 1, 0],
+                duration: 2000 + Math.random() * 1000,
+                easing: 'easeInOutQuad',
+                complete: () => particle.remove()
+            });
+        }
+
+        function updateParticles(sparsity) {
+            if (sparsity < 0.2) {
+                // Create particles for very sparse solutions
+                const particleCount = Math.floor((0.2 - sparsity) * 20);
+                for (let i = 0; i < particleCount; i++) {
+                    setTimeout(createEnergyParticle, Math.random() * 1000);
+                }
+            }
+        }
+
+        // Update display for selected flow
+        function updateFlowDisplay(flowKey) {
+            const flow = flows[flowKey];
+            currentFlow = flowKey;
+            currentSparsity = flow.sparsity;
+
+            // Update flow name display (we'll add this element)
+            const flowNameElement = document.getElementById('currentFlowName');
+            if (flowNameElement) {
+                flowNameElement.textContent = flow.name;
+            }
+
+            // Update sparsity
+            updateSparsity(flow.sparsity);
+
+            // Update health status
+            const healthStatus = document.getElementById('healthStatus');
+            healthStatus.textContent = flow.health;
+
+            const healthIndicator = document.getElementById('healthIndicator');
+            if (flow.health === 'RED') {
+                healthIndicator.classList.add('unhealthy');
+            } else {
+                healthIndicator.classList.remove('unhealthy');
+            }
+
+            // Update complexity metrics
+            document.querySelector('.metric-row:nth-child(2) span:last-child').textContent = `${flow.activeTerms} active terms`;
+            document.querySelector('.metric-row:nth-child(3) span:last-child').textContent = flow.detailLevel;
+            document.querySelector('.metric-row:nth-child(4) span:last-child').textContent = flow.view;
+
+            // Update slider to match
+            document.getElementById('sparsitySlider').value = flow.sparsity;
+            document.getElementById('sliderValue').textContent = flow.sparsity.toFixed(2);
+
+            // Add flow change event
+            addFlowChangeEvent(`Switched to flow: ${flow.name} - ${flow.description}`);
+
+            // Reset optimization progress for new flow
+            updateTimeline(0);
+        }
+
+        // Add flow change event to ticker
+        function addFlowChangeEvent(message) {
+            const ticker = document.getElementById('eventTicker');
+            const event = document.createElement('div');
+            event.className = 'event-item';
+            event.style.color = '#FFD700'; // Gold color for flow changes
+            event.style.fontWeight = 'bold';
+            event.textContent = message;
+            ticker.insertBefore(event, ticker.firstChild);
+
+            // Animate the new event
+            anime({
+                targets: event,
+                opacity: [0, 1],
+                translateX: [-20, 0],
+                duration: 500,
+                easing: 'easeOutQuad'
+            });
+        }
             currentSparsity = sparsity;
 
             // Update bar color based on sparsity level
@@ -273,6 +553,71 @@
                 healthIndicator.classList.remove('unhealthy');
                 healthStatus.textContent = 'GREEN (healthy)';
             }
+
+            // Update particles
+            updateParticles(sparsity);
+        }
+
+        // Update display for selected flow
+        function updateFlowDisplay(flowKey) {
+            const flow = flows[flowKey];
+            currentFlow = flowKey;
+            currentSparsity = flow.sparsity;
+
+            // Update flow name display (we'll add this element)
+            const flowNameElement = document.getElementById('currentFlowName');
+            if (flowNameElement) {
+                flowNameElement.textContent = flow.name;
+            }
+
+            // Update sparsity
+            updateSparsity(flow.sparsity);
+
+            // Update health status
+            const healthStatus = document.getElementById('healthStatus');
+            healthStatus.textContent = flow.health;
+
+            const healthIndicator = document.getElementById('healthIndicator');
+            if (flow.health === 'RED') {
+                healthIndicator.classList.add('unhealthy');
+            } else {
+                healthIndicator.classList.remove('unhealthy');
+            }
+
+            // Update complexity metrics
+            document.querySelector('.metric-row:nth-child(2) span:last-child').textContent = `${flow.activeTerms} active terms`;
+            document.querySelector('.metric-row:nth-child(3) span:last-child').textContent = flow.detailLevel;
+            document.querySelector('.metric-row:nth-child(4) span:last-child').textContent = flow.view;
+
+            // Update slider to match
+            document.getElementById('sparsitySlider').value = flow.sparsity;
+            document.getElementById('sliderValue').textContent = flow.sparsity.toFixed(2);
+
+            // Add flow change event
+            addFlowChangeEvent(`Switched to flow: ${flow.name} - ${flow.description}`);
+
+            // Reset optimization progress for new flow
+            updateTimeline(0);
+        }
+
+        // Add flow change event to ticker
+        function addFlowChangeEvent(message) {
+            const ticker = document.getElementById('eventTicker');
+            const event = document.createElement('div');
+            event.className = 'event-item';
+            event.style.color = '#FFD700'; // Gold color for flow changes
+            event.style.fontWeight = 'bold';
+            event.textContent = message;
+            ticker.insertBefore(event, ticker.firstChild);
+
+            // Animate the new event
+            anime({
+                targets: event,
+                opacity: [0, 1],
+                translateX: [-20, 0],
+                duration: 500,
+                easing: 'easeOutQuad'
+            });
         }
 
         // Update sparkline
@@ -296,6 +641,22 @@
                 duration: 1000,
                 easing: 'easeInOutQuad'
             });
+        }
+
+        // Update timeline progress
+        function updateTimeline(progress) {
+            optimizationProgress = progress;
+            const progressBar = document.getElementById('timelineProgress');
+            const percentText = document.getElementById('timelinePercent');
+
+            anime({
+                targets: progressBar,
+                width: `${progress * 100}%`,
+                duration: 500,
+                easing: 'easeInOutQuad'
+            });
+
+            percentText.textContent = Math.round(progress * 100) + '%';
         }
 
         // Trigger compression wave effect
@@ -324,14 +685,42 @@
                 duration: 600,
                 easing: 'easeOutElastic(1, .5)'
             });
+
+            // Play sound if enabled
+            if (soundEnabled) {
+                playCompressionSound();
+            }
+        }
+
+        // Simple sound effects using Web Audio API
+        function playCompressionSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1);
+
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {
+                // Silently fail if Web Audio API not supported
+            }
         }
 
         // Add sparsity event to ticker
-        function addSparsityEvent() {
+        function addSparsityEvent(message) {
             const ticker = document.getElementById('eventTicker');
             const event = document.createElement('div');
             event.className = 'event-item sparsity-event';
-            event.textContent = `Solution sparsity changed to ${currentSparsity.toFixed(2)}`;
+            event.textContent = message;
             ticker.insertBefore(event, ticker.firstChild);
 
             // Animate the new event
@@ -343,6 +732,55 @@
                 easing: 'easeOutQuad'
             });
         }
+
+        // Simulate full optimization run
+        function simulateOptimization() {
+            let step = 0;
+            const totalSteps = 20;
+            const interval = setInterval(() => {
+                step++;
+                const progress = step / totalSteps;
+
+                // Simulate sparsity evolution (starts high, decreases, then stabilizes)
+                let targetSparsity;
+                if (step < 5) {
+                    targetSparsity = 0.8 - (step * 0.1); // Initial decrease
+                } else if (step < 15) {
+                    targetSparsity = 0.3 + Math.sin(step * 0.5) * 0.1; // Oscillation
+                } else {
+                    targetSparsity = 0.15 + Math.random() * 0.05; // Stabilization
+                }
+
+                updateSparsity(targetSparsity);
+                sparsityHistory.push(targetSparsity);
+                if (sparsityHistory.length > 10) sparsityHistory.shift();
+                updateSparkline();
+                updateTimeline(progress);
+
+                // Add events at key moments
+                if (step === 3) addSparsityEvent("Optimization started - high initial sparsity");
+                if (step === 8) addSparsityEvent("Major compression achieved!");
+                if (step === 15) addSparsityEvent("Solution stabilizing...");
+
+                if (step >= totalSteps) {
+                    clearInterval(interval);
+                    addSparsityEvent("Optimization complete! Final sparsity: " + targetSparsity.toFixed(2));
+                }
+            }, 800);
+        }
+
+        // Theme toggle
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            isDarkTheme = !isDarkTheme;
+            document.body.classList.toggle('light-theme', !isDarkTheme);
+            document.getElementById('themeToggle').textContent = isDarkTheme ? '🌙 Dark Mode' : '☀️ Light Mode';
+        });
+
+        // Sound toggle
+        document.getElementById('soundToggle').addEventListener('click', () => {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundToggle').textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
+        });
 
         // Event listeners
         document.getElementById('sparsitySlider').addEventListener('input', (e) => {
@@ -368,14 +806,24 @@
             updateSparkline();
 
             triggerCompressionWave();
-            setTimeout(addSparsityEvent, 500);
+            setTimeout(() => addSparsityEvent(`Compression event: ${currentSparsity.toFixed(2)} → ${newSparsity.toFixed(2)}`), 500);
         });
 
-        document.getElementById('addSparsityEvent').addEventListener('click', addSparsityEvent);
+        document.getElementById('addSparsityEvent').addEventListener('click', () => {
+            addSparsityEvent(`Sparsity changed to ${currentSparsity.toFixed(2)}`);
+        });
+
+        document.getElementById('simulateOptimization').addEventListener('click', simulateOptimization);
+
+        // Flow selector event listener
+        document.getElementById('flowSelect').addEventListener('change', (e) => {
+            updateFlowDisplay(e.target.value);
+        });
 
         // Initialize
         updateSparsity(currentSparsity);
         updateSparkline();
+        updateTimeline(0);
     </script>
 </body>
 </html>

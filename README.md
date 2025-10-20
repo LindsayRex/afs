@@ -44,6 +44,38 @@ pip install -r requirements.txt
 pytest -q
 ```
 
+## Launching the Flow Dynamics HUD
+
+The AFS Flow Dynamics HUD provides real-time visualization of optimization flows, including sparsity monitoring and system health.
+
+### Prerequisites
+- Node.js and npm (for web dependencies)
+- Python (for local web server)
+
+### Quick Start
+```bash
+# Install web dependencies
+cd src/ux
+npm install
+
+# Start the dashboard server
+npm run dev
+# or manually:
+# python -m http.server 8000
+
+# Open in browser: http://localhost:8000/sparsity_hud_demo.html
+```
+
+### Features
+- **Sparsity Visualization**: Real-time monitoring of solution compression (0.0 = sparse, 1.0 = dense)
+- **Color-coded Feedback**: Blue (good compression) → Green (balanced) → Red (needs regularization)
+- **Interactive Animations**: Compression waves, elastic effects, and smooth transitions
+- **Health Monitoring**: System status based on optimization stability and sparsity levels
+- **Flow Selection**: Switch between different optimization flows by name for comparative analysis
+- **Theme & Sound Controls**: Customizable interface with dark/light themes and optional sound effects
+
+The dashboard integrates with the telemetry system to provide visual feedback during flow execution.
+
 ## Local Documentation Archive
 This repository contains a local archive of the documentation for its key dependencies. This ensures that development is based on a stable, version-specific set of APIs. The documentation can be found in the `archive/` directory.
 
