@@ -8,35 +8,60 @@ from ..fda.certificates import estimate_eta_dd, estimate_gamma
 Array = Any
 State = Dict[str, Array]
 
+from typing import Any, Callable, Dict, Optional
+import jax.numpy as jnp
+from .primitives import F_Dis, F_Proj, F_Multi_forward, F_Multi_inverse
+from ..telemetry import TelemetryManager
+from ..energy.compile import CompiledEnergy # Import canonical CompiledEnergy
+from ..fda.certificates import estimate_eta_dd, estimate_gamma
+
+# JAX types for clarity
+Array = jnp.ndarray
+State = Dict[str, Array]
+
 def run_flow_step(
-    state: Dict[str, Array],
+    state: Dict[str, jnp.ndarray],
     compiled: CompiledEnergy,
     step_alpha: float,
-    manifolds: Dict[str, Any] = {}
-) -> Dict[str, Array]:
+    manifolds: Dict[str, Any] = {},
+    W: Optional[Any] = None
+) -> Dict[str, jnp.ndarray]:
     """
     Runs one full step of a Forward-Backward Splitting flow.
     
-    This corresponds to: z_{k+1} = F_Proj(F_Dis(z_k))
+    If W is provided, includes multiscale transforms:
+    F_Dis → F_Multi_forward → F_Proj → F_Multi_inverse
+    Otherwise, simple: F_Dis → F_Proj
     """
     if manifolds is None:
         manifolds = {}
 
-    # Forward step (dissipative)
+    # Forward step (dissipative) - always in physical domain
     state_after_dis = F_Dis(state, compiled.f_grad, step_alpha, manifolds)
     
-    # Backward step (projective/proximal)
-    state_after_proj = F_Proj(state_after_dis, compiled.g_prox, step_alpha)
+    if W is not None:
+        # Multiscale: transform to W-space
+        u = F_Multi_forward(state_after_dis['x'], W)
+        # Projective step in W-space
+        # For now, assume prox is for the transformed space
+        # TODO: Update compiler to handle W-space prox
+        u_proj = compiled.g_prox({'x': u}, step_alpha)['x']
+        # Transform back to physical domain
+        x_new = F_Multi_inverse(u_proj, W)
+        state_after_proj = {'x': x_new, 'y': state['y']}  # Keep y unchanged
+    else:
+        # Simple flow: projective in physical domain
+        state_after_proj = F_Proj(state_after_dis, compiled.g_prox, step_alpha)
     
     return state_after_proj
 
 def run_flow(
-    initial_state: State,
+    initial_state: Dict[str, jnp.ndarray],
     compiled: CompiledEnergy,
     num_iters: int,
     step_alpha: float,
     telemetry_manager: Optional[TelemetryManager] = None
-) -> State:
+) -> Dict[str, jnp.ndarray]:
     """
     Runs the full computable flow for a given number of iterations.
     """

@@ -64,7 +64,7 @@ def test_controller_checks_diagonal_dominance():
 
     # WHEN we try to run the flow
     # THEN the controller should detect the high eta_dd and raise an error
-    with pytest.raises(ValueError, match="System is not diagonally dominant"):
+    with pytest.raises(ValueError, match="System failed certification"):
         run_certified(
             initial_state={'x': jnp.array([1.0, 1.0])},
             compiled=compiled,
@@ -100,7 +100,7 @@ def test_controller_enforces_lyapunov_descent():
     initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
     
     # THEN the controller should detect the energy increase and raise an error
-    with pytest.raises(ValueError, match="Lyapunov descent violated"):
+    with pytest.raises(ValueError, match="Step failed to decrease energy"):
         run_certified(
             initial_state, 
             compiled, 
@@ -108,6 +108,42 @@ def test_controller_enforces_lyapunov_descent():
             step_alpha=0.1,
             _step_function_for_testing=malicious_step_function # Inject our malicious function
         )
+
+def test_controller_amber_step_remediation():
+    """
+    Tests that the controller can remediate step failures by reducing alpha.
+    """
+    # GIVEN a simple quadratic energy functional
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+        ],
+        state=StateSpec(shapes={'x': [1], 'y': [1]})
+    )
+    op_registry = {'I': IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    # AND a step function that fails with large alpha but succeeds with small alpha
+    def picky_step_function(state, compiled, step_alpha):
+        if step_alpha > 0.05:  # Large alpha causes energy increase
+            return {'x': jnp.array([state['x'][0] + 10.0]), 'y': state['y']}  # Bad step
+        else:  # Small alpha works
+            return run_flow_step(state, compiled, step_alpha)
+
+    # WHEN we run the flow with a large initial alpha that needs remediation
+    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
+    
+    final_state = run_certified(
+        initial_state, 
+        compiled, 
+        num_iterations=1, 
+        step_alpha=0.1,  # Large alpha that will fail first attempt
+        _step_function_for_testing=picky_step_function
+    )
+
+    # THEN the controller should have remediated and succeeded
+    # With small alpha, it should converge closer to 0
+    assert jnp.allclose(final_state['x'], 9.5, atol=1e-3)
 
 def test_controller_checks_spectral_gap():
     """
@@ -130,7 +166,7 @@ def test_controller_checks_spectral_gap():
     
     # WHEN we try to run the flow
     # THEN the controller should detect the negative spectral gap and raise an error
-    with pytest.raises(ValueError, match="System is unstable"):
+    with pytest.raises(ValueError, match="System failed certification"):
         run_certified(
             initial_state={'x': jnp.array([1.0, 1.0])},
             compiled=compiled,
