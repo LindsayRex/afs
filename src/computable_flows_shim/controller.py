@@ -69,8 +69,13 @@ def run_certified(
         # Placeholder for residual/invariant metrics
         phi_residual = float(jnp.nan)
         invariant_drift_max = float(jnp.nan)
-        # Placeholder for sparsity (TODO: compute from W-space)
-        sparsity_wx = 0.0
+        # Compute sparsity from W-space (multiscale representation)
+        # Sparsity ratio: ||x||₁ / (||x||₂ * √n) - measures concentration of energy
+        x = state['x']
+        l1_norm = float(jnp.linalg.norm(x, ord=1))
+        l2_norm = float(jnp.linalg.norm(x, ord=2))
+        n = float(jnp.prod(jnp.array(x.shape)))
+        sparsity_wx = l1_norm / (l2_norm * jnp.sqrt(n)) if l2_norm > 0 else 0.0
         # Log telemetry
         if telemetry_manager:
             telemetry_manager.flight_recorder.log(

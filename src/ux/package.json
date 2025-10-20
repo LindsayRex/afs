@@ -1,0 +1,17 @@
+{
+  "name": "afs-hud",
+  "version": "0.1.0",
+  "description": "Flow Dynamics HUD - Real-time monitoring dashboard for AFS optimization",
+  "main": "sparsity_hud_demo.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000"
+  },
+  "dependencies": {
+    "animejs": "^3.2.1"
+  },
+  "devDependencies": {},
+  "keywords": ["optimization", "dashboard", "real-time", "visualization"],
+  "author": "AFS Team",
+  "license": "MIT"
+}

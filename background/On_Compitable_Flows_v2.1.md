@@ -38,9 +38,8 @@ We define five core mathematical operators ($\mathcal{F}_i: \mathcal{M} \to \mat
 
 ### D. Core Assumption on Composition
 
-**Assumption C1 (Conservative coupling).** Any interleaved conservative substep ($\mathcal{F}_{\text{Con}}$) either (a) acts on auxiliary coordinates decoupled from $\mathcal{E}$, or (b) preserves $\mathcal{E}$ (e.g., by choosing $\mathcal{H}=\mathcal{E}$) or another explicit Lyapunov function used in the proofs. Thus, the conservative substep does not increase the Lyapunov function between dissipative or projective steps.
+Assumption C1 (Conservative coupling). Any interleaved conservative substep ($\mathcal{F}_{\text{Con}}$) either (a) acts on auxiliary coordinates decoupled from $\mathcal{E}$, or (b) preserves $\mathcal{E}$ (e.g., by choosing $\mathcal{H}=\mathcal{E}$) or another explicit Lyapunov function used in the proofs. Thus, the conservative substep does not increase the Lyapunov function between dissipative or projective steps.
 I just don't want,
----
 
 ## II. Foundational Lemmas: The First Principles
 
