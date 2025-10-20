@@ -1,6 +1,7 @@
 import sys
-import pathlib
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / 'src' / 'afs_v2'))
+from pathlib import Path
+# Add the project root to the Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src' / 'afs_v2'))
 
 import pytest
 import jax
@@ -25,7 +26,7 @@ def test_estimate_eta_dd_in_W():
         inverse=lambda x: x
     )
 
-    eta_dd = estimate_eta_dd_in_W(L_apply, W, key, shape=(10,))
+    eta_dd = estimate_eta_dd_in_W(L_apply, W, key, input_shape=(10,))
 
     assert eta_dd == 0.0
 
@@ -46,6 +47,6 @@ def test_estimate_gamma_in_W():
         inverse=lambda x: x
     )
 
-    gamma = estimate_gamma_in_W(L_apply, W, key, shape=(10,))
+    gamma = estimate_gamma_in_W(L_apply, W, key, input_shape=(10,))
 
     assert jnp.isclose(gamma, 2.0, atol=1e-5)

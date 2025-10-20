@@ -75,6 +75,12 @@ p_{k+1} &= p_{k+1/2} - \tfrac{\Delta t}{2} \partial_q H(q_{k+1}, p_{k+1/2})
 $$
 **Properties:** Symplectic, time-reversible, energy error $O(\Delta t^2)$.
 
+**Implementation Steps:**
+The integrator is implemented as a three-step "kick-drift-kick" sequence which directly translates the mathematical definition:
+1.  **Kick (half-step momentum):** First, calculate the momentum at the half-step, $p_{k+1/2}$. This uses the gradient of the Hamiltonian with respect to position, $\partial_q H$, evaluated at the initial state $(q_k, p_k)$.
+2.  **Drift (full-step position):** Next, calculate the full-step position, $q_{k+1}$. This uses the gradient of the Hamiltonian with respect to momentum, $\partial_p H$, evaluated at the intermediate state $(q_k, p_{k+1/2})$.
+3.  **Kick (full-step momentum):** Finally, calculate the full-step momentum, $p_{k+1}$. This uses the gradient of the Hamiltonian with respect to position, $\partial_q H$, evaluated at the new intermediate state $(q_{k+1}, p_{k+1/2})$.
+
 **JAX Code Stub:**
 ```python
 def F_Con(state, H=None, dt=1.0):

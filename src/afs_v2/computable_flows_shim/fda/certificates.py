@@ -13,7 +13,7 @@ def LW_apply(v: jnp.ndarray, L_apply: Callable, tf: TransformOp) -> jnp.ndarray:
     Lu = L_apply(u)            # apply core operator
     return tf.forward(Lu)     # analysis back to W-space
 
-def estimate_eta_dd_in_W(L_apply: Callable, W: TransformOp, key, n_probe: int = 16, eps: float = 1e-9) -> float:
+def estimate_eta_dd_in_W(L_apply: Callable, W: TransformOp, key, input_shape: tuple, n_probe: int = 16, eps: float = 1e-9) -> float:
     """
     Estimates the diagonal dominance (η) of an operator in the wavelet domain.
     """
@@ -22,8 +22,7 @@ def estimate_eta_dd_in_W(L_apply: Callable, W: TransformOp, key, n_probe: int = 
     
     # Get the shape of the operator's output by creating a dummy input
     # This is a bit of a hack, a better implementation would get the shape from the spec
-    dummy_input_shape = (10,) # Assuming a 1D operator for now
-    dummy_input = jnp.ones(dummy_input_shape)
+    dummy_input = jnp.ones(input_shape)
     output_shape = L_apply(dummy_input).shape
 
     # Generate random probes
@@ -41,7 +40,7 @@ def estimate_eta_dd_in_W(L_apply: Callable, W: TransformOp, key, n_probe: int = 
     
     return float(jnp.max(ratio))
 
-def estimate_gamma_in_W(L_apply: Callable, W: TransformOp, key, k: int = 8, iters: int = 64) -> float:
+def estimate_gamma_in_W(L_apply: Callable, W: TransformOp, key, input_shape: tuple, k: int = 8, iters: int = 64) -> float:
     """
     Estimates the spectral gap (γ) of an operator in the wavelet domain using power iteration.
     """
@@ -49,8 +48,7 @@ def estimate_gamma_in_W(L_apply: Callable, W: TransformOp, key, k: int = 8, iter
     # A real implementation would be more sophisticated.
     
     # Get the shape of the operator's output
-    dummy_input_shape = (10,) # Assuming a 1D operator for now
-    dummy_input = jnp.ones(dummy_input_shape)
+    dummy_input = jnp.ones(input_shape)
     output_shape = L_apply(dummy_input).shape
 
     # Power iteration to find the largest eigenvalue (Lipschitz constant)
