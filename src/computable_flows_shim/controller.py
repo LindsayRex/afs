@@ -7,13 +7,14 @@ import jax.numpy as jnp
 from computable_flows_shim.energy.compile import CompiledEnergy
 from computable_flows_shim.runtime.step import run_flow_step
 from computable_flows_shim.fda.certificates import estimate_gamma, estimate_eta_dd
+from .telemetry import TelemetryManager
 
 def run_certified(
     initial_state: Dict[str, jnp.ndarray],
     compiled: CompiledEnergy,
     num_iterations: int,
     step_alpha: float,
-    recorder=None,
+    telemetry_manager: Optional[TelemetryManager] = None,
     flow_name: str = "",
     run_id: str = "",
     _step_function_for_testing: Optional[Callable] = None,
@@ -34,21 +35,21 @@ def run_certified(
         if eta < 1.0 and gamma > 0:
             # GREEN: Certificates pass
             phase = "GREEN"
-            if recorder:
-                recorder.log_event(run_id=run_id, event="PHASE_TRANSITION", payload={"from": "AMBER", "to": "GREEN", "attempt": attempt})
+            if telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(run_id=run_id, event="PHASE_TRANSITION", payload={"from": "AMBER", "to": "GREEN", "attempt": attempt})
             break
         elif attempt < max_remediation_attempts:
             # AMBER: Try remediation
             phase = "AMBER"
-            if recorder:
-                recorder.log_event(run_id=run_id, event="PHASE_TRANSITION", payload={"from": "RED", "to": "AMBER", "attempt": attempt, "eta": float(eta), "gamma": float(gamma)})
+            if telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(run_id=run_id, event="PHASE_TRANSITION", payload={"from": "RED", "to": "AMBER", "attempt": attempt, "eta": float(eta), "gamma": float(gamma)})
             # Remediation: reduce alpha by half
             current_alpha *= 0.5
         else:
             # RED: Failed all attempts
             phase = "RED"
-            if recorder:
-                recorder.log_event(run_id=run_id, event="CERT_FAIL", payload={"eta": float(eta), "gamma": float(gamma), "attempts": attempt})
+            if telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(run_id=run_id, event="CERT_FAIL", payload={"eta": float(eta), "gamma": float(gamma), "attempts": attempt})
             raise ValueError(f"System failed certification after {max_remediation_attempts} remediation attempts. Final eta={eta:.4f}, gamma={gamma:.4f}.")
     
     # --- Phase 2: GREEN - Main Loop ---
@@ -71,8 +72,8 @@ def run_certified(
         # Placeholder for sparsity (TODO: compute from W-space)
         sparsity_wx = 0.0
         # Log telemetry
-        if recorder:
-            recorder.log(
+        if telemetry_manager:
+            telemetry_manager.flight_recorder.log(
                 run_id=run_id,
                 flow_name=flow_name,
                 phase=phase,
@@ -100,17 +101,18 @@ def run_certified(
                 break
             else:
                 # AMBER: Energy increased, reduce alpha and retry
-                if recorder:
-                    recorder.log_event(run_id=run_id, event="STEP_REMEDIATION", payload={"iter": i, "attempt": step_attempt, "E_prev": float(energy), "E_new": float(new_energy), "alpha": float(step_alpha_local)})
+                if telemetry_manager:
+                    telemetry_manager.flight_recorder.log_event(run_id=run_id, event="STEP_REMEDIATION", payload={"iter": i, "attempt": step_attempt, "E_prev": float(energy), "E_new": float(new_energy), "alpha": float(step_alpha_local)})
                 step_alpha_local *= 0.5
                 if step_attempt == max_step_attempts - 1:
                     # Failed all attempts
-                    if recorder:
-                        recorder.log_event(run_id=run_id, event="STEP_FAIL", payload={"iter": i, "attempts": step_attempt + 1, "E_prev": float(energy), "E_new": float(new_energy)})
+                    if telemetry_manager:
+                        telemetry_manager.flight_recorder.log_event(run_id=run_id, event="STEP_FAIL", payload={"iter": i, "attempts": step_attempt + 1, "E_prev": float(energy), "E_new": float(new_energy)})
                     raise ValueError(f"Step failed to decrease energy after {max_step_attempts} remediation attempts at iteration {i}.")
         else:
             # This shouldn't happen due to the raise above
             pass
-    if recorder:
-        recorder.log_event(run_id=run_id, event="RUN_FINISHED", payload={})
+    if telemetry_manager:
+        telemetry_manager.flight_recorder.log_event(run_id=run_id, event="RUN_FINISHED", payload={})
+        telemetry_manager.flush()  # Ensure all data is written
     return state
