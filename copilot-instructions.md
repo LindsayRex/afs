@@ -36,3 +36,16 @@ This project follows a strict, verifiable, and incremental development process. 
 - Prefer small, focused unit tests built via the TDD cycle.
 - Use repository `pyproject.toml` pytest settings; run with `pytest -q`.
 
+## Documentation and Knowledge Base
+- Before using a function from a third-party library, you MUST consult the local documentation in the `archive/` directory to ensure you are using the correct API and respecting its contract.
+- Do not rely on assumed knowledge. Verify the correct usage from the archived documentation.
+- Key documentation paths:
+  - **JAX:** `archive/jax-docs-archive/`
+  - **Optax:** `archive/optax-docs/`
+  - **Orbax:** `archive/orbax-docs/`
+  - **Jax-Wavelet-Toolbox (jaxwt):** `archive/jaxwt-docs/`
+  - **NetworkX:** `archive/networkx-docs/`
+  - **DuckDB:** `archive/duckdb-docs/`
+  - **PyArrow:** `archive/pyarrow-docs/`
+  - **frozendict:** `archive/frozendict-docs/`
+

@@ -79,3 +79,32 @@ def test_controller_enforces_lyapunov_descent():
             step_alpha=0.1,
             _step_function_for_testing=malicious_step_function # Inject our malicious function
         )
+
+def test_controller_checks_spectral_gap():
+    """
+    Tests that the controller refuses to run an unstable system (non-positive spectral gap).
+    """
+    # GIVEN an energy functional with an unstable linear operator (negative eigenvalue)
+    class UnstableOp(Op):
+        def __call__(self, x):
+            # This operator has eigenvalues -1 and 2. The spectral gap is -1.
+            return jnp.array([-1.0 * x[0], 2.0 * x[1]])
+
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type='tikhonov', op='L', weight=1.0, variable='x')
+        ],
+        state=StateSpec(shapes={'x': [2]})
+    )
+    op_registry = {'L': UnstableOp()}
+    compiled = compile_energy(spec, op_registry)
+    
+    # WHEN we try to run the flow
+    # THEN the controller should detect the negative spectral gap and raise an error
+    with pytest.raises(ValueError, match="System is unstable"):
+        run_certified(
+            initial_state={'x': jnp.array([1.0, 1.0])},
+            compiled=compiled,
+            num_iterations=10,
+            step_alpha=0.1
+        )

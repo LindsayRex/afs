@@ -43,3 +43,16 @@ python -m venv .venv
 pip install -r requirements.txt
 pytest -q
 ```
+
+## Local Documentation Archive
+This repository contains a local archive of the documentation for its key dependencies. This ensures that development is based on a stable, version-specific set of APIs. The documentation can be found in the `archive/` directory.
+
+Key packages include:
+- **JAX:** `archive/jax-docs-archive/`
+- **Optax:** `archive/optax-docs/`
+- **Orbax:** `archive/orbax-docs/`
+- **Jax-Wavelet-Toolbox (jaxwt):** `archive/jaxwt-docs/`
+- **NetworkX:** `archive/networkx-docs/`
+- **DuckDB:** `archive/duckdb-docs/`
+- **PyArrow:** `archive/pyarrow-docs/`
+- **frozendict:** `archive/frozendict-docs/`

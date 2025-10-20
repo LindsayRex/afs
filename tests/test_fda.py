@@ -10,7 +10,7 @@ import pytest
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from computable_flows_shim.fda.certificates import estimate_gamma
+from computable_flows_shim.fda.certificates import estimate_gamma, estimate_eta_dd
 from computable_flows_shim.api import Op
 
 class IdentityOp(Op):
@@ -35,3 +35,20 @@ def test_estimate_gamma():
 
     # THEN the estimated gamma should be close to the true smallest eigenvalue.
     assert jnp.isclose(gamma, 3.0, atol=1e-3)
+
+def test_estimate_eta_dd():
+    """
+    Tests the diagonal dominance (eta) estimation for a simple linear operator.
+    """
+    # GIVEN a simple, diagonally dominant linear operator (a diagonal matrix)
+    def L_apply(v):
+        return jnp.array([3.0 * v[0], 5.0 * v[1]])
+
+    input_shape = (2,)
+
+    # WHEN we estimate the diagonal dominance
+    # This will fail because the function doesn't exist yet
+    eta = estimate_eta_dd(L_apply, input_shape)
+
+    # THEN the estimated eta should be 0 for a diagonal matrix.
+    assert jnp.isclose(eta, 0.0)
