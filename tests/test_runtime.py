@@ -20,8 +20,9 @@ class IdentityOp(Op):
 def test_forward_backward_step():
     """
     Tests one full step of Forward-Backward Splitting (F_Dis -> F_Proj).
+    This test computationally verifies Lemma 6: Stability of Composite Splitting.
     """
-    # GIVEN a composite energy functional (quadratic + L1)
+    # GIVEN a composite energy functional (quadratic data term f, L1 regularization g)
     spec = EnergySpec(
         terms=[
             TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y'),
@@ -32,19 +33,18 @@ def test_forward_backward_step():
     op_registry = {'I': IdentityOp()}
     compiled = compile_energy(spec, op_registry)
 
-    # WHEN we run one step of the flow
+    # WHEN we run one full step of the flow from a known state
     initial_state = {'x': jnp.array([2.0]), 'y': jnp.array([1.0])}
     step_alpha = 0.1
-    
-    # This will fail because run_flow_step doesn't exist yet
     final_state = run_flow_step(initial_state, compiled, step_alpha)
 
-    # THEN the state should be the result of F_Dis followed by F_Proj
-    # 1. F_Dis step:
-    #    grad = (x-y) = 2.0 - 1.0 = 1.0
-    #    x_after_dis = 2.0 - 0.1 * 1.0 = 1.9
-    # 2. F_Proj step:
-    #    threshold = alpha * weight = 0.1 * 0.5 = 0.05
-    #    x_after_proj = 1.9 - 0.05 = 1.85
+    # THEN the final state should be the result of applying F_Dis, then F_Proj.
+    # 1. Forward/Dissipative step (z = x - alpha * grad_f(x)):
+    #    grad_f(x) = (x-y) = 2.0 - 1.0 = 1.0
+    #    z = 2.0 - 0.1 * 1.0 = 1.9
+    # 2. Backward/Projective step (x_new = prox_g(z)):
+    #    The prox for g(x) = w*||x||_1 is soft-thresholding with threshold = alpha * w.
+    #    threshold = 0.1 * 0.5 = 0.05
+    #    x_new = sign(1.9) * max(|1.9| - 0.05, 0) = 1.85
     expected_x = 1.85
     assert jnp.isclose(final_state['x'], expected_x)

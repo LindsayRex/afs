@@ -45,21 +45,24 @@ def test_compile_quadratic_term():
     """
     Tests that the compiler can compile a quadratic energy function.
     """
+    # GIVEN an energy specification for a simple quadratic term.
+    # The energy is E(x) = w * 0.5 * ||Op(x) - y||^2
     spec = EnergySpec(
         terms=[
             TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
         ],
         state=StateSpec(shapes={'x': [1], 'y': [1]})
     )
-
     op_registry = {'I': IdentityOp()}
     
+    # WHEN the energy functional is compiled
     compiled = compile_energy(spec, op_registry)
     
+    # AND evaluated at a specific state
     state = {'x': jnp.array([2.0]), 'y': jnp.array([1.0])}
     
-    # E(x) = 0.5 * ||I*x - y||^2 = 0.5 * (2.0 - 1.0)^2 = 0.5
-    # The weight is 1.0, so the final energy is 1.0 * 0.5 = 0.5
+    # THEN the resulting energy should be mathematically correct.
+    # E(x) = 1.0 * 0.5 * ||1.0 * 2.0 - 1.0||^2 = 0.5 * 1.0^2 = 0.5
     expected_energy = 0.5
     actual_energy = compiled.f_value(state)
     
@@ -69,7 +72,8 @@ def test_compile_tikhonov_term():
     """
     Tests that the compiler can compile a Tikhonov regularization term.
     """
-    # GIVEN an energy functional with a Tikhonov term
+    # GIVEN an energy specification for a Tikhonov regularization term.
+    # The energy is E(x) = w * 0.5 * ||Op(x)||^2
     spec = EnergySpec(
         terms=[
             TermSpec(type='tikhonov', op='D', weight=0.5, variable='x')
@@ -77,22 +81,22 @@ def test_compile_tikhonov_term():
         state=StateSpec(shapes={'x': [3]})
     )
     op_registry = {'D': FiniteDifferenceOp()}
+
+    # WHEN the energy functional is compiled
     compiled = compile_energy(spec, op_registry)
 
-    # WHEN we evaluate the energy and gradient
+    # AND evaluated at a specific state
     state = {'x': jnp.array([1.0, 3.0, 2.0])}
     
-    # THEN the energy and gradient should be correct
-    # E(x) = 0.5 * ||Dx||^2
-    # Dx = [3-1, 2-3] = [2, -1]
-    # E = 0.5 * (2^2 + (-1)^2) = 0.5 * 5 = 2.5
-    # The weight is 0.5, so the final energy is 0.5 * 2.5 = 1.25
+    # THEN the energy and gradient should be mathematically correct.
+    # Dx = [3.0 - 1.0, 2.0 - 3.0] = [2.0, -1.0]
+    # E(x) = 0.5 * 0.5 * ||[2.0, -1.0]||^2 = 0.25 * (4.0 + 1.0) = 1.25
     expected_energy = 1.25
     assert jnp.isclose(compiled.f_value(state), expected_energy)
 
-    # grad_E = D^T(Dx)
-    # grad_E = D^T([2, -1]) = [-2, 2-(-1), 1] = [-2, 3, -1]
-    # The weight is 0.5, and the gradient of 0.5*||f(x)||^2 is f'(x)^T f(x).
-    # So, grad_E = 0.5 * D^T(Dx) = 0.5 * [-2, 3, -1] = [-1.0, 1.5, -0.5]
+    # The gradient of w * 0.5 * ||Op(x)||^2 is w * Op.T(Op(x)).
+    # grad_E = 0.5 * D.T([2.0, -1.0])
+    #        = 0.5 * [-2.0, 3.0, -1.0]
+    #        = [-1.0, 1.5, -0.5]
     expected_grad = jnp.array([-1.0, 1.5, -0.5])
     assert jnp.allclose(compiled.f_grad(state)['x'], expected_grad)

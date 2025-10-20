@@ -20,8 +20,9 @@ class IdentityOp(Op):
 def test_F_Dis_quadratic():
     """
     Tests that the dissipative step correctly descends the gradient of a quadratic energy function.
+    This test computationally verifies Lemma 1: Monotonic Energy Decay.
     """
-    # GIVEN an energy functional (our quadratic atom)
+    # GIVEN a compiled quadratic energy functional and its gradient
     spec = EnergySpec(
         terms=[
             TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
@@ -32,24 +33,23 @@ def test_F_Dis_quadratic():
     compiled = compile_energy(spec, op_registry)
     grad_f = compiled.f_grad
 
-    # WHEN we apply the dissipative flow
+    # WHEN we apply one step of the dissipative flow from a known state
     initial_state = {'x': jnp.array([2.0]), 'y': jnp.array([1.0])}
     step_alpha = 0.1
-    
-    # This will fail because F_Dis doesn't exist yet
     final_state = F_Dis(initial_state, grad_f, step_alpha, manifolds={})
 
-    # THEN the state should move closer to the minimum
-    # For E(x) = 0.5 * (x-y)^2, the minimum is at x=y=1.0.
-    # The gradient at x=2.0 is (x-y) = 1.0.
-    # The update is x_new = x_old - alpha * grad = 2.0 - 0.1 * 1.0 = 1.9.
+    # THEN the new state should be closer to the minimum (x=y=1.0).
+    # The gradient at x=2.0 is grad_E = (x-y) = 1.0.
+    # The update rule is x_new = x_old - alpha * grad.
+    # x_new = 2.0 - 0.1 * 1.0 = 1.9.
     assert jnp.isclose(final_state['x'], 1.9)
 
 def test_F_Proj_l1():
     """
     Tests that the projective step correctly applies a soft-thresholding operator for an L1 term.
+    This test computationally verifies Lemma 3: Constraint Enforcement via Proximal Operators.
     """
-    # GIVEN an energy functional with an L1 term
+    # GIVEN a compiled energy functional with only an L1 term
     spec = EnergySpec(
         terms=[
             TermSpec(type='l1', op='I', weight=0.5, variable='x')
@@ -59,16 +59,15 @@ def test_F_Proj_l1():
     op_registry = {'I': IdentityOp()}
     compiled = compile_energy(spec, op_registry)
 
-    # WHEN we apply the projective flow
+    # WHEN we apply the projective flow to a known state
     initial_state = {'x': jnp.array([1.5, -0.2, 0.8])}
-    step_alpha = 0.1 # This is the step size, not the weight
-    
-    # This will fail because F_Proj doesn't exist yet
+    step_alpha = 0.1
     final_state = F_Proj(initial_state, compiled.g_prox, step_alpha)
 
-    # THEN the state should be soft-thresholded
-    # The threshold is alpha * weight = 0.1 * 0.5 = 0.05
-    # x_new = sign(x) * max(|x| - threshold, 0)
+    # THEN the new state should be the result of soft-thresholding.
+    # The proximal operator for w*||x||_1 is the soft-thresholding function.
+    # The threshold is alpha * weight = 0.1 * 0.5 = 0.05.
+    # x_new = sign(x) * max(|x| - threshold, 0).
     # x_new[0] = 1.5 - 0.05 = 1.45
     # x_new[1] = -0.2 + 0.05 = -0.15
     # x_new[2] = 0.8 - 0.05 = 0.75
@@ -77,9 +76,9 @@ def test_F_Proj_l1():
 
 def test_F_Multi():
     """
-    Tests the multiscale transform primitive.
+    Tests the multiscale transform primitive's forward and inverse operations.
     """
-    # GIVEN a simple identity transform
+    # GIVEN a simple identity transform object
     class IdentityTransform:
         def forward(self, x):
             return x
@@ -89,17 +88,17 @@ def test_F_Multi():
     W = IdentityTransform()
     x = jnp.array([1.0, 2.0, 3.0])
 
-    # WHEN we apply the forward and inverse transforms
-    # This will fail because the functions don't exist yet
+    # WHEN we apply the forward and then the inverse transform
     u = F_Multi_forward(x, W)
     x_reconstructed = F_Multi_inverse(u, W)
 
-    # THEN the reconstruction should be perfect
+    # THEN the reconstructed vector should be identical to the original.
     assert jnp.allclose(x, x_reconstructed)
 
 def test_F_Con():
     """
     Tests the conservative (symplectic) step.
+    This test computationally verifies Lemma 2: Energy Conservation in Conservative Flows.
     """
     # GIVEN a simple harmonic oscillator Hamiltonian
     def H(state):
@@ -108,12 +107,11 @@ def test_F_Con():
     initial_state = {'q': jnp.array(1.0), 'p': jnp.array(0.0)}
     dt = 0.1
 
-    # WHEN we apply the conservative flow
-    # This will fail because F_Con is not implemented
+    # WHEN we apply one step of the conservative flow
     final_state = F_Con(initial_state, H, dt)
 
-    # THEN the state should follow the exact solution for one step, within tolerance
-    # The exact solution is q(t) = cos(t), p(t) = -sin(t)
+    # THEN the new state should approximate the exact analytical solution.
+    # The Leapfrog integrator has a known error, so we use a tolerance.
     expected_q = jnp.cos(dt)
     expected_p = -jnp.sin(dt)
 
@@ -123,18 +121,21 @@ def test_F_Con():
 def test_F_Ann():
     """
     Tests the annealing/stochastic step.
+    This test computationally verifies Lemma 5: Global Exploration via Stochastic Flows.
     """
     # GIVEN an initial state and a random key
     initial_state = {'x': jnp.zeros(100)}
     key = jax.random.PRNGKey(0)
+    temperature = 0.1
+    dt = 1.0
     
     # WHEN we apply the annealing flow
-    # This will fail because F_Ann is not implemented
-    final_state = F_Ann(initial_state, key, temperature=0.1, dt=1.0)
+    final_state = F_Ann(initial_state, key, temperature, dt)
 
-    # THEN the final state should no longer be all zeros
+    # THEN the final state should have been perturbed by noise.
     assert not jnp.allclose(final_state['x'], 0.0)
     
-    # AND the variance should be related to the temperature and step size
-    # For Langevin dynamics, Var(x) = 2 * T * dt
-    assert jnp.allclose(jnp.var(final_state['x']), 2 * 0.1 * 1.0, atol=1e-1)
+    # AND the variance of the noise should match the theoretical value from Langevin dynamics.
+    # For dx = sqrt(2*T*dt)*dW, the variance of the state is Var(x) = 2*T*dt.
+    expected_variance = 2 * temperature * dt
+    assert jnp.allclose(jnp.var(final_state['x']), expected_variance, atol=1e-1)

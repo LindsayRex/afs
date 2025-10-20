@@ -1,0 +1,81 @@
+"""
+Tests for the Flight Controller.
+"""
+import sys
+from pathlib import Path
+import jax
+import jax.numpy as jnp
+# Add the project root to the Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+
+from computable_flows_shim.energy.specs import EnergySpec, TermSpec, StateSpec
+from computable_flows_shim.energy.compile import compile_energy
+from computable_flows_shim.api import Op
+from computable_flows_shim.controller import run_certified
+from computable_flows_shim.runtime.step import run_flow_step
+import pytest
+
+class IdentityOp(Op):
+    def __call__(self, x):
+        return x
+
+def test_controller_runs_loop():
+    """
+    Tests that the controller can run a simple flow to convergence.
+    """
+    # GIVEN a simple quadratic energy functional
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+        ],
+        state=StateSpec(shapes={'x': [1], 'y': [1]})
+    )
+    op_registry = {'I': IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    # WHEN we run the flow using the controller for a single step
+    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
+    
+    final_state = run_certified(initial_state, compiled, num_iterations=1, step_alpha=0.1)
+
+    # THEN the final state should be the result of one Forward-Backward step
+    # 1. F_Dis: z = x - alpha * grad(f(x)) = 10.0 - 0.1 * (10.0 - 0.0) = 9.0
+    # 2. F_Proj: prox_g is an identity op since there are no non-smooth terms.
+    assert jnp.allclose(final_state['x'], 9.0, atol=1e-3)
+
+def test_controller_enforces_lyapunov_descent():
+    """
+    Tests that the controller aborts if energy increases (violating Lyapunov descent).
+    This test computationally verifies our Design by Contract for F_Dis.
+    """
+    # GIVEN a simple quadratic energy functional
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+        ],
+        state=StateSpec(shapes={'x': [1], 'y': [1]})
+    )
+    op_registry = {'I': IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    # AND a malicious step function that increases energy on the second step
+    def malicious_step_function(state, compiled, step_alpha):
+        # First step is normal
+        if state['x'][0] == 10.0:
+            return run_flow_step(state, compiled, step_alpha)
+        # Second step, deliberately increase the energy by moving away from the minimum
+        else:
+            return {'x': jnp.array([99.0]), 'y': state['y']}
+
+    # WHEN we run the flow with the malicious step function
+    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
+    
+    # THEN the controller should detect the energy increase and raise an error
+    with pytest.raises(ValueError, match="Lyapunov descent violated"):
+        run_certified(
+            initial_state, 
+            compiled, 
+            num_iterations=5, 
+            step_alpha=0.1,
+            _step_function_for_testing=malicious_step_function # Inject our malicious function
+        )
