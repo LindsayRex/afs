@@ -1,0 +1,26 @@
+name: "Policy: enforce agent branch rules"
+
+on:
+  # Replace __POLICY_BRANCHES__ via init script if needed. Default: [ main, dev, test ]
+  pull_request:
+    branches: __POLICY_BRANCHES__
+
+permissions:
+  pull-requests: read
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR source branch policy
+        env:
+          PR_HEAD: ${{ github.head_ref }}
+          PR_BASE: ${{ github.base_ref }}
+        shell: bash
+        run: |
+          echo "Head: $PR_HEAD  Base: $PR_BASE"
+          if [[ "$PR_HEAD" == copilot/* && "$PR_BASE" != "test" ]]; then
+            echo "PRs from copilot/* must target test. Found: $PR_HEAD -> $PR_BASE" >&2
+            exit 1
+          fi
+          echo "Policy OK"

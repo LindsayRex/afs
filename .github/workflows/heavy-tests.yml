@@ -1,0 +1,62 @@
+name: Heavy tests (experiments/integration) - template
+
+on:
+  workflow_dispatch:
+    inputs:
+      markers:
+        description: "Pytest markers to include (default: experiments or integration)"
+        required: false
+        default: "experiments or integration or fda"
+  schedule:
+    - cron: '0 3 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  heavy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 'PYTHON_VERSION_PLACEHOLDER'
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Cache uv cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-
+
+      - name: Install dependencies (uv)
+        run: |
+          uv pip install --system -r requirements.txt
+          mkdir -p logs outputs
+
+      - name: Run heavy tests
+        env:
+          PYTEST_ADDOPTS: "-q"
+        run: |
+          MARKERS="${{ github.event.inputs.markers }}"
+          if [ -z "$MARKERS" ]; then MARKERS="experiments or integration or fda"; fi
+          echo "Running markers: $MARKERS"
+          pytest -q -m "$MARKERS"
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-heavy-results
+          path: |
+            outputs/test-results.xml
+            logs/pytest_debug.log
+          if-no-files-found: ignore

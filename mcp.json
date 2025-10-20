@@ -1,0 +1,23 @@
+{
+  "inputs": [],
+  "servers": {
+    "filesystem": {
+      "command": "npx",
+      "type": "stdio",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "j:\\Google Drive\\Software\\afs"
+      ]
+    },
+    "git": {
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git",
+        "--repository",
+        "j:\\Google Drive\\Software\\afs"
+      ],
+      "command": "npx"
+    }
+  }
+}

@@ -1,0 +1,64 @@
+# Logs
+*.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Outputs (experimental results - regenerate from tests)
+outputs/
+archive/
+
+
+# Temporary files
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Environments
+ENV_FOLDER_PLACEHOLDER/
+venv/
+env/
+
+# Distribution
+*.egg-info/
+dist/
+build/
+
+# Third-party or large local folders not part of repo
+background/jax-docs/
+Jax-Wavelet-Toolbox/
+
+# Test results
+.coverage
+htmlcov/
+*.parquet
+
+# backups 
+backups/
+
+# Large datasets/bundles (avoid pushing heavy zips)
+# Chrome traces (raw JSON files are huge, commit extracted .parquet instead)
+Design/testing/chrome_sessions/raw_traces/
+# Specific data packs
+Design/testing/**/gc_*.zip
+Design/testing/**/gc_trace_*.zip
+Design/testing/**/gc_coverage_pack_*.zip
+Design/testing/**/better_data/**/*.zip
+Design/testing/investor_data/**/*.zip
+# General catch-all for zips
+*.zip
+background/jax-docs-archive/
+archive/ef2/testing/
+archive/scripts/
+archive/tests/

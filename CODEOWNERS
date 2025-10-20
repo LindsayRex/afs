@@ -1,0 +1,4 @@
+# Template CODEOWNERS - replace placeholders
+.github/workflows/* GITHUB_OWNER_PLACEHOLDER
+README.md GITHUB_OWNER_PLACEHOLDER
+*.py GITHUB_OWNER_PLACEHOLDER

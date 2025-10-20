@@ -1,0 +1,24 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            ".venv/": true
+        },
+        "testExplorer.useNativeTesting": true
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.pylint",
+            "ms-python.black-formatter",
+            "ms-python.isort",
+            "hbenl.vscode-test-explorer"
+        ]
+    }
+}
