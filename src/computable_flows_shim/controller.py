@@ -8,6 +8,7 @@ from computable_flows_shim.energy.compile import CompiledEnergy
 from computable_flows_shim.runtime.step import run_flow_step
 from computable_flows_shim.fda.certificates import estimate_gamma, estimate_eta_dd
 from .telemetry import TelemetryManager
+from .tuner.gap_dial import GapDialTuner
 
 def run_certified(
     initial_state: Dict[str, jnp.ndarray],
@@ -18,7 +19,8 @@ def run_certified(
     flow_name: str = "",
     run_id: str = "",
     _step_function_for_testing: Optional[Callable] = None,
-    max_remediation_attempts: int = 3
+    max_remediation_attempts: int = 3,
+    gap_dial_tuner: Optional[GapDialTuner] = None
 ) -> Dict[str, jnp.ndarray]:
     """
     Runs a full flow for a fixed number of iterations, with RED/AMBER/GREEN phases and auto-remediation.
@@ -57,6 +59,12 @@ def run_certified(
     energy = compiled.f_value(state)
     step_func = _step_function_for_testing or run_flow_step
 
+    # Initialize Gap Dial tuner if provided
+    if gap_dial_tuner:
+        gap_dial_tuner.reset()
+        if telemetry_manager:
+            telemetry_manager.flight_recorder.log_event(run_id=run_id, event="GAP_DIAL_ENABLED", payload=gap_dial_tuner.get_tuning_status())
+
     import time
     t0 = time.time()
     for i in range(num_iterations):
@@ -75,7 +83,17 @@ def run_certified(
         l1_norm = float(jnp.linalg.norm(x, ord=1))
         l2_norm = float(jnp.linalg.norm(x, ord=2))
         n = float(jnp.prod(jnp.array(x.shape)))
-        sparsity_wx = l1_norm / (l2_norm * jnp.sqrt(n)) if l2_norm > 0 else 0.0
+        sparsity_wx = l1_norm / (l2_norm * float(jnp.sqrt(n))) if l2_norm > 0 else 0.0
+
+        # Gap Dial: Monitor and adapt parameters
+        gap_dial_status = None
+        if gap_dial_tuner and gap_dial_tuner.should_check_gap(i):
+            current_gap = gap_dial_tuner.estimate_spectral_gap(compiled, state)
+            gap_dial_status = gap_dial_tuner.adapt_parameters(current_gap, compiled)
+            if telemetry_manager and gap_dial_status['adaptation_applied']:
+                telemetry_manager.flight_recorder.log_event(run_id=run_id, event="GAP_DIAL_ADAPTATION",
+                    payload={"iteration": i, "gap": current_gap, "lambda": gap_dial_status['lambda_regularization']})
+
         # Log telemetry
         if telemetry_manager:
             telemetry_manager.flight_recorder.log(

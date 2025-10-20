@@ -4,6 +4,7 @@ from typing import Optional
 
 from .flight_recorder import FlightRecorder
 from .manifest_writer import write_manifest
+from .telemetry_streamer import TelemetryStreamer, TelemetryUpdate, broadcast_telemetry_update
 
 class TelemetryManager:
     """
@@ -49,6 +50,31 @@ class TelemetryManager:
             residual_details=residual_details,
             extra=extra,
         )
+
+    def broadcast_telemetry_update(self, iteration: int, energy: float, grad_norm: float, 
+                                 sparsity: float, phase: str, certificates: Optional[dict] = None):
+        """
+        Broadcast a telemetry update to connected dashboard clients.
+        
+        Args:
+            iteration: Current iteration number
+            energy: Current energy value
+            grad_norm: Current gradient norm
+            sparsity: Current sparsity measure
+            phase: Current optimization phase
+            certificates: Optional certificate values
+        """
+        update = TelemetryUpdate(
+            run_id=self.run_id,
+            iteration=iteration,
+            timestamp=datetime.datetime.now().timestamp(),
+            energy=energy,
+            grad_norm=grad_norm,
+            sparsity=sparsity,
+            phase=phase,
+            certificates=certificates
+        )
+        broadcast_telemetry_update(update)
 
     def flush(self):
         """

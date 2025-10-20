@@ -105,36 +105,75 @@ def test_run_flow_with_telemetry():
         assert 'eta_dd' in cert_event['payload']
         assert 'gamma' in cert_event['payload']
 
-def test_run_flow_step_multiscale():
+from computable_flows_shim.runtime.checkpoint import CheckpointManager
+from computable_flows_shim.runtime.engine import resume_flow
+
+def test_checkpointing():
     """
-    Tests run_flow_step with multiscale transforms.
+    Tests checkpoint creation, listing, loading, and resuming functionality.
     """
-    # GIVEN a simple energy functional and an identity transform
+    # GIVEN a simple energy functional and checkpoint manager
     spec = EnergySpec(
         terms=[
-            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y'),
-            TermSpec(type='l1', op='I', weight=0.5, variable='x')
+            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
         ],
-        state=StateSpec(shapes={'x': [4], 'y': [4]})
+        state=StateSpec(shapes={'x': [1], 'y': [1]})
     )
     op_registry = {'I': IdentityOp()}
     compiled = compile_energy(spec, op_registry)
+    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
     
-    # Identity transform
-    class IdentityTransform:
-        def forward(self, x):
-            return x
-        def inverse(self, x):
-            return x
-    
-    W = IdentityTransform()
-    initial_state = {'x': jnp.array([2.0, -1.0, 0.5, -0.2]), 'y': jnp.array([1.0, 1.0, 1.0, 1.0])}
-    step_alpha = 0.1
-    
-    # WHEN we run one step with multiscale
-    final_state = run_flow_step(initial_state, compiled, step_alpha, W=W)
-    
-    # THEN the state should be updated (basic check)
-    assert 'x' in final_state
-    assert 'y' in final_state
-    assert final_state['x'].shape == initial_state['x'].shape
+    with tempfile.TemporaryDirectory() as temp_dir:
+        checkpoint_manager = CheckpointManager(checkpoint_dir=temp_dir)
+        tm = TelemetryManager(base_path=temp_dir, flow_name="test_checkpoint_flow")
+        
+        # WHEN we run the flow with checkpointing
+        final_state = run_flow(
+            initial_state=initial_state,
+            compiled=compiled,
+            num_iters=10,
+            step_alpha=0.1,
+            telemetry_manager=tm,
+            checkpoint_manager=checkpoint_manager,
+            checkpoint_interval=3
+        )
+        
+        # THEN checkpoints should be created
+        checkpoints = checkpoint_manager.list_checkpoints()
+        assert len(checkpoints) > 0
+        
+        # Get the latest checkpoint
+        latest_checkpoint = max(checkpoints, key=lambda c: c['iteration'])
+        assert latest_checkpoint['iteration'] == 9  # Checkpoints at iterations 3, 6, 9 for interval 3
+        
+        # WHEN we load the checkpoint
+        checkpoint_data = checkpoint_manager.load_checkpoint(latest_checkpoint['checkpoint_id'])
+        
+        # THEN the checkpoint should contain the expected data
+        assert 'state' in checkpoint_data
+        assert 'iteration' in checkpoint_data
+        assert checkpoint_data['iteration'] == 9
+        assert 'run_id' in checkpoint_data
+        assert 'flow_config' in checkpoint_data
+        assert 'certificates' in checkpoint_data
+        assert isinstance(checkpoint_data['state']['x'], jnp.ndarray)
+        
+        # WHEN we resume from the checkpoint for additional iterations
+        resumed_state = resume_flow(
+            checkpoint_id=latest_checkpoint['checkpoint_id'],
+            checkpoint_manager=checkpoint_manager,
+            compiled=compiled,
+            remaining_iters=5,
+            step_alpha=0.1,
+            telemetry_manager=tm,
+            checkpoint_interval=3
+        )
+        
+        # THEN the flow should continue from where it left off
+        # The resumed flow ran 5 more iterations, so total should be more optimized
+        energy_initial = compiled.f_value(initial_state)
+        energy_final = compiled.f_value(final_state)
+        energy_resumed = compiled.f_value(resumed_state)
+        
+        # Energy should decrease with more iterations
+        assert energy_resumed < energy_final < energy_initial

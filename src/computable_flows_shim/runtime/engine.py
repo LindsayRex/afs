@@ -1,6 +1,7 @@
 from typing import Any, Callable, Dict, Optional
 import jax.numpy as jnp
-from .primitives import F_Dis, F_Proj, F_Multi
+from .checkpoint import CheckpointManager
+from .primitives import F_Dis, F_Proj, F_Multi, F_Con, F_Ann
 from ..telemetry import TelemetryManager
 from ..energy.compile import CompiledEnergy # Import canonical CompiledEnergy
 from ..fda.certificates import estimate_eta_dd, estimate_gamma
@@ -50,10 +51,24 @@ def run_flow(
     compiled: CompiledEnergy,
     num_iters: int,
     step_alpha: float,
-    telemetry_manager: Optional[TelemetryManager] = None
+    telemetry_manager: Optional[TelemetryManager] = None,
+    checkpoint_manager: Optional[CheckpointManager] = None,
+    checkpoint_interval: int = 100
 ) -> Dict[str, jnp.ndarray]:
     """
     Runs the full computable flow for a given number of iterations.
+    
+    Args:
+        initial_state: Initial optimization state
+        compiled: Compiled energy specification
+        num_iters: Number of iterations to run
+        step_alpha: Step size for optimization
+        telemetry_manager: Optional telemetry manager for logging
+        checkpoint_manager: Optional checkpoint manager for saving/restoring state
+        checkpoint_interval: How often to create checkpoints (in iterations)
+        
+    Returns:
+        Final optimization state
     """
     import jax
     key = jax.random.PRNGKey(42)  # For FDA estimates
@@ -73,13 +88,129 @@ def run_flow(
             payload={"eta_dd": eta_dd, "gamma": gamma}
         )
     
+    # Prepare flow configuration for checkpoints
+    flow_config = {
+        "num_iters": num_iters,
+        "step_alpha": step_alpha,
+        "input_shape": input_shape,
+        "eta_dd": eta_dd,
+        "gamma": gamma
+    }
+    
     state = initial_state
+    run_id = telemetry_manager.run_id if telemetry_manager else "unknown_run"
+    
     for i in range(num_iters):
         state = run_flow_step(state, compiled, step_alpha)
+        
+        # Create checkpoint if requested and at interval
+        if checkpoint_manager and (i + 1) % checkpoint_interval == 0:
+            certificates = {"eta_dd": eta_dd, "gamma": gamma}
+            checkpoint_id = checkpoint_manager.create_checkpoint(
+                run_id=run_id,
+                iteration=i + 1,
+                state=state,
+                flow_config=flow_config,
+                certificates=certificates,
+                telemetry_history=None  # TODO: Implement telemetry history extraction
+            )
+            
+            # Log checkpoint creation
+            if telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(
+                    run_id=run_id,
+                    event="CHECKPOINT_CREATED",
+                    payload={"checkpoint_id": checkpoint_id, "iteration": i + 1}
+                )
+        
+        # Log telemetry
         if telemetry_manager:
-            # This is a placeholder for the actual telemetry logging
             telemetry_manager.flight_recorder.log(
                 iter=i,
                 E=float(compiled.f_value(state))
             )
+    
+    return state
+
+
+def resume_flow(
+    checkpoint_id: str,
+    checkpoint_manager: CheckpointManager,
+    compiled: CompiledEnergy,
+    remaining_iters: int,
+    step_alpha: float,
+    telemetry_manager: Optional[TelemetryManager] = None,
+    checkpoint_interval: int = 100
+) -> Dict[str, jnp.ndarray]:
+    """
+    Resume a computable flow from a checkpoint.
+    
+    Args:
+        checkpoint_id: ID of checkpoint to resume from
+        checkpoint_manager: Checkpoint manager instance
+        compiled: Compiled energy specification
+        remaining_iters: Number of additional iterations to run
+        step_alpha: Step size for optimization
+        telemetry_manager: Optional telemetry manager for logging
+        checkpoint_interval: How often to create checkpoints
+        
+    Returns:
+        Final optimization state
+    """
+    # Load checkpoint
+    checkpoint_data = checkpoint_manager.load_checkpoint(checkpoint_id)
+    
+    # Extract state and metadata
+    state = checkpoint_data["state"]
+    start_iteration = checkpoint_data["iteration"]
+    run_id = checkpoint_data["run_id"]
+    flow_config = checkpoint_data["flow_config"]
+    
+    # Update telemetry manager run ID if provided
+    if telemetry_manager:
+        telemetry_manager.run_id = run_id
+    
+    # Log resume event
+    if telemetry_manager:
+        telemetry_manager.flight_recorder.log_event(
+            run_id=run_id,
+            event="FLOW_RESUMED",
+            payload={
+                "checkpoint_id": checkpoint_id,
+                "start_iteration": start_iteration,
+                "remaining_iters": remaining_iters
+            }
+        )
+    
+    # Continue running from checkpoint
+    for i in range(start_iteration, start_iteration + remaining_iters):
+        state = run_flow_step(state, compiled, step_alpha)
+        
+        # Create checkpoint if requested and at interval
+        if (i + 1) % checkpoint_interval == 0:
+            certificates = checkpoint_data.get("certificates", {})
+            new_checkpoint_id = checkpoint_manager.create_checkpoint(
+                run_id=run_id,
+                iteration=i + 1,
+                state=state,
+                flow_config=flow_config,
+                certificates=certificates,
+                telemetry_history=None  # TODO: Implement telemetry history extraction
+            )
+            
+            # Log checkpoint creation
+            if telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(
+                    run_id=run_id,
+                    event="CHECKPOINT_CREATED",
+                    payload={"checkpoint_id": new_checkpoint_id, "iteration": i + 1}
+                )
+        
+        # Log telemetry
+        if telemetry_manager:
+            telemetry_manager.flight_recorder.log(
+                iter=i,
+                E=float(compiled.f_value(state))
+            )
+    
     return state

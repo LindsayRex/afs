@@ -5,7 +5,8 @@
   "main": "sparsity_hud_demo.html",
   "scripts": {
     "start": "python -m http.server 8000",
-    "dev": "python -m http.server 8000"
+    "dev": "python -m http.server 8000",
+    "telemetry": "python ../../scripts/afs_cli.py hud"
   },
   "dependencies": {
     "animejs": "^3.2.1"

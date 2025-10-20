@@ -362,6 +362,7 @@
         <button id="triggerCompression">Trigger Compression Event</button>
         <button id="addSparsityEvent">Add Sparsity Event</button>
         <button id="simulateOptimization">Simulate Full Optimization</button>
+        <button id="toggleRealTime" style="background: #10B981;">🔗 Connect Live Telemetry</button>
     </div>
 
     <!-- UI Controls -->
@@ -425,6 +426,143 @@
         let optimizationProgress = 0;
         let soundEnabled = true;
         let isDarkTheme = true;
+
+        // WebSocket connection for real telemetry
+        function connectTelemetry() {
+            if (telemetrySocket) {
+                telemetrySocket.close();
+            }
+
+            telemetrySocket = new WebSocket('ws://localhost:8765');
+
+            telemetrySocket.onopen = function(event) {
+                console.log('Connected to telemetry server');
+                realTimeMode = true;
+                addSparsityEvent('Connected to live telemetry stream');
+
+                // Request list of active runs
+                telemetrySocket.send(JSON.stringify({type: 'list_runs'}));
+            };
+
+            telemetrySocket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleTelemetryMessage(message);
+            };
+
+            telemetrySocket.onclose = function(event) {
+                console.log('Disconnected from telemetry server');
+                realTimeMode = false;
+                addSparsityEvent('Disconnected from telemetry stream - using demo mode');
+            };
+
+            telemetrySocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                realTimeMode = false;
+                addSparsityEvent('Failed to connect to telemetry stream');
+            };
+        }
+
+        function handleTelemetryMessage(message) {
+            switch (message.type) {
+                case 'telemetry_update':
+                    handleTelemetryUpdate(message.data);
+                    break;
+                case 'active_runs':
+                    handleActiveRuns(message.runs);
+                    break;
+                case 'run_list':
+                    handleRunList(message.runs);
+                    break;
+                case 'run_history':
+                    handleRunHistory(message.history);
+                    break;
+            }
+        }
+
+        function handleTelemetryUpdate(data) {
+            // Update current run ID if not set
+            if (!currentRunId) {
+                currentRunId = data.run_id;
+                document.getElementById('currentFlowName').textContent = data.run_id;
+            }
+
+            // Update sparsity from telemetry
+            if (data.sparsity !== undefined) {
+                updateSparsity(data.sparsity);
+                sparsityHistory.push(data.sparsity);
+                if (sparsityHistory.length > 10) sparsityHistory.shift();
+                updateSparkline();
+            }
+
+            // Update timeline progress (iteration-based)
+            if (data.iteration !== undefined) {
+                // Assume max iterations is around 1000 for progress calculation
+                const progress = Math.min(data.iteration / 1000, 1.0);
+                updateTimeline(progress);
+            }
+
+            // Add event for significant changes
+            if (data.phase) {
+                addFlowChangeEvent(`Phase: ${data.phase} (iter ${data.iteration})`);
+            }
+
+            // Trigger compression wave for significant sparsity improvements
+            if (data.sparsity < currentSparsity - 0.1) {
+                triggerCompressionWave();
+            }
+        }
+
+        function handleActiveRuns(runs) {
+            console.log('Active runs:', runs);
+            if (runs.length > 0 && !currentRunId) {
+                // Auto-select first active run
+                currentRunId = runs[0];
+                telemetrySocket.send(JSON.stringify({
+                    type: 'subscribe_run',
+                    run_id: currentRunId
+                }));
+            }
+        }
+
+        function handleRunList(runs) {
+            console.log('Available runs:', runs);
+            // Update flow selector with real runs
+            const selector = document.getElementById('flowSelect');
+            selector.innerHTML = '<option value="">Select Run...</option>';
+            runs.forEach(run => {
+                const option = document.createElement('option');
+                option.value = run.run_id;
+                option.textContent = `${run.run_id} (${run.status})`;
+                selector.appendChild(option);
+            });
+        }
+
+        function handleRunHistory(history) {
+            console.log('Run history:', history);
+            if (history.length > 0) {
+                // Populate sparsity history from telemetry
+                sparsityHistory = history.slice(-10).map(h => h.sparsity || 0.5);
+                updateSparkline();
+
+                // Set current values from latest data
+                const latest = history[history.length - 1];
+                updateSparsity(latest.sparsity || 0.5);
+                updateTimeline((latest.iteration || 0) / 1000);
+            }
+        }
+
+        // Add toggle for real-time mode
+        function toggleRealTimeMode() {
+            if (realTimeMode) {
+                if (telemetrySocket) {
+                    telemetrySocket.close();
+                }
+                realTimeMode = false;
+                addSparsityEvent('Switched to demo mode');
+            } else {
+                connectTelemetry();
+            }
+        }
 
         // Particle system for sparse solutions
         function createEnergyParticle() {
@@ -769,6 +907,143 @@
             }, 800);
         }
 
+        // WebSocket connection for real telemetry
+        function connectTelemetry() {
+            if (telemetrySocket) {
+                telemetrySocket.close();
+            }
+
+            telemetrySocket = new WebSocket('ws://localhost:8765');
+
+            telemetrySocket.onopen = function(event) {
+                console.log('Connected to telemetry server');
+                realTimeMode = true;
+                addSparsityEvent('Connected to live telemetry stream');
+
+                // Request list of active runs
+                telemetrySocket.send(JSON.stringify({type: 'list_runs'}));
+            };
+
+            telemetrySocket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                handleTelemetryMessage(message);
+            };
+
+            telemetrySocket.onclose = function(event) {
+                console.log('Disconnected from telemetry server');
+                realTimeMode = false;
+                addSparsityEvent('Disconnected from telemetry stream - using demo mode');
+            };
+
+            telemetrySocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+                realTimeMode = false;
+                addSparsityEvent('Failed to connect to telemetry stream');
+            };
+        }
+
+        function handleTelemetryMessage(message) {
+            switch (message.type) {
+                case 'telemetry_update':
+                    handleTelemetryUpdate(message.data);
+                    break;
+                case 'active_runs':
+                    handleActiveRuns(message.runs);
+                    break;
+                case 'run_list':
+                    handleRunList(message.runs);
+                    break;
+                case 'run_history':
+                    handleRunHistory(message.history);
+                    break;
+            }
+        }
+
+        function handleTelemetryUpdate(data) {
+            // Update current run ID if not set
+            if (!currentRunId) {
+                currentRunId = data.run_id;
+                document.getElementById('currentFlowName').textContent = data.run_id;
+            }
+
+            // Update sparsity from telemetry
+            if (data.sparsity !== undefined) {
+                updateSparsity(data.sparsity);
+                sparsityHistory.push(data.sparsity);
+                if (sparsityHistory.length > 10) sparsityHistory.shift();
+                updateSparkline();
+            }
+
+            // Update timeline progress (iteration-based)
+            if (data.iteration !== undefined) {
+                // Assume max iterations is around 1000 for progress calculation
+                const progress = Math.min(data.iteration / 1000, 1.0);
+                updateTimeline(progress);
+            }
+
+            // Add event for significant changes
+            if (data.phase) {
+                addFlowChangeEvent(`Phase: ${data.phase} (iter ${data.iteration})`);
+            }
+
+            // Trigger compression wave for significant sparsity improvements
+            if (data.sparsity < currentSparsity - 0.1) {
+                triggerCompressionWave();
+            }
+        }
+
+        function handleActiveRuns(runs) {
+            console.log('Active runs:', runs);
+            if (runs.length > 0 && !currentRunId) {
+                // Auto-select first active run
+                currentRunId = runs[0];
+                telemetrySocket.send(JSON.stringify({
+                    type: 'subscribe_run',
+                    run_id: currentRunId
+                }));
+            }
+        }
+
+        function handleRunList(runs) {
+            console.log('Available runs:', runs);
+            // Update flow selector with real runs
+            const selector = document.getElementById('flowSelect');
+            selector.innerHTML = '<option value="">Select Run...</option>';
+            runs.forEach(run => {
+                const option = document.createElement('option');
+                option.value = run.run_id;
+                option.textContent = `${run.run_id} (${run.status})`;
+                selector.appendChild(option);
+            });
+        }
+
+        function handleRunHistory(history) {
+            console.log('Run history:', history);
+            if (history.length > 0) {
+                // Populate sparsity history from telemetry
+                sparsityHistory = history.slice(-10).map(h => h.sparsity || 0.5);
+                updateSparkline();
+
+                // Set current values from latest data
+                const latest = history[history.length - 1];
+                updateSparsity(latest.sparsity || 0.5);
+                updateTimeline((latest.iteration || 0) / 1000);
+            }
+        }
+
+        // Add toggle for real-time mode
+        function toggleRealTimeMode() {
+            if (realTimeMode) {
+                if (telemetrySocket) {
+                    telemetrySocket.close();
+                }
+                realTimeMode = false;
+                addSparsityEvent('Switched to demo mode');
+            } else {
+                connectTelemetry();
+            }
+        }
+
         // Theme toggle
         document.getElementById('themeToggle').addEventListener('click', () => {
             isDarkTheme = !isDarkTheme;
@@ -815,9 +1090,34 @@
 
         document.getElementById('simulateOptimization').addEventListener('click', simulateOptimization);
 
+        // Real-time telemetry toggle
+        document.getElementById('toggleRealTime').addEventListener('click', () => {
+            toggleRealTimeMode();
+            const button = document.getElementById('toggleRealTime');
+            if (realTimeMode) {
+                button.textContent = '📊 Live Mode Active';
+                button.style.background = '#EF4444';
+            } else {
+                button.textContent = '🔗 Connect Live Telemetry';
+                button.style.background = '#10B981';
+            }
+        });
+
         // Flow selector event listener
         document.getElementById('flowSelect').addEventListener('change', (e) => {
-            updateFlowDisplay(e.target.value);
+            const selectedRun = e.target.value;
+            if (realTimeMode && selectedRun) {
+                // Subscribe to selected run
+                currentRunId = selectedRun;
+                telemetrySocket.send(JSON.stringify({
+                    type: 'subscribe_run',
+                    run_id: selectedRun
+                }));
+                addFlowChangeEvent(`Subscribed to run: ${selectedRun}`);
+            } else {
+                // Use demo flows
+                updateFlowDisplay(selectedRun);
+            }
         });
 
         // Initialize

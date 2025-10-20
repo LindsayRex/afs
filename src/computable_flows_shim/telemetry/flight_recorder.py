@@ -58,4 +58,6 @@ class FlightRecorder:
             pq.write_table(table, temp_path)
         
         # Atomically rename the temporary file to the final path
+        if os.path.exists(path):
+            os.remove(path)
         os.rename(temp_path, path)
