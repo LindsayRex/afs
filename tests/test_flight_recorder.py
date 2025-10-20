@@ -1,6 +1,6 @@
 import pytest
-import numpy as np
-from src.telematry_cfs.flight_recorder import FlightRecorder
+import pyarrow.parquet as pq
+from computable_flows_shim.telemetry import FlightRecorder
 
 class DummyController:
     def __init__(self, recorder):
@@ -23,17 +23,23 @@ class DummyController:
             )
 
 def test_flight_recorder_logs_core_fields(tmp_path):
-    rec = FlightRecorder(str(tmp_path / "telemetry.parquet"))
+    telemetry_file = tmp_path / "telemetry.parquet"
+    rec = FlightRecorder(str(telemetry_file))
     ctrl = DummyController(rec)
     ctrl.run(n=5)
-    df = rec.to_dataframe()
+    rec.flush()
+
+    # Read the parquet file and check its contents
+    table = pq.read_table(telemetry_file)
+    df = table.to_pydict()
+
     # Check that all required fields are present and non-null
     required = [
         "run_id", "flow_name", "phase", "iter", "t_wall_ms", "E", "grad_norm",
         "eta_dd", "gamma", "alpha", "phi_residual", "invariant_drift_max"
     ]
     for col in required:
-        assert col in df.columns, f"Missing column: {col}"
-        assert df[col].notnull().all(), f"Nulls in required column: {col}"
+        assert col in df, f"Missing column: {col}"
+        assert all(x is not None for x in df[col]), f"Nulls in required column: {col}"
     # Check row count
-    assert len(df) == 5
+    assert len(df['iter']) == 5

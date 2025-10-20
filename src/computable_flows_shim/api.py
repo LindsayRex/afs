@@ -8,8 +8,7 @@ class Op(Protocol):
     def __call__(self, x: Any) -> Any: ...
 
 from computable_flows_shim.controller import run_certified
-from telematry_cfs.flight_recorder import FlightRecorder
-from telematry_cfs.manifest_writer import write_manifest
+from computable_flows_shim.telemetry import FlightRecorder, write_manifest
 import os
 
 def run_certified_with_telemetry(

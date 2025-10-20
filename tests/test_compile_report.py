@@ -38,5 +38,6 @@ def test_compile_writes_compile_report():
     # RED: Compiler should produce a compile report. Test fails until implemented.
     assert hasattr(compiled, 'compile_report'), "Compiler must attach a 'compile_report' to CompiledEnergy"
     report = compiled.compile_report
+    assert report is not None, "CompileReport must not be None"
     assert 'unit_normalization_table' in report, "CompileReport must include 'unit_normalization_table'"
     assert 'lens_name' in report, "CompileReport must include 'lens_name'"
