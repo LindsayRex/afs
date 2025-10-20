@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 from computable_flows_shim.energy.compile import CompiledEnergy
 from computable_flows_shim.runtime.step import run_flow_step
-from computable_flows_shim.fda.certificates import estimate_gamma
+from computable_flows_shim.fda.certificates import estimate_gamma, estimate_eta_dd
 
 def run_certified(
     initial_state: Dict[str, jnp.ndarray],
@@ -19,16 +19,21 @@ def run_certified(
     Runs a full flow for a fixed number of iterations, enforcing certificates.
     """
     # --- Phase 1: Certificate Checks ---
-    key = jax.random.PRNGKey(0) # A dummy key for now.
+    key = jax.random.PRNGKey(0)  # A dummy key for now.
     
     # For now, we assume the variable to check is 'x' and get its shape.
     # This will need to be generalized later.
     input_shape = initial_state['x'].shape
     
+    # Check Spectral Gap (γ)
     gamma = estimate_gamma(compiled.L_apply, key, input_shape)
-    
     if gamma <= 0:
         raise ValueError(f"System is unstable: Spectral gap (gamma) is non-positive ({gamma:.4f}).")
+
+    # Check Diagonal Dominance (η)
+    eta = estimate_eta_dd(compiled.L_apply, input_shape)
+    if eta >= 1.0:
+        raise ValueError(f"System is not diagonally dominant: eta ({eta:.4f}) >= 1.0.")
 
     # --- Phase 2: Main Loop ---
     state = initial_state

@@ -43,6 +43,35 @@ def test_controller_runs_loop():
     # 2. F_Proj: prox_g is an identity op since there are no non-smooth terms.
     assert jnp.allclose(final_state['x'], 9.0, atol=1e-3)
 
+class NonDiagonallyDominantOp(Op):
+    def __call__(self, x):
+        # L = [[1, 2], [2, 1]]. Row 0: |2|/|1| = 2 > 1. Not DD.
+        return jnp.array([1.0 * x[0] + 2.0 * x[1], 2.0 * x[0] + 1.0 * x[1]])
+
+def test_controller_checks_diagonal_dominance():
+    """
+    Tests that the controller refuses to run a system that is not diagonally dominant.
+    """
+    # GIVEN an energy functional with a non-diagonally dominant operator
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type='tikhonov', op='L', weight=1.0, variable='x')
+        ],
+        state=StateSpec(shapes={'x': [2]})
+    )
+    op_registry = {'L': NonDiagonallyDominantOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    # WHEN we try to run the flow
+    # THEN the controller should detect the high eta_dd and raise an error
+    with pytest.raises(ValueError, match="System is not diagonally dominant"):
+        run_certified(
+            initial_state={'x': jnp.array([1.0, 1.0])},
+            compiled=compiled,
+            num_iterations=10,
+            step_alpha=0.1
+        )
+
 def test_controller_enforces_lyapunov_descent():
     """
     Tests that the controller aborts if energy increases (violating Lyapunov descent).
