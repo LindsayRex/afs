@@ -1,5 +1,5 @@
 [tool.pytest.ini_options]
-pythonpath = [".", "src/afs_v2"]
+pythonpath = [".", "src", "src/afs_v2"]
 testpaths = ["tests"]
 addopts = [
     "--strict-markers",
