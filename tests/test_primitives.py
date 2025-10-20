@@ -5,13 +5,14 @@ import sys
 from pathlib import Path
 import jax
 import jax.numpy as jnp
+from typing import cast
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
 from computable_flows_shim.energy.specs import EnergySpec, TermSpec, StateSpec
 from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.api import Op
-from computable_flows_shim.runtime.primitives import F_Dis, F_Proj, F_Multi_forward, F_Multi_inverse, F_Con, F_Ann
+from computable_flows_shim.runtime.primitives import F_Dis, F_Proj, F_Multi, F_Con, F_Ann
 
 class IdentityOp(Op):
     def __call__(self, x):
@@ -101,42 +102,26 @@ def test_F_Multi():
     """
     Tests the multiscale transform primitive's forward and inverse operations.
     """
-    # GIVEN a simple identity transform object
-    class IdentityTransform:
+    import jaxwt
+    
+    # Create a wavelet transform object
+    class WaveletTransform:
+        def __init__(self, wavelet='haar', level=1):
+            self.wavelet = wavelet
+            self.level = level
+            
         def forward(self, x):
-            return x
+            return jaxwt.wavedec(x, self.wavelet, level=self.level)
+            
         def inverse(self, x):
-            return x
+            return jaxwt.waverec(x, self.wavelet)
 
-    W = IdentityTransform()
-    x = jnp.array([1.0, 2.0, 3.0])
+    W = WaveletTransform()
+    x = jnp.array([1.0, 2.0, 3.0, 4.0])
 
     # WHEN we apply the forward and then the inverse transform
-    u = F_Multi_forward(x, W)
-    x_reconstructed = F_Multi_inverse(u, W)
-
-    # THEN the reconstructed vector should be identical to the original.
-    assert jnp.allclose(x, x_reconstructed)
-
-def test_F_Multi_contract():
-    """
-    Given: A state and a multiscale transform operator.
-    When: We apply the forward and inverse multiscale transforms.
-    Then: The reconstructed state should be identical to the original.
-    """
-    # GIVEN a simple identity transform object
-    class IdentityTransform:
-        def forward(self, x):
-            return x
-        def inverse(self, x):
-            return x
-
-    W = IdentityTransform()
-    x = jnp.array([1.0, 2.0, 3.0])
-
-    # WHEN we apply the forward and then the inverse transform
-    u = F_Multi_forward(x, W)
-    x_reconstructed = F_Multi_inverse(u, W)
+    u = F_Multi(x, W, 'forward')
+    x_reconstructed = cast(jnp.ndarray, F_Multi(u, W, 'inverse'))
 
     # THEN the reconstructed vector should be identical to the original.
     assert jnp.allclose(x, x_reconstructed)
@@ -148,22 +133,60 @@ def test_F_Multi_contract_jaxwt():
     Then: The reconstructed state should be identical to the original.
     """
     import jaxwt
-    # GIVEN a jaxwt wavelet transform
+    
+    # Create a wavelet transform object
     class JaxwtTransform:
+        def __init__(self, wavelet='db1', level=1):
+            self.wavelet = wavelet
+            self.level = level
+            
         def forward(self, x):
-            return jaxwt.wavedec2(x, 'db1', level=1)
+            return jaxwt.wavedec(x, self.wavelet, level=self.level)
+            
         def inverse(self, x):
-            return jaxwt.waverec2(x, 'db1')
+            return jaxwt.waverec(x, self.wavelet)
 
     W_op = JaxwtTransform()
-    x = jnp.ones((4, 4))
+    x = jnp.ones((4,))
 
     # WHEN we apply the forward and then the inverse transform
-    u = F_Multi_forward(x, W_op)
-    x_reconstructed = F_Multi_inverse(u, W_op)
-
+    coeffs = F_Multi(x, W_op, 'forward')
+    x_reconstructed = cast(jnp.ndarray, F_Multi(coeffs, W_op, 'inverse'))
+    
     # THEN the reconstructed vector should be identical to the original.
     assert jnp.allclose(x, x_reconstructed)
+
+def test_F_Multi_wavelet_roundtrip():
+    """
+    GREEN: Test for proper F_Multi primitive with wavelet roundtrip.
+    Given: A 1D signal and wavelet transform object.
+    When: We apply forward then inverse wavelet transform.
+    Then: The signal should be perfectly reconstructed.
+    """
+    import jaxwt
+    
+    # Create a wavelet transform object
+    class HaarTransform:
+        def __init__(self, level=1):
+            self.level = level
+            
+        def forward(self, x):
+            return jaxwt.wavedec(x, 'haar', level=self.level)
+            
+        def inverse(self, x):
+            return jaxwt.waverec(x, 'haar')
+    
+    W = HaarTransform()
+    
+    # GIVEN a 1D signal
+    x = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
+    
+    # WHEN we apply F_Multi forward and inverse
+    coeffs = F_Multi(x, W, 'forward')
+    reconstructed = cast(jnp.ndarray, F_Multi(coeffs, W, 'inverse'))
+    
+    # THEN the signal should be perfectly reconstructed
+    assert jnp.allclose(x, reconstructed)
 
 def test_F_Con():
     """

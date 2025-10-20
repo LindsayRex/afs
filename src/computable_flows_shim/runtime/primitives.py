@@ -1,13 +1,21 @@
 """
 Primitive flow operators for the Computable Flows Shim.
 """
-from typing import Callable, Dict, Any
+from typing import Callable, Dict, Any, Union, List, Protocol
 import jax
 import jax.numpy as jnp
 
 # JAX types for clarity
 Array = jnp.ndarray
 State = Dict[str, Array]
+
+class TransformProtocol(Protocol):
+    """Protocol for multiscale transform objects."""
+    def forward(self, x: Array) -> List[Array]:
+        ...
+    
+    def inverse(self, x: List[Array]) -> Array:
+        ...
 
 def F_Dis(state: State, grad_f: Callable[[State], State], step_alpha: float, manifolds: Dict[str, Any]) -> State:
     """
@@ -41,17 +49,25 @@ def F_Proj(state: State, prox_g: Callable, step_alpha: float) -> State:
     """
     return prox_g(state, step_alpha)
 
-def F_Multi_forward(x: Array, W: Any) -> Array:
+def F_Multi(x: Union[Array, List[Array]], W: TransformProtocol, direction: str) -> Union[Array, List[Array]]:
     """
-    Multiscale Transform (F_Multi) - Forward.
+    Multiscale Transform (F_Multi): Applies wavelet transform forward or inverse.
+    
+    Args:
+        x: Input array (for forward) or coefficient list (for inverse)
+        W: Transform object with forward(x) and inverse(x) methods
+        direction: 'forward' or 'inverse'
+        
+    Returns:
+        For forward: List of coefficient arrays
+        For inverse: Reconstructed array
     """
-    return W.forward(x)
-
-def F_Multi_inverse(u: Array, W: Any) -> Array:
-    """
-    Multiscale Transform (F_Multi) - Inverse.
-    """
-    return W.inverse(u)
+    if direction == 'forward':
+        return W.forward(x)  # type: ignore
+    elif direction == 'inverse':
+        return W.inverse(x)  # type: ignore
+    else:
+        raise ValueError(f"Invalid direction: {direction}. Must be 'forward' or 'inverse'.")
 
 def F_Con(state: State, H: Callable[[State], Array], dt: float) -> State:
     """

@@ -1,16 +1,6 @@
 from typing import Any, Callable, Dict, Optional
-from .primitives import F_Dis, F_Proj, F_Multi_forward, F_Multi_inverse
-from ..telemetry import TelemetryManager
-from ..energy.compile import CompiledEnergy # Import canonical CompiledEnergy
-from ..fda.certificates import estimate_eta_dd, estimate_gamma
-
-# JAX types for clarity
-Array = Any
-State = Dict[str, Array]
-
-from typing import Any, Callable, Dict, Optional
 import jax.numpy as jnp
-from .primitives import F_Dis, F_Proj, F_Multi_forward, F_Multi_inverse
+from .primitives import F_Dis, F_Proj, F_Multi
 from ..telemetry import TelemetryManager
 from ..energy.compile import CompiledEnergy # Import canonical CompiledEnergy
 from ..fda.certificates import estimate_eta_dd, estimate_gamma
@@ -41,13 +31,13 @@ def run_flow_step(
     
     if W is not None:
         # Multiscale: transform to W-space
-        u = F_Multi_forward(state_after_dis['x'], W)
+        u = F_Multi(state_after_dis['x'], W, 'forward')
         # Projective step in W-space
         # For now, assume prox is for the transformed space
         # TODO: Update compiler to handle W-space prox
         u_proj = compiled.g_prox({'x': u}, step_alpha)['x']
         # Transform back to physical domain
-        x_new = F_Multi_inverse(u_proj, W)
+        x_new = F_Multi(u_proj, W, 'inverse')
         state_after_proj = {'x': x_new, 'y': state['y']}  # Keep y unchanged
     else:
         # Simple flow: projective in physical domain
