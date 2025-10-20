@@ -1,0 +1,49 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "pytest-quick",
+			"type": "shell",
+			"command": "${config:python.defaultInterpreterPath}",
+			"args": [
+				"-m",
+				"pytest",
+				"-q"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$python"
+			]
+		},
+		{
+			"label": "pytest-units",
+			"type": "shell",
+			"command": "${config:python.defaultInterpreterPath}",
+			"args": [
+				"-m",
+				"pytest",
+				"-q",
+				"tests"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$python"
+			]
+		},
+		{
+			"label": "pylint-phase10",
+			"type": "shell",
+			"command": "${config:python.defaultInterpreterPath}",
+			"args": [
+				"-m",
+				"pylint",
+				"--fail-under=9.0",
+				"scripts"
+			],
+			"problemMatcher": [
+				"$python"
+			],
+			"group": "build"
+		},
+	]
+}

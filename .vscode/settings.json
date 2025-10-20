@@ -1,0 +1,59 @@
+{
+  // ---- Python interpreter (your venv) ----
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  
+  // ---- Pylint configuration ----
+  "pylint.interpreter": [
+    "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+  ],
+  "pylint.path": ["${interpreter}"],
+  "pylint.args": [],
+  "pylint.cwd": "${workspaceFolder}",
+  
+  // Only lint open files, not entire workspace
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.linting.lintOnSave": true,
+
+  // ---- Pyright/Pylance ----
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.exclude": [
+    "**/archive/**",
+    "**/background/**",
+    "**/Design/**",
+    "**/outputs/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**",
+    "**/archive/**/*.py",
+    "**/archive/**/*.md"
+  ],
+
+  // ---- Pytest ----
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.cwd": "${workspaceFolder}",
+  "python.testing.pytestArgs": ["tests", "--tb=short", "--strict-markers", "--disable-warnings"],
+
+  // ---- Keep VS Code snappy ----
+  "files.exclude": {
+    "**/__pycache__/**": true,
+    "**/*.pyc": true,
+    "**/.venv/**": true,
+    "**/venv/**": true
+  },
+  
+  "files.watcherExclude": {
+    "**/.git/**": true,
+    "**/__pycache__/**": true,
+    "**/.venv/**": true,
+    "**/venv/**": true,
+    "**/archive/**": true,
+    "**/background/**": true,
+    "**/Design/**": true,
+    "**/outputs/**": true
+  },
+
+  // ---- Terminal configuration ----
+  "terminal.integrated.shellArgs.windows": ["-Command", "& '${workspaceFolder}\\.venv\\Scripts\\Activate.ps1'"]
+}

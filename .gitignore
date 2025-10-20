@@ -22,7 +22,7 @@ archive/
 Thumbs.db
 
 # IDE
-.vscode/
+
 .idea/
 
 # Environments

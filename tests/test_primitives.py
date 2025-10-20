@@ -149,14 +149,11 @@ def test_F_Multi_contract_jaxwt():
     """
     import jaxwt
     # GIVEN a jaxwt wavelet transform
-    W = jaxwt.dwt_nD
-    W_inv = jaxwt.idwt_nD
-    
     class JaxwtTransform:
         def forward(self, x):
-            return W(x, 'db1', level=1)
+            return jaxwt.wavedec2(x, 'db1', level=1)
         def inverse(self, x):
-            return W_inv(x, 'db1')
+            return jaxwt.waverec2(x, 'db1')
 
     W_op = JaxwtTransform()
     x = jnp.ones((4, 4))
