@@ -2,7 +2,7 @@
 
 This document specifies the columnar telemetry schema, events schema, and versioning for run capsules. It is referenced by the runtime and serialization docs.
 
-schema_version: 2
+schema_version: 3
 
 Telemetry table (`telemetry.parquet`) columns (types, units):
 - run_id: string

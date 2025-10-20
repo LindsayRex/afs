@@ -1,7 +1,8 @@
 """
 Compiles a declarative energy specification into JAX-jittable functions.
 """
-from typing import Callable, Dict, Any, NamedTuple
+from typing import Callable, Dict, Any, NamedTuple, Optional
+from dataclasses import dataclass
 import jax
 import jax.numpy as jnp
 from computable_flows_shim.energy.specs import EnergySpec
@@ -11,6 +12,14 @@ class CompiledEnergy(NamedTuple):
     f_grad: Callable
     g_prox: Callable
     L_apply: Callable
+    # Optional compile-time metadata
+    compile_report: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class CompileReport:
+    lens_name: str
+    unit_normalization_table: Dict[str, float]
 
 def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEnergy:
     """
@@ -72,5 +81,12 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
         f_value=jax.jit(f_value),
         f_grad=jax.jit(f_grad),
         g_prox=jax.jit(g_prox),
-        L_apply=L_apply
+        L_apply=L_apply,
+        compile_report={
+            'lens_name': 'identity',
+            'unit_normalization_table': {
+                term.variable: float(jnp.sqrt(term.weight) if hasattr(term, 'weight') else 1.0)
+                for term in spec.terms
+            }
+        }
     )
