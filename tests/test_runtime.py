@@ -92,3 +92,15 @@ def test_run_flow_with_telemetry():
         
         iters = table.column("iter").to_pylist()
         assert iters == [0, 1, 2]
+        
+        # AND the events parquet should contain the CERT_CHECK event
+        events_path = os.path.join(tm.run_path, "events.parquet")
+        assert os.path.exists(events_path)
+        
+        events_table = pq.read_table(events_path)
+        assert events_table.num_rows >= 1  # At least the CERT_CHECK event
+        events = events_table.to_pylist()
+        cert_event = next((e for e in events if e['event'] == 'CERT_CHECK'), None)
+        assert cert_event is not None
+        assert 'eta_dd' in cert_event['payload']
+        assert 'gamma' in cert_event['payload']

@@ -2,6 +2,7 @@ from typing import Any, Callable, Dict, Optional
 from .primitives import F_Dis, F_Proj, F_Multi_forward, F_Multi_inverse
 from ..telemetry import TelemetryManager
 from ..energy.compile import CompiledEnergy # Import canonical CompiledEnergy
+from ..fda.certificates import estimate_eta_dd, estimate_gamma
 
 # JAX types for clarity
 Array = Any
@@ -39,6 +40,24 @@ def run_flow(
     """
     Runs the full computable flow for a given number of iterations.
     """
+    import jax
+    key = jax.random.PRNGKey(42)  # For FDA estimates
+    
+    # Assume single variable 'x' for now
+    input_shape = initial_state['x'].shape
+    
+    # Compute FDA certificates
+    eta_dd = estimate_eta_dd(compiled.L_apply, input_shape)
+    gamma = estimate_gamma(compiled.L_apply, key, input_shape)
+    
+    # Log certificates
+    if telemetry_manager:
+        telemetry_manager.flight_recorder.log_event(
+            run_id=telemetry_manager.run_id,
+            event="CERT_CHECK",
+            payload={"eta_dd": eta_dd, "gamma": gamma}
+        )
+    
     state = initial_state
     for i in range(num_iters):
         state = run_flow_step(state, compiled, step_alpha)

@@ -22,7 +22,7 @@
 			"args": [
 				"-m",
 				"pytest",
-				"-q",
+				"-v",
 				"tests"
 			],
 			"group": "build",

@@ -1,4 +1,4 @@
-quota, yeah import duckdb
+import duckdb
 import os
 
 class DuckDBManager:
