@@ -9,24 +9,26 @@
     "source_folder": "src",
     "qa_logs_folder": "qa_logs"
   },
-  "summary": "Reviewed and corrected gap analysis mapping Shim Build functional specification to current implementation (as of 2025-10-22). Each entry lists spec requirement, implementation status, files/locations, gaps, priority, and recommended next steps. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records.",
+  "summary": "Updated gap analysis following completion of manifold adapters implementation (2025-10-22). Manifold adapters now fully implemented with geometric primitives, Riemannian optimization support, and comprehensive testing. TransformOp integration into W-space compiler also completed. Each entry lists spec requirement, implementation status, files/locations, gaps, priority, and recommended next steps. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records.",
   "items": [
     {
       "id": "primitives_api",
       "spec": "Core runtime primitives: F_Dis, F_Proj, F_Multi, F_Con, manifold adapters, operator interface",
-      "status": "partial",
+      "status": "partial-improved",
       "implemented_in": [
         "src/computable_flows_shim/runtime/primitives.py",
-        "src/computable_flows_shim/runtime/engine.py"
+        "src/computable_flows_shim/runtime/engine.py",
+        "src/computable_flows_shim/runtime/manifolds.py",
+        "tests/test_manifold_adapters.py"
       ],
       "notes": [
-        "F_Dis implemented for Euclidean slots; Riemannian/manifold support raises NotImplementedError.",
+        "F_Dis implemented for both Euclidean and Riemannian slots with manifold dictionary support.",
         "F_Proj delegates to compiled g_prox; W-space prox handling is present in engine but compiler assumes op is its own inverse (simplification).",
         "F_Multi uses TransformProtocol stubs; concrete jaxwt integration not implemented.",
-        "F_Con implemented in a simple form assuming q/p structure; general Hamiltonian & manifold support incomplete."
+        "F_Con implemented in a simple form assuming q/p structure; general Hamiltonian & manifold support incomplete.",
+        "Manifold adapters fully implemented: Euclidean, Sphere, Stiefel, PositiveDefinite manifolds with tangent projections, retractions, and Riemannian gradients."
       ],
       "gaps": [
-        "Full manifold adapter support for F_Dis and F_Proj (exp/log/retract, proj_tangent).",
         "Concrete multiscale transform adapters (jaxwt) and registry integration.",
         "W-space prox correctness: compiler currently applies prox to transformed coefficients assuming op invertibility; needs proper analysis/synthesis mapping and frame scaling (tight/parseval).",
         "Robust F_Con Hamiltonian integrator supporting arbitrary H(state) and manifold cotangent bundles."
@@ -232,22 +234,26 @@
     {
       "id": "multiscale_module",
       "spec": "Wavelet/transform registry, lens probe, frame-aware transforms, W-space prox, lens selection",
-      "status": "skeleton",
+      "status": "partial-improved",
       "implemented_in": [
-        "src/computable_flows_shim/runtime/primitives.py (F_Multi with TransformProtocol stubs)",
+        "src/computable_flows_shim/multi/transform_op.py",
+        "src/computable_flows_shim/atoms/library.py",
+        "src/computable_flows_shim/energy/compile.py",
+        "tests/test_transform_op.py",
         "qa_logs/20251020_multiscale_primitive_completion.md",
         "qa_logs/20251020_multiscale_flow.md"
       ],
       "notes": [
         "F_Multi primitive implemented with TransformProtocol but uses identity transforms by default.",
-        "TransformOp class not yet implemented; jaxwt integration not performed.",
+        "TransformOp class implemented with jaxwt integration and frame-aware transforms.",
+        "WaveletL1Atom added to atoms library with TransformOp integration.",
+        "W-space compiler updated to support wavelet_l1 atoms and lens tracking in CompileReport.",
         "Lens probe and lens selection logic are documented in Design but not implemented in compiler.",
         "Compiler currently sets 'lens_name' to 'identity' by default."
       ],
       "gaps": [
-        "Implement jaxwt-backed TransformOp with forward/inverse and frame metadata (tight/frame constant).",
         "Implement lens probe (compressibility + reconstruction error) and record probe results in CompileReport.",
-        "Refactor engine and compiler to use TransformOp when emitting g_prox (analysis/synthesis)."
+        "Full W-space prox correctness: compiler needs proper analysis/synthesis mapping and frame constant 'c' for all transforms."
       ],
       "priority": "high",
       "recommended_next_steps": [
@@ -357,18 +363,13 @@
   ],
   "top_priority_tasks": [
     {
-      "task": "Implement Manifold adapters & wire into primitives",
-      "reason": "Manifolds are required by the spec for Riemannian slots and will enable F_Dis/F_Proj to be correct for non-Euclidean state slots.",
-      "priority": "high"
-    },
-    {
       "task": "Make compiler W-space aware and emit prox_in_W",
       "reason": "Correct multiscale flows and FDA certificates depend on analysis/synthesis mapping and frame constants.",
       "priority": "high"
     },
     {
-      "task": "Implement TransformOp (jaxwt) and Lens Probe",
-      "reason": "Multiscale transforms are central to the inner loop and builder mode; lens probe enables sensible default lens selection.",
+      "task": "Implement Lens Probe for multiscale transforms",
+      "reason": "Lens probe enables sensible default lens selection and compressibility analysis for multiscale flows.",
       "priority": "high"
     },
     {
@@ -380,9 +381,14 @@
       "task": "Implement TVAtom and Wavelet L1 Atom with tests",
       "reason": "Common atoms needed by many applications and required by spec examples.",
       "priority": "medium-high"
+    },
+    {
+      "task": "Integrate Flight Controller phase machine",
+      "reason": "Controller enables safe parameter tuning with rollback and certificate gating.",
+      "priority": "medium-high"
     }
   ],
-  "notes": "This gap analysis was reviewed and corrected on 2025-10-22 by cross-verifying against Design/shim_build functional specifications, src/ actual implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details (W-space awareness, manifold support, robust certificates, or integration with controller/tuner). 'skeleton' means only stubs/protocols exist with no real implementation. 'basic-implemented' means core functionality works but misses advanced spec features."
+  "notes": "Gap analysis updated on 2025-10-22 following completion of manifold adapters implementation and TransformOp W-space integration. Manifold adapters now fully implemented with geometric primitives, Riemannian optimization support, and comprehensive testing. TransformOp integrated into W-space compiler with WaveletL1Atom support and lens tracking. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details (W-space awareness, manifold support, robust certificates, or integration with controller/tuner). 'partial-improved' indicates recent enhancements that address key gaps. 'skeleton' means only stubs/protocols exist with no real implementation. 'basic-implemented' means core functionality works but misses advanced spec features."
   ,
   "implementation_guidance_from_docs": {
     "jaxwt": {
