@@ -9,7 +9,6 @@ import pytest
 import jax.numpy as jnp
 from computable_flows_shim.energy.specs import EnergySpec, TermSpec, StateSpec
 from computable_flows_shim.energy.compile import compile_energy
-from computable_flows_shim.atoms import QuadraticAtom, TikhonovAtom, L1Atom
 
 
 class TestEnergyCompilerContract:

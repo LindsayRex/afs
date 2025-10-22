@@ -216,6 +216,14 @@ class FlightController:
 
         eta, gamma, is_feasible = self.assess_certificates(compiled, input_shape, key)
 
+        # Log initial certificate check
+        if telemetry_manager:
+            telemetry_manager.flight_recorder.log_event(
+                run_id=run_id,
+                event="CERT_CHECK",
+                payload={"eta_dd": eta, "gamma": gamma, "feasible": is_feasible}
+            )
+
         if not is_feasible:
             # Try remediation by reducing alpha
             for attempt in range(self.config.max_remediation_attempts):

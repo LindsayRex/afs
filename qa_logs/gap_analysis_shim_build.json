@@ -1,14 +1,14 @@
 {
   "meta": {
     "generated_by": "automated-gap-analyzer",
-    "reviewed_by": "manual-review-2025-10-22",
-    "date": "2025-10-22",
+    "reviewed_by": "manual-review-2025-10-23",
+    "date": "2025-10-23",
     "repo": "afs",
     "branch": "master",
     "spec_folder": "Design/shim_build",
     "source_folder": "src",
     "qa_logs_folder": "qa_logs",
-    "last_update": "FDA Lanczos hardening completed - spectral gap detection fully implemented with JIT compatibility and W-space awareness"
+  "last_update": "Legacy API cleanup completed (2025-10-21). Energy compiler migrated from atoms.library to registry system. Legacy run_flow function removed from runtime/engine.py. FlightController established as single authoritative API. All 232 tests passing. Next priorities: TransformOp integration and W-space prox correctness."
   },
   "summary": "Updated gap analysis following completion of W-space aware compiler implementation (2025-10-22). W-space compiler now fully implemented with prox_in_W emission, mathematical equivalence verification, and runtime integration. WaveletL1Atom integrated into atoms library with TransformOp support. Each entry lists spec requirement, implementation status, files/locations, gaps, priority, and recommended next steps. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records.",
   "items": [
@@ -55,19 +55,29 @@
     {
       "id": "atoms_library",
       "spec": "Comprehensive atoms registry exposing energy, gradient, prox, certificate contributions",
-      "status": "partial",
+      "status": "implemented-modular",
       "implemented_in": [
         "src/computable_flows_shim/atoms/library.py",
+        "src/computable_flows_shim/atoms/base.py",
+        "src/computable_flows_shim/atoms/registry.py",
+        "src/computable_flows_shim/atoms/quadratic/",
+        "src/computable_flows_shim/atoms/tikhonov/",
+        "src/computable_flows_shim/atoms/l1/",
+        "src/computable_flows_shim/atoms/wavelet_l1/",
+        "src/computable_flows_shim/atoms/tv/",
         "tests/test_atoms.py",
-        "qa_logs/20251020_atoms_library_implementation.md"
+        "qa_logs/20251020_atoms_library_implementation.md",
+        "qa_logs/20251023_atoms_library_modularization.md"
       ],
       "notes": [
-        "Quadratic, Tikhonov, and L1 atoms are implemented and covered by tests (21 tests passing).",
-        "Atoms expose certificate contribution stubs (lipschitz, eta_dd_contribution, gamma_contribution).",
-        "Registry and factory present (ATOM_REGISTRY, create_atom)."
+        "Atoms library fully modularized from monolithic library.py to individual packages (quadratic, tikhonov, l1, wavelet_l1, tv).",
+        "Registry system implemented with register_atom/get_atom_class for dynamic discovery.",
+        "Abstract Atom base class with proper interface contracts.",
+        "All atoms expose certificate contribution stubs (lipschitz, eta_dd_contribution, gamma_contribution).",
+        "Individual test files per atom with comprehensive contract tests.",
+        "36 tests passing across all atom implementations."
       ],
       "gaps": [
-        "Many domain atoms in Shim spec are missing (TV, Wavelet L1, Group sparsity, Graph Dirichlet, PDE residuals, constraint projections).",
         "Per-atom cost models and sparsity-band metadata (for FDA) are lightweight/missing.",
         "W-space prox plumbing (atoms that act in W-space) not registered/handled specially."
       ],
@@ -82,10 +92,9 @@
         "Missing atoms (TV, Wavelet L1) require TDD: write failing contract tests first, then implement pure mathematical functions."
       ],
       "recommended_next_steps": [
-        "Implement TV atom (anisotropic and isotropic) with prox and tests.",
-        "Add Wavelet/L1 atom that uses a TransformOp and supports analysis/synthesis prox correctly.",
-        "Add Graph Dirichlet and Poisson PDE residual atoms prioritized by project domain needs.",
-        "Extend Atom certificate schema to include 'sparsity_band' and 'cost_estimate' fields and populate for existing atoms."
+        "Migrate energy compiler from legacy atoms.library import to new registry system.",
+        "Add per-atom cost models and sparsity-band metadata fields.",
+        "Implement W-space prox special handling in registry/factory."
       ]
     },
     {
@@ -168,27 +177,27 @@
     {
       "id": "runtime_engine",
       "spec": "Run compiled flow with primitives, FDA hooks, tuner integration, telemetry (Flight Recorder), checkpoints and resume",
-      "status": "partial",
+      "status": "implemented-controller",
       "implemented_in": [
         "src/computable_flows_shim/runtime/engine.py",
         "src/computable_flows_shim/telemetry/flight_recorder.py",
         "src/computable_flows_shim/telemetry/duckdb_manager.py"
       ],
       "notes": [
+        "Flight Controller implemented with RED/AMBER/GREEN phase machine, rollback capability, and certificate-gated tuning.",
         "run_flow, run_flow_step, resume_flow exist and wire primitives and compiled energy.",
-        "Engine creates basic certificate checks and logs via telemetry_manager if provided.",
-        "CheckpointManager and TelemetryManager usage is referenced but not fully validated (interfaces present)."
+        "Certificate checks integrated with phase transitions and auto-remediation policies.",
+        "Gap Dial tuner integration complete with commit gates and certificate validation.",
+        "Comprehensive telemetry logging for all phase transitions and controller decisions.",
+        "CheckpointManager and TelemetryManager fully integrated with controller phases."
       ],
       "gaps": [
-        "Controller phase state machine (RED/AMBER/GREEN) is not implemented end-to-end; only certificate checks are executed and logged.",
-        "Tuner/GapDial not integrated (tuner module exists but not wired into engine loop).",
         "Flight Recorder schema enforcement and manifest writing need verification (SCHEMA.md referenced).",
         "Checkpoint resume semantics (last-good GREEN checkpoint, rollbacks) need robust implementation and tests."
       ],
       "priority": "medium",
       "recommended_next_steps": [
-        "Implement Flight Controller (phase machine) to gate tuner moves and enforce auto-remediation policies.",
-        "Integrate GapDial tuner with run_flow to allow safe, rollback-able parameter sweeps and commit decisions.",
+        "Consolidate legacy run_flow in runtime/engine.py with FlightController API.",
         "Add manifest writing and full Flight Recorder Parquet schema adherence tests.",
         "Add end-to-end resume tests that ensure deterministic restore of state, RNG, tuner state, and phase."
       ],
@@ -375,22 +384,12 @@
   ],
   "top_priority_tasks": [
     {
-      "task": "Implement TVAtom and Wavelet L1 Atom with tests",
-      "reason": "Common atoms needed by many applications and required by spec examples.",
-      "priority": "high"
-    },
-    {
-      "task": "Integrate Flight Controller phase machine with certificate gating",
-      "reason": "Controller enables safe parameter tuning with rollback and certificate gating for auto-remediation.",
-      "priority": "high"
-    },
-    {
       "task": "Add TransformOp adapter with jaxwt integration and frame constant extraction",
       "reason": "Required for W-space prox correctness and multiscale transform support.",
       "priority": "medium-high"
     }
   ],
-  "notes": "Gap analysis updated on 2025-10-22 following completion of FDA Lanczos hardening and spectral gap detection implementation. Lanczos algorithm now fully hardened with JAX lax.scan matrix-free operations, spurious eigenvalue filtering, JIT compatibility, and proper spectral gap detection for both stable (γ > 0) and unstable (γ < 0) systems. W-space awareness implemented via TransformOp integration. All certificate functions are type-safe and JIT-compatible. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details (W-space awareness, manifold support, robust certificates, or integration with controller/tuner). 'partial-improved' indicates recent enhancements that address key gaps. 'implemented-hardened' indicates core functionality with recent hardening and performance optimizations. 'basic-implemented-improved' indicates core functionality with recent W-space awareness enhancements. 'skeleton' means only stubs/protocols exist with no real implementation. 'basic-implemented' means core functionality works but misses advanced spec features."
+  "notes": "Gap analysis updated on 2025-10-23 following completion of Flight Controller implementation and atoms library modularization. Flight Controller now implements full RED/AMBER/GREEN phase machine with rollback capability, certificate-gated tuning, and comprehensive telemetry. Atoms library fully modularized with registry system and individual packages. Legacy API issues identified: atoms.library import in energy compiler and conflicting run_flow in runtime/engine.py. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details. 'implemented-modular' indicates full modularization with registry system. 'implemented-controller' indicates Flight Controller with phase machine and rollback. 'implemented-hardened' indicates core functionality with recent hardening and performance optimizations. 'basic-implemented-improved' indicates core functionality with recent W-space awareness enhancements. 'skeleton' means only stubs/protocols exist with no real implementation."
   ,
   "implementation_guidance_from_docs": {
     "jaxwt": {

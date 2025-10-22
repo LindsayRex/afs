@@ -235,7 +235,7 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
                 new_state[term.variable] = thresholded_x
             elif term.type == 'wavelet_l1':
                 # For wavelet L1, we need to use TransformOp for proper analysis/synthesis
-                from computable_flows_shim.atoms.library import create_atom
+                from computable_flows_shim.atoms import create_atom
 
                 atom = create_atom('wavelet_l1')
                 # Get wavelet parameters from term
