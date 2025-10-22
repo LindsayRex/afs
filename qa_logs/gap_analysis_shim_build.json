@@ -7,7 +7,8 @@
     "branch": "master",
     "spec_folder": "Design/shim_build",
     "source_folder": "src",
-    "qa_logs_folder": "qa_logs"
+    "qa_logs_folder": "qa_logs",
+    "last_update": "FDA Lanczos hardening completed - spectral gap detection fully implemented with JIT compatibility and W-space awareness"
   },
   "summary": "Updated gap analysis following completion of W-space aware compiler implementation (2025-10-22). W-space compiler now fully implemented with prox_in_W emission, mathematical equivalence verification, and runtime integration. WaveletL1Atom integrated into atoms library with TransformOp support. Each entry lists spec requirement, implementation status, files/locations, gaps, priority, and recommended next steps. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records.",
   "items": [
@@ -131,34 +132,37 @@
     {
       "id": "fda_certificates",
       "spec": "Estimate eta_dd (diagonal dominance), gamma (spectral gap), Lyapunov checks, Lanczos/Gershgorin methods in W-space",
-      "status": "implemented-basic",
+      "status": "implemented-hardened",
       "implemented_in": [
         "src/computable_flows_shim/fda/certificates.py",
-        "src/computable_flows_shim/runtime/engine.py"
+        "src/computable_flows_shim/runtime/engine.py",
+        "qa_logs/20251022_lanczos_spectral_gap_fixes.md"
       ],
       "notes": [
-        "Functions estimate_eta_dd and estimate_gamma exist and implement dense matrix construction and Lanczos prototype.",
-        "Engine calls certificate estimators at run start and logs results when telemetry_manager provided."
+        "Functions estimate_eta_dd and estimate_gamma_lanczos fully implemented with JAX lax.scan for matrix-free operations.",
+        "Lanczos algorithm hardened with spurious eigenvalue filtering, JIT compatibility, and proper spectral gap detection for both positive and negative eigenvalues.",
+        "Engine calls certificate estimators at run start and logs results when telemetry_manager provided.",
+        "W-space awareness implemented via TransformOp integration in estimate_gamma_lanczos.",
+        "All certificate functions are JIT-compatible and type-safe."
       ],
       "gaps": [
-        "Matrix-free, batched JAX-friendly Lanczos should be hardened and performance-tested (current vmap->matrix approach may be expensive for large dims).",
-        "Certificates need to operate in W-space using TransformOp scaling factors (tight frame rescaling) — compiler must provide L_apply that is W-aware.",
-        "Need to add tolerance policies, fallback strategies, and integration with Flight Controller phase logic (AUTO-REMEDIATION attempts)."
+        "Need to add tolerance policies, fallback strategies, and integration with Flight Controller phase logic (AUTO-REMEDIATION attempts).",
+        "Certificate policies for automated parameter adjustment not yet implemented in controller."
       ],
-      "priority": "high",
+      "priority": "medium",
       "recommended_next_steps": [
-        "Make L_apply provided by compiler W-space aware and include frame constant c to scale certificates correctly.",
-        "Refactor estimate_gamma to use a JAX-friendly lanczos with lax.scan and test on larger synthetic problems.",
-        "Add automated certificate policies in runtime/controller for auto-remediation (reduce step sizes, adjust lambda candidates)."
+        "Add automated certificate policies in runtime/controller for auto-remediation (reduce step sizes, adjust lambda candidates).",
+        "Integrate certificate checks with Flight Controller RED/AMBER/GREEN phase transitions.",
+        "Add tolerance parameters and fallback strategies for certificate estimation failures."
       ],
       "design_pattern_notes": [
         "Certificate estimators are Functional Core: pure mathematical functions computing convergence guarantees.",
         "Certificate logging and policy decisions are Imperative Shell: side effects for telemetry and control flow."
       ],
       "tdd_notes": [
-        "Basic certificate functions exist but require TDD for W-space awareness and matrix-free implementations.",
-        "Write contract tests for mathematical correctness of Lanczos/Gershgorin bounds in W-space.",
-        "TDD needed for integration with controller phase logic and auto-remediation policies."
+        "Certificate functions built with strict TDD: comprehensive contract tests for mathematical properties and JIT compatibility.",
+        "Integration with controller phases requires TDD: write failing tests for RED/AMBER/GREEN state machine with certificate gating.",
+        "Certificate policy automation needs TDD: contract tests for auto-remediation workflows."
       ]
     },
     {
@@ -371,22 +375,22 @@
   ],
   "top_priority_tasks": [
     {
-      "task": "Harden FDA Lanczos & ensure L_apply is W-aware",
-      "reason": "Certificates gate tuning and must be efficient and robust for larger problems.",
+      "task": "Implement TVAtom and Wavelet L1 Atom with tests",
+      "reason": "Common atoms needed by many applications and required by spec examples.",
       "priority": "high"
     },
     {
-      "task": "Implement TVAtom and Wavelet L1 Atom with tests",
-      "reason": "Common atoms needed by many applications and required by spec examples.",
-      "priority": "medium-high"
+      "task": "Integrate Flight Controller phase machine with certificate gating",
+      "reason": "Controller enables safe parameter tuning with rollback and certificate gating for auto-remediation.",
+      "priority": "high"
     },
     {
-      "task": "Integrate Flight Controller phase machine",
-      "reason": "Controller enables safe parameter tuning with rollback and certificate gating.",
+      "task": "Add TransformOp adapter with jaxwt integration and frame constant extraction",
+      "reason": "Required for W-space prox correctness and multiscale transform support.",
       "priority": "medium-high"
     }
   ],
-  "notes": "Gap analysis updated on 2025-10-22 following completion of lens probe for multiscale transforms implementation. Lens probe now fully implemented with compressibility metrics, reconstruction error analysis, and automatic lens selection in builder mode. Compiler integration complete with probe results recorded in CompileReport. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details (W-space awareness, manifold support, robust certificates, or integration with controller/tuner). 'partial-improved' indicates recent enhancements that address key gaps. 'basic-implemented-improved' indicates core functionality with recent W-space awareness enhancements. 'skeleton' means only stubs/protocols exist with no real implementation. 'basic-implemented' means core functionality works but misses advanced spec features."
+  "notes": "Gap analysis updated on 2025-10-22 following completion of FDA Lanczos hardening and spectral gap detection implementation. Lanczos algorithm now fully hardened with JAX lax.scan matrix-free operations, spurious eigenvalue filtering, JIT compatibility, and proper spectral gap detection for both stable (γ > 0) and unstable (γ < 0) systems. W-space awareness implemented via TransformOp integration. All certificate functions are type-safe and JIT-compatible. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details (W-space awareness, manifold support, robust certificates, or integration with controller/tuner). 'partial-improved' indicates recent enhancements that address key gaps. 'implemented-hardened' indicates core functionality with recent hardening and performance optimizations. 'basic-implemented-improved' indicates core functionality with recent W-space awareness enhancements. 'skeleton' means only stubs/protocols exist with no real implementation. 'basic-implemented' means core functionality works but misses advanced spec features."
   ,
   "implementation_guidance_from_docs": {
     "jaxwt": {
