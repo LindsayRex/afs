@@ -169,4 +169,6 @@ class TestEnergyCompilerContract:
         assert compiled.compile_report is not None
         assert 'term_lenses' in compiled.compile_report
         assert 'x_wavelet_l1' in compiled.compile_report['term_lenses']
-        assert compiled.compile_report['term_lenses']['x_wavelet_l1'] == 'wavelet'
+        # Lens probe should select an actual wavelet name (e.g., 'haar')
+        selected_lens = compiled.compile_report['term_lenses']['x_wavelet_l1']
+        assert selected_lens in ['haar', 'db4', 'db2']  # Common wavelet names

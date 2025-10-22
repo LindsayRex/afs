@@ -9,7 +9,7 @@
     "source_folder": "src",
     "qa_logs_folder": "qa_logs"
   },
-  "summary": "Updated gap analysis following completion of manifold adapters implementation (2025-10-22). Manifold adapters now fully implemented with geometric primitives, Riemannian optimization support, and comprehensive testing. TransformOp integration into W-space compiler also completed. Each entry lists spec requirement, implementation status, files/locations, gaps, priority, and recommended next steps. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records.",
+  "summary": "Updated gap analysis following completion of W-space aware compiler implementation (2025-10-22). W-space compiler now fully implemented with prox_in_W emission, mathematical equivalence verification, and runtime integration. WaveletL1Atom integrated into atoms library with TransformOp support. Each entry lists spec requirement, implementation status, files/locations, gaps, priority, and recommended next steps. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records.",
   "items": [
     {
       "id": "primitives_api",
@@ -90,21 +90,24 @@
     {
       "id": "energy_compiler",
       "spec": "Compile Python DSL EnergySpec -> CompiledEnergy {f_value, f_grad, g_prox, W, L_apply}, unit normalization, lens selection",
-      "status": "basic-implemented",
+      "status": "basic-implemented-improved",
       "implemented_in": [
         "src/computable_flows_shim/energy/compile.py",
         "src/computable_flows_shim/energy/specs.py",
         "tests/test_energy_compiler.py",
-        "qa_logs/20251020_energy_compiler_implementation.md"
+        "tests/test_w_space_compiler.py",
+        "qa_logs/20251020_energy_compiler_implementation.md",
+        "qa_logs/20251022_w_space_aware_compiler.md"
       ],
       "notes": [
         "Compiler produces jitted f_value, f_grad, g_prox, and an L_apply operator (simplified).",
         "CompileReport includes a basic unit_normalization_table and lens_name placeholder.",
-        "Validation for unknown atom types present (ValueError)."
+        "Validation for unknown atom types present (ValueError).",
+        "W-space aware prox: g_prox_in_W implemented with mathematical equivalence verification (prox(x) = W^T prox_in_W(W x)).",
+        "Runtime integration complete with automatic W-space detection and fallback compatibility."
       ],
       "gaps": [
         "Lens selection and unit normalization are rudimentary; no RMS/MAD normalization computed per-term.",
-        "W-space aware prox: compiler assumes op is invertible/self-inverse; for frames (non-orthonormal), synthesis/analysis mapping and frame constant 'c' must be considered.",
         "No pydantic-based spec validation; limited spec field validation.",
         "CompileReport is minimal; missing invariants_present, transforms metadata, per-term normalization numbers."
       ],
@@ -237,22 +240,27 @@
       "status": "partial-improved",
       "implemented_in": [
         "src/computable_flows_shim/multi/transform_op.py",
+        "src/computable_flows_shim/multi/lens_probe.py",
         "src/computable_flows_shim/atoms/library.py",
         "src/computable_flows_shim/energy/compile.py",
         "tests/test_transform_op.py",
+        "tests/test_lens_probe.py",
         "qa_logs/20251020_multiscale_primitive_completion.md",
-        "qa_logs/20251020_multiscale_flow.md"
+        "qa_logs/20251020_multiscale_flow.md",
+        "qa_logs/20251022_lens_probe_implementation.md"
       ],
       "notes": [
         "F_Multi primitive implemented with TransformProtocol but uses identity transforms by default.",
         "TransformOp class implemented with jaxwt integration and frame-aware transforms.",
         "WaveletL1Atom added to atoms library with TransformOp integration.",
         "W-space compiler updated to support wavelet_l1 atoms and lens tracking in CompileReport.",
+        "W-space prox equivalence implemented and verified (prox(x) = W^T prox_in_W(W x)).",
+        "Lens probe implemented with compressibility metrics, reconstruction error analysis, and automatic lens selection.",
+        "Builder mode integration complete with probe execution during compilation and results in CompileReport.",
         "Lens probe and lens selection logic are documented in Design but not implemented in compiler.",
         "Compiler currently sets 'lens_name' to 'identity' by default."
       ],
       "gaps": [
-        "Implement lens probe (compressibility + reconstruction error) and record probe results in CompileReport.",
         "Full W-space prox correctness: compiler needs proper analysis/synthesis mapping and frame constant 'c' for all transforms."
       ],
       "priority": "high",
@@ -363,16 +371,6 @@
   ],
   "top_priority_tasks": [
     {
-      "task": "Make compiler W-space aware and emit prox_in_W",
-      "reason": "Correct multiscale flows and FDA certificates depend on analysis/synthesis mapping and frame constants.",
-      "priority": "high"
-    },
-    {
-      "task": "Implement Lens Probe for multiscale transforms",
-      "reason": "Lens probe enables sensible default lens selection and compressibility analysis for multiscale flows.",
-      "priority": "high"
-    },
-    {
       "task": "Harden FDA Lanczos & ensure L_apply is W-aware",
       "reason": "Certificates gate tuning and must be efficient and robust for larger problems.",
       "priority": "high"
@@ -388,7 +386,7 @@
       "priority": "medium-high"
     }
   ],
-  "notes": "Gap analysis updated on 2025-10-22 following completion of manifold adapters implementation and TransformOp W-space integration. Manifold adapters now fully implemented with geometric primitives, Riemannian optimization support, and comprehensive testing. TransformOp integrated into W-space compiler with WaveletL1Atom support and lens tracking. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details (W-space awareness, manifold support, robust certificates, or integration with controller/tuner). 'partial-improved' indicates recent enhancements that address key gaps. 'skeleton' means only stubs/protocols exist with no real implementation. 'basic-implemented' means core functionality works but misses advanced spec features."
+  "notes": "Gap analysis updated on 2025-10-22 following completion of lens probe for multiscale transforms implementation. Lens probe now fully implemented with compressibility metrics, reconstruction error analysis, and automatic lens selection in builder mode. Compiler integration complete with probe results recorded in CompileReport. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details (W-space awareness, manifold support, robust certificates, or integration with controller/tuner). 'partial-improved' indicates recent enhancements that address key gaps. 'basic-implemented-improved' indicates core functionality with recent W-space awareness enhancements. 'skeleton' means only stubs/protocols exist with no real implementation. 'basic-implemented' means core functionality works but misses advanced spec features."
   ,
   "implementation_guidance_from_docs": {
     "jaxwt": {
