@@ -63,6 +63,43 @@ Formal Verification is how we will **connect our code back to the mathematical p
 
 *   **How it Prevents Self-Deception:** Our numerical tests will serve as the **computational verification** of these formal proofs. When we test that `F_Con` conserves energy, we are computationally verifying Lemma 2 ("Energy Conservation in Conservative Flows"). This ensures our implementation is a faithful representation of the proven-correct mathematical theory, not just code that "seems to work."
 
-## Conclusion
+## 3. Modularity and File Size Guidelines
 
-By combining the **Functional Core, Imperative Shell** architecture with the practices of **TDD, DbC, BDD, and Formal Verification**, we create a robust, multi-layered methodology. This approach forces us to be honest, build verifiable components in isolation, and ensure that what we build is not only correct in its implementation but also true to its mathematical and behavioral purpose.
+To prevent monolithic files and maintain testability, follow these rules:
+
+### a. File Size Limits
+- **Functional Core files**: ≤ 500 lines (pure mathematical logic)
+- **Imperative Shell files**: ≤ 300 lines (glue code, registries, factories)
+- **Test files**: ≤ 400 lines per contract test class
+- **Exception**: Documentation and configuration files have no limits
+
+### b. Atom Organization (Functional Core)
+- **One atom per module**: Each atom class in its own file
+- **Subpackage structure**: `atoms/{atom_name}/{atom_name}_atom.py`
+- **Pure functions only**: No side effects, imports, or I/O in atom files
+- **Mathematical focus**: Each file contains only the atom's mathematical implementation
+
+### c. Registry and Factory Pattern (Imperative Shell)  
+- **Central registry**: `atoms/__init__.py` handles imports and registration
+- **Lazy loading**: Atoms imported only when needed
+- **Factory functions**: `create_atom()` handles instantiation
+- **Error handling**: Clear error messages for missing atoms
+
+### d. Testing Organization (Imperative Shell)
+- **One test file per atom**: `tests/atoms/test_{atom_name}_atom.py`
+- **Contract-based**: Each test class validates mathematical properties
+- **Independent execution**: Tests can run in isolation
+- **Fixture reuse**: Common fixtures in `tests/atoms/conftest.py`
+
+### e. Benefits of This Structure
+- **Maintainability**: Small, focused files are easier to understand and modify
+- **Testability**: Isolated tests prevent cascading failures
+- **Scalability**: Easy to add new atoms without touching existing code
+- **Discoverability**: Clear organization makes finding code intuitive
+- **Parallel development**: Multiple developers can work on different atoms
+
+### f. Pytest Subfolder Organization
+- **Subfolders supported**: Pytest automatically discovers tests in subfolders
+- **Organized structure**: `tests/atoms/` for atom-specific tests
+- **Import path**: Tests can import from `src.computable_flows_shim.atoms`
+- **Parallel execution**: Subfolders enable better test organization and parallel runs
