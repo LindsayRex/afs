@@ -31,7 +31,9 @@ def run_flow_step(
         u = F_Multi(state_after_dis['x'], W, 'forward')
 
         # Check if compiled energy supports W-space prox
-        if hasattr(compiled, 'g_prox_in_W') and compiled.compile_report.get('w_space_aware', False):
+        if (hasattr(compiled, 'g_prox_in_W') and
+            compiled.compile_report is not None and
+            compiled.compile_report.get('w_space_aware', False)):
             # Use W-space aware proximal operator
             u_proj_coeffs = compiled.g_prox_in_W(u, step_alpha)
             u_proj = u_proj_coeffs  # Already in coefficient form

@@ -244,5 +244,6 @@ def test_W_space_aware_compilation_flag():
     assert hasattr(compiled, 'g_prox_in_W'), "Should have prox_in_W when wavelet terms present"
 
     # AND compile report should indicate W-space awareness
+    assert compiled.compile_report is not None, "Compile report should exist"
     assert 'w_space_aware' in compiled.compile_report
     assert compiled.compile_report['w_space_aware'] == True
