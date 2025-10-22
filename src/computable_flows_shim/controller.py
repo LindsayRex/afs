@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 from computable_flows_shim.energy.compile import CompiledEnergy
 from computable_flows_shim.runtime.step import run_flow_step
-from computable_flows_shim.fda.certificates import estimate_gamma, estimate_eta_dd
+from computable_flows_shim.fda.certificates import estimate_gamma_lanczos, estimate_eta_dd
 from .telemetry import TelemetryManager
 from .tuner.gap_dial import GapDialTuner
 
@@ -32,7 +32,7 @@ def run_certified(
     
     for attempt in range(max_remediation_attempts + 1):
         eta = estimate_eta_dd(compiled.L_apply, input_shape)
-        gamma = estimate_gamma(compiled.L_apply, key, input_shape)
+        gamma = estimate_gamma_lanczos(compiled.L_apply, key, input_shape)
         
         if eta < 1.0 and gamma > 0:
             # GREEN: Certificates pass
@@ -73,7 +73,7 @@ def run_certified(
         grad = compiled.f_grad(state)
         grad_norm = float(jnp.linalg.norm(grad['x']))
         eta = estimate_eta_dd(compiled.L_apply, input_shape)
-        gamma = estimate_gamma(compiled.L_apply, key, input_shape)
+        gamma = estimate_gamma_lanczos(compiled.L_apply, key, input_shape)
         # Placeholder for residual/invariant metrics
         phi_residual = float(jnp.nan)
         invariant_drift_max = float(jnp.nan)

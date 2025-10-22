@@ -11,6 +11,7 @@ import jax
 import jax.numpy as jnp
 from dataclasses import dataclass
 from ..energy.compile import CompiledEnergy
+from ..fda.certificates import estimate_gamma_lanczos
 
 
 @dataclass
@@ -54,54 +55,13 @@ class GapDialTuner:
 
         Returns the minimum eigenvalue (spectral gap) of the Hessian operator.
         """
-        # Use the compiled energy's L_apply function for gap estimation
+        # Use the new Lanczos-based spectral gap estimation
         key = jax.random.PRNGKey(42 + self.iteration_count)  # Vary key per iteration
         input_shape = state['x'].shape
 
-        # For efficiency, use a lightweight gap estimation
-        # This could be enhanced with more sophisticated spectral methods
-        dim = input_shape[0]
-
-        # Construct small Hessian matrix for gap estimation
-        # In practice, this would use matrix-free methods for large problems
-        if dim <= 50:  # Small problem: compute full Hessian
-            L_matrix = jax.vmap(compiled.L_apply)(jnp.eye(dim)).T
-            if jnp.allclose(L_matrix, L_matrix.T, atol=1e-8):  # Symmetric
-                eigvals = jnp.linalg.eigh(L_matrix)[0]
-                return float(jnp.min(jnp.real(eigvals)))
-            else:
-                # Gershgorin bound for non-symmetric case
-                diag = jnp.diag(L_matrix)
-                off_diag_sum = jnp.array([
-                    jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
-                    for i in range(dim)
-                ])
-                gershgorin_bounds = diag - off_diag_sum
-                return float(jnp.min(gershgorin_bounds))
-        else:
-            # Large problem: use stochastic estimation or power method
-            # For now, use a simplified approach
-            return self._estimate_gap_stochastic(compiled.L_apply, input_shape, key)
-
-    def _estimate_gap_stochastic(self, L_apply: Callable, input_shape: Tuple, key: jnp.ndarray) -> float:
-        """Stochastic spectral gap estimation for large problems."""
-        dim = input_shape[0]
-
-        # Simple power method for minimum eigenvalue estimation
-        # This is a simplified version - production would use more robust methods
-        v = jax.random.normal(key, (dim,))
-        v = v / jnp.linalg.norm(v)
-
-        # Run a few power iterations
-        for _ in range(10):
-            Lv = L_apply(v)
-            v = Lv / jnp.linalg.norm(Lv)
-
-        # Rayleigh quotient estimate
-        Lv = L_apply(v)
-        rayleigh = jnp.dot(v, Lv) / jnp.dot(v, v)
-
-        return float(rayleigh)
+        # Use Lanczos method for robust spectral gap estimation
+        gamma = estimate_gamma_lanczos(compiled.L_apply, key, input_shape, k=10)
+        return float(gamma)
 
     def adapt_parameters(self, current_gap: float, compiled: CompiledEnergy) -> Dict[str, Any]:
         """

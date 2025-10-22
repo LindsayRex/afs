@@ -1,9 +1,12 @@
 """
 Certificate estimators for Flow Dynamic Analysis (FDA).
 """
-from typing import Callable
+from typing import Callable, Optional, TYPE_CHECKING
 import jax
 import jax.numpy as jnp
+
+if TYPE_CHECKING:
+    from computable_flows_shim.multi.transform_op import TransformOp
 
 def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_iterations: int = 20, mode: str = "dense", lanczos_k: int = 20) -> float:
     """
@@ -82,6 +85,127 @@ def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_
         gershgorin_bounds = diag - off_diag_sum
         return float(jnp.min(gershgorin_bounds))
     # End of function
+
+def estimate_gamma_lanczos(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, k: int = 20, transform_op: Optional['TransformOp'] = None):
+    """
+    Estimates the spectral gap using matrix-free Lanczos method with JAX lax.scan.
+
+    This implements the Lanczos algorithm for finding the smallest eigenvalue of a
+    symmetric positive definite operator. The algorithm builds a tridiagonal matrix
+    whose eigenvalues approximate those of the original operator.
+
+    Args:
+        L_apply: Matrix-free linear operator L(v) -> vector
+        key: JAX PRNG key for random initialization
+        input_shape: Shape of input vectors (typically (n,) for n-dimensional problem)
+        k: Number of Lanczos iterations (higher k = better approximation but more expensive)
+        transform_op: Optional wavelet transform for W-space aware computation.
+                     If provided, computes eigenvalues of W^T L W instead of L.
+
+    Returns:
+        Estimated minimum eigenvalue (spectral gap)
+    """
+    from jax import lax
+
+    # Extract dimension - make sure this is done before JIT tracing
+    dim = input_shape[0]
+
+    # Initialize random starting vector
+    v0 = jax.random.normal(key, (dim,))
+    v0 = v0 / jnp.linalg.norm(v0)
+
+    # Create W-space aware L_apply if transform provided
+    if transform_op is not None:
+        def L_w_space(v):
+            # Transform to W-space, apply L, transform back
+            coeffs = transform_op.forward(v)
+            
+            # For simplicity, assume L_apply works on flattened coefficients
+            # This is a common pattern for W-space operators
+            if isinstance(coeffs, list):
+                coeffs_flat = jnp.concatenate([c.flatten() for c in coeffs])
+            else:
+                coeffs_flat = coeffs.flatten()
+            
+            # Apply the operator in coefficient space
+            result_flat = L_apply(coeffs_flat)
+            
+            # Reshape back to coefficient structure
+            if isinstance(coeffs, list):
+                result_coeffs = []
+                start_idx = 0
+                for c in coeffs:
+                    size = c.size
+                    result_coeffs.append(result_flat[start_idx:start_idx + size].reshape(c.shape))
+                    start_idx += size
+                return transform_op.inverse(result_coeffs)
+            else:
+                return transform_op.inverse(result_flat.reshape(coeffs.shape))
+        
+        effective_L_apply = L_w_space
+    else:
+        effective_L_apply = L_apply
+
+    # Lanczos algorithm state
+    def lanczos_step(carry, _):
+        v, v_prev, beta_prev = carry
+
+        # Matrix-vector product
+        w = effective_L_apply(v)
+
+        # Compute alpha (Rayleigh quotient)
+        alpha = jnp.dot(v, w)
+
+        # Gram-Schmidt orthogonalization
+        w = w - alpha * v - beta_prev * v_prev
+
+        # Compute new beta
+        beta = jnp.linalg.norm(w)
+
+        # New normalized vector (avoid division by zero)
+        v_next = jnp.where(beta > 1e-12, w / beta, jnp.zeros_like(v))
+
+        return (v_next, v, beta), (alpha, beta)
+
+    # Initial carry: (current_v, previous_v, previous_beta)
+    init_carry = (v0, jnp.zeros_like(v0), 0.0)
+
+    # Run k Lanczos iterations
+    _, (alphas, betas) = lax.scan(lanczos_step, init_carry, jnp.arange(k))
+
+    # Build tridiagonal matrix T (k x k)
+    T = jnp.zeros((k, k))
+
+    # Set diagonal elements (alphas)
+    T = T.at[jnp.diag_indices(k)].set(alphas)
+
+    # Set off-diagonal elements (betas)
+    if k > 1:
+        # betas[0] is the first beta (between v0 and v1)
+        # betas[1] is between v1 and v2, etc.
+        # So we need betas[0:k-1] for the off-diagonals
+        off_diag = betas[:k-1]
+        T = T.at[(jnp.arange(1, k), jnp.arange(k-1))].set(off_diag)
+        T = T.at[(jnp.arange(k-1), jnp.arange(1, k))].set(off_diag)
+
+    # Compute eigenvalues of tridiagonal matrix
+    eigenvals = jnp.linalg.eigh(T)[0]
+
+    # Filter out spurious small eigenvalues (numerical artifacts from Lanczos)
+    # Use JIT-compatible approach: mask small eigenvalues with large positive value
+    threshold = 1e-6
+    masked_eigenvals = jnp.where(jnp.abs(eigenvals) > threshold, eigenvals, 1e10)
+    
+    # Find the minimum among significant eigenvalues
+    # Convert to ensure type checker understands this is an array
+    masked_array = jnp.asarray(masked_eigenvals)
+    min_significant = jnp.min(masked_array)
+    
+    # If all eigenvalues were masked (spurious), return the eigenvalue with smallest absolute value
+    # Otherwise return the minimum significant eigenvalue
+    abs_eigenvals = jnp.abs(eigenvals)
+    min_abs = jnp.min(abs_eigenvals)
+    return jnp.where(min_significant < 1e9, min_significant, min_abs)
 
 def estimate_eta_dd(L_apply: Callable, input_shape: tuple, eps: float = 1e-9) -> float:
     """
