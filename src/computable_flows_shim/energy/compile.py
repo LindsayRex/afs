@@ -20,6 +20,8 @@ class CompiledEnergy(NamedTuple):
 class CompileReport:
     lens_name: str
     unit_normalization_table: Dict[str, float]
+    # Track lens selections per term for W-space analysis
+    term_lenses: Dict[str, str]
 
 def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEnergy:
     """
@@ -37,7 +39,7 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
     """
     
     # Validate atom types
-    known_atom_types = {'quadratic', 'tikhonov', 'l1'}
+    known_atom_types = {'quadratic', 'tikhonov', 'l1', 'wavelet_l1'}
     for term in spec.terms:
         if term.type not in known_atom_types:
             raise ValueError(f"Unknown atom type: {term.type}. Known types: {known_atom_types}")
@@ -77,6 +79,20 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
                 
                 # This assumes op is its own inverse for now.
                 new_state[term.variable] = thresholded_x
+            elif term.type == 'wavelet_l1':
+                # For wavelet L1, we need to use TransformOp for proper analysis/synthesis
+                from computable_flows_shim.atoms.library import create_atom
+                
+                atom = create_atom('wavelet_l1')
+                # Get wavelet parameters from term
+                wavelet_params = {
+                    'lambda': term.weight,
+                    'wavelet': term.wavelet or 'haar',
+                    'levels': term.levels or 2,
+                    'ndim': term.ndim or 1,
+                    'variable': term.variable
+                }
+                new_state = atom.prox(new_state, step_alpha, wavelet_params)
                 
         return new_state
 
@@ -104,6 +120,10 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
             'lens_name': 'identity',
             'unit_normalization_table': {
                 term.variable: float(jnp.sqrt(term.weight) if hasattr(term, 'weight') else 1.0)
+                for term in spec.terms
+            },
+            'term_lenses': {
+                f"{term.variable}_{term.type}": 'wavelet' if term.type == 'wavelet_l1' else 'identity'
                 for term in spec.terms
             }
         }

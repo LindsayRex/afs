@@ -29,17 +29,28 @@ def F_Dis(state: State, grad_f: Callable[[State], State], step_alpha: float, man
     new_state = {}
     for name, x in state.items():
         M = manifolds.get(name)
-        if M is None:
+        if M is None or isinstance(M, dict) and M.get('type') == 'euclidean':
             # Standard Euclidean gradient step
             if name in g:
                 new_state[name] = x - step_alpha * g[name]
             else:
                 new_state[name] = x
         else:
-            # Placeholder for Riemannian gradient step
-            # grad_R = M.proj_tangent(x, g[name])
-            # new_state[name] = M.retract(x, -step_alpha * grad_R)
-            raise NotImplementedError(f"Manifold support for '{name}' not yet implemented.")
+            # Riemannian manifold gradient step
+            if isinstance(M, dict):
+                # Create manifold adapter from config
+                from computable_flows_shim.runtime.manifolds import create_manifold
+                manifold_adapter = create_manifold(M['type'], **M.get('params', {}))
+            else:
+                # M is already a manifold adapter
+                manifold_adapter = M
+            
+            if name in g:
+                # Compute Riemannian gradient and retract
+                riemannian_grad = manifold_adapter.riemannian_gradient(x, g[name])
+                new_state[name] = manifold_adapter.retract(x, -step_alpha * riemannian_grad)
+            else:
+                new_state[name] = x
             
     return new_state
 

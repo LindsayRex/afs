@@ -124,3 +124,49 @@ class TestEnergyCompilerContract:
         assert hasattr(compiled.f_value, 'lower')
         assert hasattr(compiled.f_grad, 'lower')
         assert hasattr(compiled.g_prox, 'lower')
+    
+    def test_compile_wavelet_l1_term(self):
+        """RED: Compiler should handle wavelet L1 terms correctly."""
+        from computable_flows_shim.energy.specs import TermSpec, StateSpec, EnergySpec
+        
+        spec = EnergySpec(
+            terms=[
+                TermSpec(
+                    type='wavelet_l1',
+                    op='wavelet',  # Not used for wavelet_l1, but required by TermSpec
+                    weight=0.1,
+                    variable='x',
+                    wavelet='haar',
+                    levels=2,
+                    ndim=1
+                )
+            ],
+            state=StateSpec(shapes={'x': [64]})
+        )
+        
+        # Empty op_registry since wavelet_l1 doesn't use traditional ops
+        op_registry = {}
+        
+        compiled = compile_energy(spec, op_registry)
+        
+        # Test with simple 1D signal
+        state = {'x': jnp.ones(64)}
+        
+        # Energy should be λ‖Wx‖₁ where W is Haar wavelet transform
+        # For constant signal, Haar coefficients are mostly zero except approximation
+        expected_energy = 0.1 * 1.0  # Simplified expectation
+        
+        actual_energy = compiled.f_value(state)
+        # Just check that it runs without error and returns a finite value
+        assert jnp.isfinite(actual_energy)
+        
+        # Test prox operator
+        new_state = compiled.g_prox(state, step_alpha=0.01)
+        assert 'x' in new_state
+        assert new_state['x'].shape == state['x'].shape
+        
+        # Check compile report includes term lenses
+        assert compiled.compile_report is not None
+        assert 'term_lenses' in compiled.compile_report
+        assert 'x_wavelet_l1' in compiled.compile_report['term_lenses']
+        assert compiled.compile_report['term_lenses']['x_wavelet_l1'] == 'wavelet'

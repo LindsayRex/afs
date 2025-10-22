@@ -12,6 +12,10 @@ class TermSpec:
     weight: float
     variable: str
     target: Optional[str] = None
+    # Wavelet-specific parameters
+    wavelet: Optional[str] = None
+    levels: Optional[int] = None
+    ndim: Optional[int] = None
 
 @dataclass(frozen=True)
 class StateSpec:

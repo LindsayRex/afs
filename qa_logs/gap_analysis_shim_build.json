@@ -1,0 +1,416 @@
+{
+  "meta": {
+    "generated_by": "automated-gap-analyzer",
+    "reviewed_by": "manual-review-2025-10-22",
+    "date": "2025-10-22",
+    "repo": "afs",
+    "branch": "master",
+    "spec_folder": "Design/shim_build",
+    "source_folder": "src",
+    "qa_logs_folder": "qa_logs"
+  },
+  "summary": "Reviewed and corrected gap analysis mapping Shim Build functional specification to current implementation (as of 2025-10-22). Each entry lists spec requirement, implementation status, files/locations, gaps, priority, and recommended next steps. Analysis cross-verified against Design/shim_build specs, src/ implementation, and qa_logs/ build records.",
+  "items": [
+    {
+      "id": "primitives_api",
+      "spec": "Core runtime primitives: F_Dis, F_Proj, F_Multi, F_Con, manifold adapters, operator interface",
+      "status": "partial",
+      "implemented_in": [
+        "src/computable_flows_shim/runtime/primitives.py",
+        "src/computable_flows_shim/runtime/engine.py"
+      ],
+      "notes": [
+        "F_Dis implemented for Euclidean slots; Riemannian/manifold support raises NotImplementedError.",
+        "F_Proj delegates to compiled g_prox; W-space prox handling is present in engine but compiler assumes op is its own inverse (simplification).",
+        "F_Multi uses TransformProtocol stubs; concrete jaxwt integration not implemented.",
+        "F_Con implemented in a simple form assuming q/p structure; general Hamiltonian & manifold support incomplete."
+      ],
+      "gaps": [
+        "Full manifold adapter support for F_Dis and F_Proj (exp/log/retract, proj_tangent).",
+        "Concrete multiscale transform adapters (jaxwt) and registry integration.",
+        "W-space prox correctness: compiler currently applies prox to transformed coefficients assuming op invertibility; needs proper analysis/synthesis mapping and frame scaling (tight/parseval).",
+        "Robust F_Con Hamiltonian integrator supporting arbitrary H(state) and manifold cotangent bundles."
+      ],
+      "priority": "high",
+      "design_pattern_notes": [
+        "Primitives are Functional Core: pure mathematical operations with zero side effects.",
+        "Manifold adapters belong in Functional Core as pure geometric transformations.",
+        "Runtime engine contains Imperative Shell elements (logging, telemetry) but primitives themselves are pure."
+      ],
+      "tdd_notes": [
+        "Manifold adapters require TDD: write failing tests for exp/log operations, then implement pure functions.",
+        "TransformOp integration needs TDD contract tests for forward/inverse round-trip accuracy.",
+        "W-space prox correctness requires TDD to verify mathematical properties of analysis/synthesis mapping."
+      ],
+      "recommended_next_steps": [
+        "Implement Manifold protocol adapters (see Design/02_primitives_operator_api.md) and wire into F_Dis/F_Proj.",
+        "Integrate a TransformOp adapter and register jaxwt-based transforms; add unit tests for forward/inverse and frame scaling.",
+        "Refactor compiler to emit W-space-aware prox functions (analysis/synthesis) rather than assuming op is self-inverse.",
+        "Extend F_Con to accept a user-supplied Hamiltonian and chart-aware cotangent steps; add tests."
+      ]
+    },
+    {
+      "id": "atoms_library",
+      "spec": "Comprehensive atoms registry exposing energy, gradient, prox, certificate contributions",
+      "status": "partial",
+      "implemented_in": [
+        "src/computable_flows_shim/atoms/library.py",
+        "tests/test_atoms.py",
+        "qa_logs/20251020_atoms_library_implementation.md"
+      ],
+      "notes": [
+        "Quadratic, Tikhonov, and L1 atoms are implemented and covered by tests (21 tests passing).",
+        "Atoms expose certificate contribution stubs (lipschitz, eta_dd_contribution, gamma_contribution).",
+        "Registry and factory present (ATOM_REGISTRY, create_atom)."
+      ],
+      "gaps": [
+        "Many domain atoms in Shim spec are missing (TV, Wavelet L1, Group sparsity, Graph Dirichlet, PDE residuals, constraint projections).",
+        "Per-atom cost models and sparsity-band metadata (for FDA) are lightweight/missing.",
+        "W-space prox plumbing (atoms that act in W-space) not registered/handled specially."
+      ],
+      "priority": "medium-high",
+      "design_pattern_notes": [
+        "Atoms are Functional Core: pure mathematical functions (energy, gradient, prox) with zero side effects.",
+        "Registry and factory are Imperative Shell: handle atom discovery and instantiation."
+      ],
+      "tdd_notes": [
+        "Atoms library built with strict TDD: each atom has comprehensive contract tests verifying mathematical properties.",
+        "Test classes named 'Test[Atom]Contract' enforce preconditions, postconditions, and invariants.",
+        "Missing atoms (TV, Wavelet L1) require TDD: write failing contract tests first, then implement pure mathematical functions."
+      ],
+      "recommended_next_steps": [
+        "Implement TV atom (anisotropic and isotropic) with prox and tests.",
+        "Add Wavelet/L1 atom that uses a TransformOp and supports analysis/synthesis prox correctly.",
+        "Add Graph Dirichlet and Poisson PDE residual atoms prioritized by project domain needs.",
+        "Extend Atom certificate schema to include 'sparsity_band' and 'cost_estimate' fields and populate for existing atoms."
+      ]
+    },
+    {
+      "id": "energy_compiler",
+      "spec": "Compile Python DSL EnergySpec -> CompiledEnergy {f_value, f_grad, g_prox, W, L_apply}, unit normalization, lens selection",
+      "status": "basic-implemented",
+      "implemented_in": [
+        "src/computable_flows_shim/energy/compile.py",
+        "src/computable_flows_shim/energy/specs.py",
+        "tests/test_energy_compiler.py",
+        "qa_logs/20251020_energy_compiler_implementation.md"
+      ],
+      "notes": [
+        "Compiler produces jitted f_value, f_grad, g_prox, and an L_apply operator (simplified).",
+        "CompileReport includes a basic unit_normalization_table and lens_name placeholder.",
+        "Validation for unknown atom types present (ValueError)."
+      ],
+      "gaps": [
+        "Lens selection and unit normalization are rudimentary; no RMS/MAD normalization computed per-term.",
+        "W-space aware prox: compiler assumes op is invertible/self-inverse; for frames (non-orthonormal), synthesis/analysis mapping and frame constant 'c' must be considered.",
+        "No pydantic-based spec validation; limited spec field validation.",
+        "CompileReport is minimal; missing invariants_present, transforms metadata, per-term normalization numbers."
+      ],
+      "priority": "high",
+      "recommended_next_steps": [
+        "Implement per-term unit normalization (RMS/MAD) and record in CompileReport.",
+        "Emit W-space-aware g_prox functions: the compiler must generate prox_in_W and synthesis mapping (use TransformOp forward/inverse).",
+        "Add spec validation (e.g., pydantic dataclasses) to catch missing fields and dtype mismatches early.",
+        "Improve compile_report with invariants, frame_type, and selected lens metadata."
+      ],
+      "design_pattern_notes": [
+        "Compiler core is Functional Core: pure functions transforming specs to JAX functions.",
+        "Spec validation and error handling are Imperative Shell: side effects for user feedback."
+      ],
+      "tdd_notes": [
+        "Compiler built with TDD: comprehensive contract tests for compilation correctness.",
+        "Tests verify mathematical properties: energy computation, gradient accuracy, JIT compilation.",
+        "W-space awareness requires TDD: write failing tests for frame scaling, then implement synthesis/analysis mapping."
+      ]
+    },
+    {
+      "id": "fda_certificates",
+      "spec": "Estimate eta_dd (diagonal dominance), gamma (spectral gap), Lyapunov checks, Lanczos/Gershgorin methods in W-space",
+      "status": "implemented-basic",
+      "implemented_in": [
+        "src/computable_flows_shim/fda/certificates.py",
+        "src/computable_flows_shim/runtime/engine.py"
+      ],
+      "notes": [
+        "Functions estimate_eta_dd and estimate_gamma exist and implement dense matrix construction and Lanczos prototype.",
+        "Engine calls certificate estimators at run start and logs results when telemetry_manager provided."
+      ],
+      "gaps": [
+        "Matrix-free, batched JAX-friendly Lanczos should be hardened and performance-tested (current vmap->matrix approach may be expensive for large dims).",
+        "Certificates need to operate in W-space using TransformOp scaling factors (tight frame rescaling) — compiler must provide L_apply that is W-aware.",
+        "Need to add tolerance policies, fallback strategies, and integration with Flight Controller phase logic (AUTO-REMEDIATION attempts)."
+      ],
+      "priority": "high",
+      "recommended_next_steps": [
+        "Make L_apply provided by compiler W-space aware and include frame constant c to scale certificates correctly.",
+        "Refactor estimate_gamma to use a JAX-friendly lanczos with lax.scan and test on larger synthetic problems.",
+        "Add automated certificate policies in runtime/controller for auto-remediation (reduce step sizes, adjust lambda candidates)."
+      ],
+      "design_pattern_notes": [
+        "Certificate estimators are Functional Core: pure mathematical functions computing convergence guarantees.",
+        "Certificate logging and policy decisions are Imperative Shell: side effects for telemetry and control flow."
+      ],
+      "tdd_notes": [
+        "Basic certificate functions exist but require TDD for W-space awareness and matrix-free implementations.",
+        "Write contract tests for mathematical correctness of Lanczos/Gershgorin bounds in W-space.",
+        "TDD needed for integration with controller phase logic and auto-remediation policies."
+      ]
+    },
+    {
+      "id": "runtime_engine",
+      "spec": "Run compiled flow with primitives, FDA hooks, tuner integration, telemetry (Flight Recorder), checkpoints and resume",
+      "status": "partial",
+      "implemented_in": [
+        "src/computable_flows_shim/runtime/engine.py",
+        "src/computable_flows_shim/telemetry/flight_recorder.py",
+        "src/computable_flows_shim/telemetry/duckdb_manager.py"
+      ],
+      "notes": [
+        "run_flow, run_flow_step, resume_flow exist and wire primitives and compiled energy.",
+        "Engine creates basic certificate checks and logs via telemetry_manager if provided.",
+        "CheckpointManager and TelemetryManager usage is referenced but not fully validated (interfaces present)."
+      ],
+      "gaps": [
+        "Controller phase state machine (RED/AMBER/GREEN) is not implemented end-to-end; only certificate checks are executed and logged.",
+        "Tuner/GapDial not integrated (tuner module exists but not wired into engine loop).",
+        "Flight Recorder schema enforcement and manifest writing need verification (SCHEMA.md referenced).",
+        "Checkpoint resume semantics (last-good GREEN checkpoint, rollbacks) need robust implementation and tests."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Implement Flight Controller (phase machine) to gate tuner moves and enforce auto-remediation policies.",
+        "Integrate GapDial tuner with run_flow to allow safe, rollback-able parameter sweeps and commit decisions.",
+        "Add manifest writing and full Flight Recorder Parquet schema adherence tests.",
+        "Add end-to-end resume tests that ensure deterministic restore of state, RNG, tuner state, and phase."
+      ],
+      "design_pattern_notes": [
+        "Primitives and flow logic are Functional Core: pure computational steps.",
+        "Engine orchestration, telemetry logging, and checkpointing are Imperative Shell: side effects for monitoring and persistence.",
+        "Controller phase machine spans both: pure state transitions (Core) with logging side effects (Shell)."
+      ],
+      "tdd_notes": [
+        "Basic run_flow_step exists but controller phases require TDD: write failing tests for RED/AMBER/GREEN state machine.",
+        "Tuner integration needs TDD: contract tests for safe parameter sweeps and rollback semantics.",
+        "Telemetry schema enforcement requires TDD: tests for Parquet/DuckDB correctness and manifest validation."
+      ]
+    },
+    {
+      "id": "telemetry_and_io",
+      "spec": "Flight Recorder: manifest, telemetry.parquet, events.parquet, DuckDB integration, privacy flags",
+      "status": "partial",
+      "implemented_in": [
+        "src/computable_flows_shim/telemetry/duckdb_manager.py",
+        "src/computable_flows_shim/telemetry/flight_recorder.py",
+        "src/computable_flows_shim/telemetry/flight_recorder.py"
+      ],
+      "notes": [
+        "Telemetry modules exist; Parquet/DuckDB usage referenced in docs and code but needs schema validation and manifest writing.",
+        "Privacy/redaction flag referenced in runtime docs but not surfaced in manifest writer.",
+        "TelemetryManager and FlightRecorder APIs are present but require tests against real runs."
+      ],
+      "gaps": [
+        "Implement manifest.toml writer with schema_version and dtype recording.",
+        "Enforce Parquet schema and test append/queries via DuckDB on sample runs.",
+        "Implement redaction flag and test privacy behavior."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Add manifest writer and schema tests; ensure dtype is recorded and validated on resume.",
+        "Write small end-to-end test to run a short flow and validate telemetry.parquet contents and DuckDB queries.",
+        "Expose privacy flags and document default behavior."
+      ],
+      "design_pattern_notes": [
+        "Telemetry is Imperative Shell: all operations involve side effects (file I/O, database writes, logging).",
+        "Flight Recorder data structures could be Functional Core, but I/O operations are inherently imperative."
+      ],
+      "tdd_notes": [
+        "Telemetry modules exist but require TDD for schema validation and end-to-end testing.",
+        "Write contract tests for manifest.toml correctness and Parquet schema adherence.",
+        "TDD needed for privacy flag implementation and DuckDB query correctness."
+      ]
+    },
+    {
+      "id": "multiscale_module",
+      "spec": "Wavelet/transform registry, lens probe, frame-aware transforms, W-space prox, lens selection",
+      "status": "skeleton",
+      "implemented_in": [
+        "src/computable_flows_shim/runtime/primitives.py (F_Multi with TransformProtocol stubs)",
+        "qa_logs/20251020_multiscale_primitive_completion.md",
+        "qa_logs/20251020_multiscale_flow.md"
+      ],
+      "notes": [
+        "F_Multi primitive implemented with TransformProtocol but uses identity transforms by default.",
+        "TransformOp class not yet implemented; jaxwt integration not performed.",
+        "Lens probe and lens selection logic are documented in Design but not implemented in compiler.",
+        "Compiler currently sets 'lens_name' to 'identity' by default."
+      ],
+      "gaps": [
+        "Implement jaxwt-backed TransformOp with forward/inverse and frame metadata (tight/frame constant).",
+        "Implement lens probe (compressibility + reconstruction error) and record probe results in CompileReport.",
+        "Refactor engine and compiler to use TransformOp when emitting g_prox (analysis/synthesis)."
+      ],
+      "priority": "high",
+      "recommended_next_steps": [
+        "Add TransformOp adapter with tests for round-trip accuracy and frame constant extraction.",
+        "Implement lens probe runnable in Builder Mode (small short-run to estimate per-band sparsity).",
+        "Record selected lens and unit normalization per-term in CompileReport."
+      ],
+      "design_pattern_notes": [
+        "TransformOp and wavelet transforms are Functional Core: pure mathematical operations.",
+        "Transform registry and lens probe are Imperative Shell: discovery, caching, and I/O for probe results."
+      ],
+      "tdd_notes": [
+        "TransformOp requires strict TDD: write failing contract tests for jaxwt integration, round-trip accuracy, and frame metadata.",
+        "Lens probe needs TDD: contract tests for compressibility metrics and reconstruction error calculations.",
+        "W-space prox plumbing requires TDD: tests for analysis/synthesis mapping correctness."
+      ]
+    },
+    {
+      "id": "spec_validation_and_dtypes",
+      "spec": "Strict Python DSL validation (pydantic), global dtype enforcement, unit tests for dtype consistency",
+      "status": "partial",
+      "implemented_in": [
+        "src/computable_flows_shim/energy/specs.py",
+        "pyproject.toml (pythonpath adjustments)"
+      ],
+      "notes": [
+        "Energy specs exist as dataclasses; no pydantic validation layer yet.",
+        "Code and tests use JAX arrays but global dtype enforcement and propagation not fully enforced.",
+        "CompileReport stores unit_normalization_table but values are heuristic."
+      ],
+      "gaps": [
+        "Add pydantic-based spec validation or stricter dataclass validators to ensure required fields and dtype declarations.",
+        "Enforce and test global dtype propagation across compiler and runtime; add helper to cast inputs and manifest dtype."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Introduce pydantic (or attrs) validators for EnergySpec and TermSpec; include dtype field.",
+        "Add runtime dtype checks and automatic casting utilities; emit warnings/errors on mismatches."
+      ],
+      "design_pattern_notes": [
+        "Spec validation is Imperative Shell: error handling and user feedback side effects.",
+        "Dtype enforcement could be Functional Core (pure casting functions) or Imperative Shell (runtime checks)."
+      ],
+      "tdd_notes": [
+        "Spec validation requires TDD: write failing tests for pydantic validation, then implement validators.",
+        "Dtype consistency needs TDD: contract tests for automatic casting and mismatch detection."
+      ]
+    },
+    {
+      "id": "tuner_and_gap_dial",
+      "spec": "Gap Dial tuner: automated lambda/alpha sweeps with rollback, commit gating by certificates",
+      "status": "skeleton",
+      "implemented_in": [
+        "src/computable_flows_shim/tuner/gap_dial.py (exists but not integrated)"
+      ],
+      "notes": [
+        "Tuner module exists but not wired into run_flow or controller phases; commit/rollback semantics referenced in design but not implemented."
+      ],
+      "gaps": [
+        "Integrate tuner into Flight Controller and runtime loop; implement safe trial runs and rollback on certificate violations.",
+        "Record tuner moves in events.parquet and enforce max rollback counts."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Implement controller-to-tuner API and tests for commit/rollback workflows.",
+        "Add small candidate sweep utility (vmap over lambda candidates) and certificate pre-checks."
+      ],
+      "design_pattern_notes": [
+        "Tuner algorithms are Functional Core: pure optimization logic for parameter sweeps.",
+        "Tuner state management and rollback logic are Imperative Shell: side effects for persistence and control flow."
+      ],
+      "tdd_notes": [
+        "Tuner integration requires TDD: write failing tests for commit/rollback workflows and certificate gating.",
+        "GapDial parameter sweeps need TDD: contract tests for safe trial runs and deterministic rollback."
+      ]
+    },
+    {
+      "id": "checkpoints_and_resume",
+      "spec": "Atomic checkpoints, last-good-GREEN checkpoint, deterministic resume with RNG and tuner state",
+      "status": "partial",
+      "implemented_in": [
+        "src/computable_flows_shim/runtime/engine.py (checkpoint calls)",
+        "src/computable_flows_shim/serialization/ (exists)"
+      ],
+      "notes": [
+        "Engine references CheckpointManager and uses checkpoint creation/loading calls; serialization folder exists but full resume semantics need tests.",
+        "Manifest writing and atomic file operations need to be validated on Windows (rename semantics)."
+      ],
+      "gaps": [
+        "Implement last-good-GREEN checkpoint logic and automatic rollback; add tests that simulate tuner-regression and verify rollback behavior.",
+        "Ensure resume restores RNG keys, tuner state, and phase counter deterministically."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Add 'last_good_green' checkpoint marker and test rollback path; integrate with telemetry events and manifest update.",
+        "Add resume integration tests asserting exact float equality (where expected) given deterministic seeds."
+      ],
+      "design_pattern_notes": [
+        "Checkpoint/resume logic is Imperative Shell: all operations involve file I/O and state persistence.",
+        "RNG and state restoration could have Functional Core components for deterministic state transitions."
+      ],
+      "tdd_notes": [
+        "Checkpoint semantics require TDD: write failing tests for last-good-GREEN logic and rollback behavior.",
+        "Resume determinism needs TDD: contract tests for exact state restoration including RNG keys and phase counters."
+      ]
+    }
+  ],
+  "top_priority_tasks": [
+    {
+      "task": "Implement Manifold adapters & wire into primitives",
+      "reason": "Manifolds are required by the spec for Riemannian slots and will enable F_Dis/F_Proj to be correct for non-Euclidean state slots.",
+      "priority": "high"
+    },
+    {
+      "task": "Make compiler W-space aware and emit prox_in_W",
+      "reason": "Correct multiscale flows and FDA certificates depend on analysis/synthesis mapping and frame constants.",
+      "priority": "high"
+    },
+    {
+      "task": "Implement TransformOp (jaxwt) and Lens Probe",
+      "reason": "Multiscale transforms are central to the inner loop and builder mode; lens probe enables sensible default lens selection.",
+      "priority": "high"
+    },
+    {
+      "task": "Harden FDA Lanczos & ensure L_apply is W-aware",
+      "reason": "Certificates gate tuning and must be efficient and robust for larger problems.",
+      "priority": "high"
+    },
+    {
+      "task": "Implement TVAtom and Wavelet L1 Atom with tests",
+      "reason": "Common atoms needed by many applications and required by spec examples.",
+      "priority": "medium-high"
+    }
+  ],
+  "notes": "This gap analysis was reviewed and corrected on 2025-10-22 by cross-verifying against Design/shim_build functional specifications, src/ actual implementation, and qa_logs/ build records. The implementation status marked 'partial' means basic functionality is present but lacks important spec-level details (W-space awareness, manifold support, robust certificates, or integration with controller/tuner). 'skeleton' means only stubs/protocols exist with no real implementation. 'basic-implemented' means core functionality works but misses advanced spec features."
+  ,
+  "implementation_guidance_from_docs": {
+    "jaxwt": {
+      "location": "archive/jaxwt-docs/docs/jaxwt.rst",
+      "summary": "jaxwt provides differentiable JAX-native wavelet forward/inverse transforms (dwt/idwt) and recommended API patterns for multiscale transforms.",
+      "recommended_api": {
+        "TransformOp.forward": "call jaxwt.dwt_nD(x, levels=..., wavelet=..., axes=...) returning coefficient pytree or flat array",
+        "TransformOp.inverse": "call jaxwt.idwt_nD(coeffs, levels=..., wavelet=..., axes=...) to reconstruct physical-domain array",
+        "frame_metadata": "expose {\"frame\": 'tight'|'unitary'|'general', \"c\": float(frame_constant), \"levels\": int}" 
+      },
+      "notes": [
+        "Vendor or depend on 'jaxwt' in requirements (see archive/jaxwt-docs/docs/requirements.txt).",
+        "Implement TransformOp so forward/inverse are pure JAX functions (no host-side Python IO) and accept/return jnp.ndarray or pytrees of arrays for multi-band outputs.",
+        "Record frame constant 'c' when transform is a tight frame; compiler and FDA must use it to scale operator norms in W-space.",
+        "Provide small wrapper adapters so the rest of the Shim can treat W.forward/W.inverse generically regardless of underlying library."
+      ]
+    },
+    "jax": {
+      "location": "archive/jax-docs-archive/docs",
+      "summary": "JAX docs emphasize pure functions, use of jax.jit, jax.vmap, jax.lax.scan for loops, and PRNGKey splitting. Also recommend explicit dtype control and avoid Python-side loops in JITted paths.",
+      "implementation_hints": [
+        "Use jax.lax.scan to implement Lanczos / iterative Krylov methods so they are JIT-friendly and traceable.",
+        "Use jax.vmap for batched operator application but avoid vmap over very large dims that materialize large matrices; prefer matrix-free operations and lax loops.",
+        "PRNG: use jax.random.PRNGKey and jax.random.split(key) patterns; ensure RNG keys are part of checkpoint/manifest when reproducibility required.",
+        "Enforce dtype by casting inputs with jnp.asarray(x, dtype=global_dtype) at compile boundaries; record dtype in manifest.toml.",
+        "Prefer jax.jit(jax.grad(...)) patterns for f_grad and annotate static_argnums for non-array args when needed.",
+        "For linear operator probing (L_apply), prefer matrix-free L_apply(v) that calls W.inverse/forward around the physical L_apply to avoid building dense matrices."
+      ]
+    }
+  }
+}
