@@ -196,4 +196,3 @@ Each atom in your registry should expose:
 3. When something helps but hurts (\eta_{dd}), change **basis (W)** (graph-wavelets, DCT, etc.).
 4. Log the program: **explicit energy**, **chosen (W)**, **prox/grad/proj**, **certs**.
 
-If you want, tell me the exact domains you want to cover first (RF, HVAC, graph, assignment), and I’ll carve out a **domain-specific short list** (≤10 atoms each) with prox/grad snippets you can paste into your JAX/Numba shim.
