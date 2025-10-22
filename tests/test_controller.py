@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from computable_flows_shim.energy.specs import EnergySpec, TermSpec, StateSpec
 from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.api import Op
-from computable_flows_shim.controller import run_certified
+from computable_flows_shim.controller import FlightController
 from computable_flows_shim.runtime.step import run_flow_step
 import pytest
 
@@ -36,7 +36,8 @@ def test_controller_runs_loop():
     # WHEN we run the flow using the controller for a single step
     initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
     
-    final_state = run_certified(initial_state, compiled, num_iterations=1, step_alpha=0.1)
+    controller = FlightController()
+    final_state = controller.run_certified_flow(initial_state, compiled, num_iterations=1, initial_alpha=0.1)
 
     # THEN the final state should be the result of one Forward-Backward step
     # 1. F_Dis: z = x - alpha * grad(f(x)) = 10.0 - 0.1 * (10.0 - 0.0) = 9.0
@@ -65,11 +66,12 @@ def test_controller_checks_diagonal_dominance():
     # WHEN we try to run the flow
     # THEN the controller should detect the high eta_dd and raise an error
     with pytest.raises(ValueError, match="System failed certification"):
-        run_certified(
+        controller = FlightController()
+        controller.run_certified_flow(
             initial_state={'x': jnp.array([1.0, 1.0])},
             compiled=compiled,
             num_iterations=10,
-            step_alpha=0.1
+            initial_alpha=0.1
         )
 
 def test_controller_enforces_lyapunov_descent():
@@ -101,11 +103,12 @@ def test_controller_enforces_lyapunov_descent():
     
     # THEN the controller should detect the energy increase and raise an error
     with pytest.raises(ValueError, match="Step failed to decrease energy"):
-        run_certified(
+        controller = FlightController()
+        controller.run_certified_flow(
             initial_state, 
             compiled, 
             num_iterations=5, 
-            step_alpha=0.1,
+            initial_alpha=0.1,
             _step_function_for_testing=malicious_step_function # Inject our malicious function
         )
 
@@ -133,11 +136,12 @@ def test_controller_amber_step_remediation():
     # WHEN we run the flow with a large initial alpha that needs remediation
     initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
     
-    final_state = run_certified(
+    controller = FlightController()
+    final_state = controller.run_certified_flow(
         initial_state, 
         compiled, 
         num_iterations=1, 
-        step_alpha=0.1,  # Large alpha that will fail first attempt
+        initial_alpha=0.1,  # Large alpha that will fail first attempt
         _step_function_for_testing=picky_step_function
     )
 
@@ -167,9 +171,10 @@ def test_controller_checks_spectral_gap():
     # WHEN we try to run the flow
     # THEN the controller should detect the negative spectral gap and raise an error
     with pytest.raises(ValueError, match="System failed certification"):
-        run_certified(
+        controller = FlightController()
+        controller.run_certified_flow(
             initial_state={'x': jnp.array([1.0, 1.0])},
             compiled=compiled,
             num_iterations=10,
-            step_alpha=0.1
+            initial_alpha=0.1
         )

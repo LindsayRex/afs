@@ -7,7 +7,7 @@ class Op(Protocol):
     """Protocol for a linear operator."""
     def __call__(self, x: Any) -> Any: ...
 
-from computable_flows_shim.controller import run_certified
+from computable_flows_shim.controller import FlightController
 from computable_flows_shim.telemetry import FlightRecorder, write_manifest
 import os
 
@@ -32,12 +32,13 @@ def run_certified_with_telemetry(
     telemetry_path = os.path.join(out_dir, "telemetry.parquet")
     events_path = os.path.join(out_dir, "events.parquet")
     recorder = FlightRecorder(path=telemetry_path, events_path=events_path)
-    final_state = run_certified(
+    controller = FlightController()
+    final_state = controller.run_certified_flow(
         initial_state=initial_state,
         compiled=compiled,
         num_iterations=num_iterations,
-        step_alpha=step_alpha,
-        recorder=recorder,
+        initial_alpha=step_alpha,
+        telemetry_manager=recorder,
         flow_name=flow_name,
         run_id=run_id
     )

@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from computable_flows_shim.energy.specs import EnergySpec, StateSpec
 from computable_flows_shim.energy.compile import compile_energy
-from computable_flows_shim.controller import run_certified
+from computable_flows_shim.controller import FlightController
 from computable_flows_shim.telemetry import TelemetryManager
 from computable_flows_shim.telemetry.telemetry_streamer import start_streamer
 from computable_flows_shim.api import Op
@@ -138,11 +138,12 @@ def run_flow(spec_file: str, output_dir: Optional[str] = None, telemetry: bool =
         
         # Run the certified flow
         print("Starting certified flow execution...")
-        final_state = run_certified(
+        controller = FlightController()
+        final_state = controller.run_certified_flow(
             initial_state=initial_state,
             compiled=compiled,
             num_iterations=num_iterations,
-            step_alpha=step_alpha,
+            initial_alpha=step_alpha,
             telemetry_manager=telemetry_manager,
             flow_name=flow_name,
             run_id=telemetry_manager.run_id if telemetry_manager else "cli_run",
@@ -285,11 +286,12 @@ def tune_flow(spec_file: str, output_dir: Optional[str] = None, target_gap: floa
         
         # Run tuning with Gap Dial
         print("Starting Gap Dial parameter tuning...")
-        final_state = run_certified(
+        controller = FlightController()
+        final_state = controller.run_certified_flow(
             initial_state=initial_state,
             compiled=compiled,
             num_iterations=num_iterations,
-            step_alpha=step_alpha,
+            initial_alpha=step_alpha,
             telemetry_manager=telemetry_manager,
             flow_name=flow_name,
             run_id=telemetry_manager.run_id,
