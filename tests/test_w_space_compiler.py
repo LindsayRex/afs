@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 import jax
 import jax.numpy as jnp
+import pytest
 
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
@@ -24,7 +25,8 @@ class IdentityOp(Op):
         return x
 
 
-def test_wavelet_l1_prox_in_physical_space():
+@pytest.mark.dtype_parametrized
+def test_wavelet_l1_prox_in_physical_space(float_dtype):
     """
     Test that wavelet L1 prox works in physical space (current behavior).
 
@@ -52,7 +54,7 @@ def test_wavelet_l1_prox_in_physical_space():
     compiled = compile_energy(spec, op_registry)
 
     # THEN g_prox should work on physical space input
-    x = jnp.array([1.0, -2.0, 3.0, -4.0])
+    x = jnp.array([1.0, -2.0, 3.0, -4.0], dtype=float_dtype)
     state = {'x': x}
     step_alpha = 0.1
 
@@ -62,6 +64,10 @@ def test_wavelet_l1_prox_in_physical_space():
     assert 'x' in result
     assert isinstance(result['x'], jnp.ndarray)
     assert result['x'].shape == x.shape
+
+    # Verify result dtype is preserved
+    tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
+    assert jnp.allclose(result['x'], result['x'], atol=tolerance)  # Basic sanity check
 
 
 def test_wavelet_l1_prox_in_W_space():

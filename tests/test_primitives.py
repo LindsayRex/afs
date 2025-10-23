@@ -6,6 +6,7 @@ from pathlib import Path
 import jax
 import jax.numpy as jnp
 from typing import cast
+import pytest
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
@@ -18,7 +19,8 @@ class IdentityOp(Op):
     def __call__(self, x):
         return x
 
-def test_F_Dis_quadratic():
+@pytest.mark.dtype_parametrized
+def test_F_Dis_quadratic(float_dtype):
     """
     Tests that the dissipative step correctly descends the gradient of a quadratic energy function.
     This test computationally verifies Lemma 1: Monotonic Energy Decay.
@@ -35,7 +37,7 @@ def test_F_Dis_quadratic():
     grad_f = compiled.f_grad
 
     # WHEN we apply one step of the dissipative flow from a known state
-    initial_state = {'x': jnp.array([2.0]), 'y': jnp.array([1.0])}
+    initial_state = {'x': jnp.array([2.0], dtype=float_dtype), 'y': jnp.array([1.0], dtype=float_dtype)}
     step_alpha = 0.1
     final_state = F_Dis(initial_state, grad_f, step_alpha, manifolds={})
 
@@ -43,7 +45,8 @@ def test_F_Dis_quadratic():
     # The gradient at x=2.0 is grad_E = (x-y) = 1.0.
     # The update rule is x_new = x_old - alpha * grad.
     # x_new = 2.0 - 0.1 * 1.0 = 1.9.
-    assert jnp.isclose(final_state['x'], 1.9)
+    tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
+    assert jnp.isclose(final_state['x'], 1.9, atol=tolerance)
 
 def test_F_Proj_l1():
     """
@@ -98,65 +101,72 @@ def test_F_Proj_l1_contract():
     expected_x = jnp.array([1.45, -0.15, 0.75])
     assert jnp.allclose(final_state['x'], expected_x)
 
-def test_F_Multi():
+@pytest.mark.complex_operations
+def test_F_Multi(complex_dtype):
     """
     Tests the multiscale transform primitive's forward and inverse operations.
     """
     import jaxwt
-    
+
     # Create a wavelet transform object
     class WaveletTransform:
         def __init__(self, wavelet='haar', level=1):
             self.wavelet = wavelet
             self.level = level
-            
+
         def forward(self, x):
             return jaxwt.wavedec(x, self.wavelet, level=self.level)
-            
+
         def inverse(self, x):
             return jaxwt.waverec(x, self.wavelet)
 
     W = WaveletTransform()
-    x = jnp.array([1.0, 2.0, 3.0, 4.0])
+    # Use real input for wavelet transforms (they can produce complex coefficients internally)
+    x = jnp.array([1.0, 2.0, 3.0, 4.0], dtype=jnp.float64 if complex_dtype == jnp.complex128 else jnp.float32)
 
     # WHEN we apply the forward and then the inverse transform
     u = F_Multi(x, W, 'forward')
     x_reconstructed = cast(jnp.ndarray, F_Multi(u, W, 'inverse'))
 
     # THEN the reconstructed vector should be identical to the original.
-    assert jnp.allclose(x, x_reconstructed)
+    tolerance = 1e-5 if complex_dtype == jnp.complex64 else 1e-12
+    assert jnp.allclose(x, x_reconstructed, atol=tolerance)
 
-def test_F_Multi_contract_jaxwt():
+@pytest.mark.complex_operations
+def test_F_Multi_contract_jaxwt(complex_dtype):
     """
     Given: A state and a jaxwt wavelet transform.
     When: We apply the forward and inverse multiscale transforms.
     Then: The reconstructed state should be identical to the original.
     """
     import jaxwt
-    
+
     # Create a wavelet transform object
     class JaxwtTransform:
         def __init__(self, wavelet='db1', level=1):
             self.wavelet = wavelet
             self.level = level
-            
+
         def forward(self, x):
             return jaxwt.wavedec(x, self.wavelet, level=self.level)
-            
+
         def inverse(self, x):
             return jaxwt.waverec(x, self.wavelet)
 
     W_op = JaxwtTransform()
-    x = jnp.ones((4,))
+    # Use real input for wavelet transforms
+    x = jnp.ones((4,), dtype=jnp.float64 if complex_dtype == jnp.complex128 else jnp.float32)
 
     # WHEN we apply the forward and then the inverse transform
     coeffs = F_Multi(x, W_op, 'forward')
     x_reconstructed = cast(jnp.ndarray, F_Multi(coeffs, W_op, 'inverse'))
-    
-    # THEN the reconstructed vector should be identical to the original.
-    assert jnp.allclose(x, x_reconstructed)
 
-def test_F_Multi_wavelet_roundtrip():
+    # THEN the reconstructed vector should be identical to the original.
+    tolerance = 1e-5 if complex_dtype == jnp.complex64 else 1e-12
+    assert jnp.allclose(x, x_reconstructed, atol=tolerance)
+
+@pytest.mark.complex_operations
+def test_F_Multi_wavelet_roundtrip(complex_dtype):
     """
     GREEN: Test for proper F_Multi primitive with wavelet roundtrip.
     Given: A 1D signal and wavelet transform object.
@@ -164,29 +174,31 @@ def test_F_Multi_wavelet_roundtrip():
     Then: The signal should be perfectly reconstructed.
     """
     import jaxwt
-    
+
     # Create a wavelet transform object
     class HaarTransform:
         def __init__(self, level=1):
             self.level = level
-            
+
         def forward(self, x):
             return jaxwt.wavedec(x, 'haar', level=self.level)
-            
+
         def inverse(self, x):
             return jaxwt.waverec(x, 'haar')
-    
+
     W = HaarTransform()
-    
+
     # GIVEN a 1D signal
-    x = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0])
-    
+    x = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+                  dtype=jnp.float64 if complex_dtype == jnp.complex128 else jnp.float32)
+
     # WHEN we apply F_Multi forward and inverse
     coeffs = F_Multi(x, W, 'forward')
     reconstructed = cast(jnp.ndarray, F_Multi(coeffs, W, 'inverse'))
-    
+
     # THEN the signal should be perfectly reconstructed
-    assert jnp.allclose(x, reconstructed)
+    tolerance = 1e-5 if complex_dtype == jnp.complex64 else 1e-12
+    assert jnp.allclose(x, reconstructed, atol=tolerance)
 
 def test_F_Con():
     """

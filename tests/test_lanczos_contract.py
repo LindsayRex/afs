@@ -14,8 +14,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 from computable_flows_shim.fda.certificates import estimate_gamma_lanczos
 
 
+@pytest.mark.dtype_parametrized
 class TestLanczosContract:
     """Mathematical contracts for Lanczos spectral gap estimation."""
+
+    @pytest.fixture(autouse=True)
+    def setup_method(self, float_dtype):
+        """Set up test method with dtype fixture."""
+        self.float_dtype = float_dtype
+        # Set tolerance based on precision
+        self.tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
 
     def test_lanczos_convergence_for_diagonal_matrix(self):
         """
@@ -25,13 +33,13 @@ class TestLanczosContract:
         """
         # Diagonal matrix [[2, 0], [0, 5]] has eigenvalues 2, 5
         def L_apply(v):
-            return jnp.array([2.0 * v[0], 5.0 * v[1]])
+            return jnp.array([2.0 * v[0], 5.0 * v[1]], dtype=self.float_dtype)
 
         key = jax.random.PRNGKey(42)
         gamma = estimate_gamma_lanczos(L_apply, key, (2,), k=10)
 
         # Should converge to min eigenvalue = 2.0
-        assert jnp.isclose(gamma, 2.0, atol=1e-3), f"Expected ~2.0, got {gamma}"
+        assert jnp.isclose(gamma, 2.0, atol=self.tolerance), f"Expected ~2.0, got {gamma}"
 
     def test_lanczos_matrix_free_consistency(self):
         """
@@ -40,7 +48,7 @@ class TestLanczosContract:
         Then results should be consistent for small matrices.
         """
         # Create a small symmetric matrix
-        A = jnp.array([[3.0, 1.0], [1.0, 4.0]])
+        A = jnp.array([[3.0, 1.0], [1.0, 4.0]], dtype=self.float_dtype)
         true_eigenvals = jnp.linalg.eigh(A)[0]  # [2.268, 4.732]
 
         def L_apply(v):
@@ -50,7 +58,7 @@ class TestLanczosContract:
         gamma = estimate_gamma_lanczos(L_apply, key, (2,), k=8)
 
         # Should be close to smallest eigenvalue
-        assert jnp.isclose(gamma, true_eigenvals[0], atol=1e-2), f"Expected ~{true_eigenvals[0]}, got {gamma}"
+        assert jnp.isclose(gamma, true_eigenvals[0], atol=self.tolerance), f"Expected ~{true_eigenvals[0]}, got {gamma}"
 
     def test_lanczos_handles_negative_eigenvalues(self):
         """
@@ -60,13 +68,13 @@ class TestLanczosContract:
         """
         # Matrix [[-1, 0], [0, 2]] has eigenvalues -1, 2
         def L_apply(v):
-            return jnp.array([-1.0 * v[0], 2.0 * v[1]])
+            return jnp.array([-1.0 * v[0], 2.0 * v[1]], dtype=self.float_dtype)
 
         key = jax.random.PRNGKey(456)
         gamma = estimate_gamma_lanczos(L_apply, key, (2,), k=10)
 
         # Should return -1.0 (most negative eigenvalue)
-        assert jnp.isclose(gamma, -1.0, atol=1e-3), f"Expected ~-1.0, got {gamma}"
+        assert jnp.isclose(gamma, -1.0, atol=self.tolerance), f"Expected ~-1.0, got {gamma}"
 
     def test_lanczos_convergence_with_different_k(self):
         """
@@ -76,7 +84,7 @@ class TestLanczosContract:
         """
         def L_apply(v):
             # Matrix with eigenvalues approximately [1.0, 6.0]
-            return jnp.array([2.0 * v[0] + v[1], v[0] + 5.0 * v[1]])
+            return jnp.array([2.0 * v[0] + v[1], v[0] + 5.0 * v[1]], dtype=self.float_dtype)
 
         key = jax.random.PRNGKey(789)
 
@@ -97,7 +105,7 @@ class TestLanczosContract:
         Then it should execute without errors.
         """
         def L_apply(v):
-            return jnp.array([3.0 * v[0], 4.0 * v[1]])
+            return jnp.array([3.0 * v[0], 4.0 * v[1]], dtype=self.float_dtype)
 
         # Test that the function can be JIT compiled (without passing function as argument)
         @partial(jax.jit, static_argnums=(1, 2))  # Make shape and k static

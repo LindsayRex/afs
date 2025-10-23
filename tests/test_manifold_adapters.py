@@ -22,6 +22,11 @@ class TestManifoldAdaptersContract:
     for Riemannian optimization with proper tangent space projections and retractions.
     """
 
+    @pytest.fixture(params=[jnp.float32, jnp.float64])
+    def float_dtype(self, request):
+        """Parametrize tests with different floating point precisions."""
+        return request.param
+
     @pytest.fixture
     def euclidean_manifold(self):
         """Euclidean manifold for testing."""
@@ -37,10 +42,10 @@ class TestManifoldAdaptersContract:
         """Stiefel manifold (3x2 orthogonal matrices) for testing."""
         return StiefelManifold(n=3, k=2)
 
-    def test_euclidean_manifold_operations(self, euclidean_manifold):
+    def test_euclidean_manifold_operations(self, euclidean_manifold, float_dtype):
         """RED: Euclidean manifold should have identity operations."""
-        x = jnp.array([1.0, 2.0, 3.0])
-        v = jnp.array([0.1, 0.2, 0.3])
+        x = jnp.array([1.0, 2.0, 3.0], dtype=float_dtype)
+        v = jnp.array([0.1, 0.2, 0.3], dtype=float_dtype)
 
         # Tangent projection should be identity
         proj_v = euclidean_manifold.proj_tangent(x, v)

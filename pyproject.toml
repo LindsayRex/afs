@@ -27,6 +27,11 @@ markers = [
     "fda: marks tests as FDA compliance tests (deselect with '-m \"not fda\"')",
     "optional: opt-in tests that require large external data or long runtime"
 ]
+filterwarnings = [
+    # JAX dtype truncation warnings should now be rare since we enable x64 by default
+    # If they appear, they're important to investigate
+    "default"
+]
 
 # Mirror discovery behavior from legacy pytest.ini
 norecursedirs = [

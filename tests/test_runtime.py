@@ -8,6 +8,7 @@ import jax.numpy as jnp
 import tempfile
 import os
 import pyarrow.parquet as pq
+import pytest
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
@@ -21,30 +22,8 @@ class IdentityOp(Op):
     def __call__(self, x):
         return x
 
-"""
-Tests for the runtime engine and step execution.
-"""
-import sys
-from pathlib import Path
-import jax
-import jax.numpy as jnp
-import tempfile
-import os
-import pyarrow.parquet as pq
-# Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
-
-from computable_flows_shim.energy.specs import EnergySpec, TermSpec, StateSpec
-from computable_flows_shim.energy.compile import compile_energy
-from computable_flows_shim.api import Op
-from computable_flows_shim.controller import FlightController
-from computable_flows_shim.telemetry import TelemetryManager
-
-class IdentityOp(Op):
-    def __call__(self, x):
-        return x
-
-def test_forward_backward_step():
+@pytest.mark.dtype_parametrized
+def test_forward_backward_step(float_dtype):
     """
     Tests one full step of Forward-Backward Splitting (F_Dis -> F_Proj).
     This test computationally verifies Lemma 6: Stability of Composite Splitting.
@@ -61,7 +40,7 @@ def test_forward_backward_step():
     compiled = compile_energy(spec, op_registry)
 
     # WHEN we run one full step of the flow from a known state
-    initial_state = {'x': jnp.array([2.0]), 'y': jnp.array([1.0])}
+    initial_state = {'x': jnp.array([2.0], dtype=float_dtype), 'y': jnp.array([1.0], dtype=float_dtype)}
     step_alpha = 0.1
 
     # Use FlightController to run a single step
@@ -82,9 +61,11 @@ def test_forward_backward_step():
     #    threshold = 0.1 * 0.5 = 0.05
     #    x_new = sign(1.9) * max(|1.9| - 0.05, 0) = 1.85
     expected_x = 1.85
-    assert jnp.isclose(final_state['x'], expected_x)
+    tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
+    assert jnp.isclose(final_state['x'], expected_x, atol=tolerance)
 
-def test_run_flow_with_telemetry():
+@pytest.mark.dtype_parametrized
+def test_run_flow_with_telemetry(float_dtype):
     """
     Tests that the runtime engine can execute a full flow and record telemetry.
     """
@@ -97,7 +78,7 @@ def test_run_flow_with_telemetry():
     )
     op_registry = {'I': IdentityOp()}
     compiled = compile_energy(spec, op_registry)
-    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
+    initial_state = {'x': jnp.array([10.0], dtype=float_dtype), 'y': jnp.array([0.0], dtype=float_dtype)}
     
     with tempfile.TemporaryDirectory() as temp_dir:
         tm = TelemetryManager(base_path=temp_dir, flow_name="test_flow")
@@ -140,7 +121,8 @@ def test_run_flow_with_telemetry():
 from computable_flows_shim.runtime.checkpoint import CheckpointManager
 from computable_flows_shim.runtime.engine import resume_flow
 
-def test_checkpointing():
+@pytest.mark.dtype_parametrized
+def test_checkpointing(float_dtype):
     """
     Tests checkpoint creation, listing, loading, and resuming functionality.
     """
@@ -153,7 +135,7 @@ def test_checkpointing():
     )
     op_registry = {'I': IdentityOp()}
     compiled = compile_energy(spec, op_registry)
-    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
+    initial_state = {'x': jnp.array([10.0], dtype=float_dtype), 'y': jnp.array([0.0], dtype=float_dtype)}
     
     with tempfile.TemporaryDirectory() as temp_dir:
         checkpoint_manager = CheckpointManager(checkpoint_dir=temp_dir)

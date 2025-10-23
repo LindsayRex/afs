@@ -44,67 +44,73 @@ pip install -r requirements.txt
 pytest -q
 ```
 
-## Logging Configuration
+## JAX Configuration and Type System
 
-The AFS SDK includes comprehensive logging for debugging and monitoring. Logging is configured via environment variables or CLI options.
+The AFS system uses JAX for high-performance numerical computing with a strict type system and configuration policy.
+
+### Dtype Policy
+All AFS computations use **float32** as the default dtype for optimal performance/memory balance:
+
+- **Default dtype**: `float32` (for real numbers)
+- **Complex dtype**: `complex64` (for complex numbers)
+- **High precision**: `float64` (when precision is critical)
+- **Low precision**: `float16` (for memory-constrained operations)
+
+### JAX Environment Configuration
+Configure JAX before importing AFS modules:
+
+```python
+# Auto-configure for current platform
+from computable_flows_shim import configure_jax_environment
+configure_jax_environment()
+
+# Or configure manually
+import jax
+jax.config.update('jax_default_dtype', jnp.float32)
+```
 
 ### Environment Variables
 ```bash
-# Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-export AFS_LOG_LEVEL=DEBUG
+# JAX platform and XLA flags
+export JAX_PLATFORM_NAME=cpu  # or gpu, tpu
+export AFS_JAX_PLATFORM=auto  # auto-detect platform
+export AFS_ENABLE_64BIT=false # use float32 (default)
 
-# Set output format (json, text)
-export AFS_LOG_FORMAT=json
-
-# Set output destination (stderr, stdout, file, null)
-export AFS_LOG_OUTPUT=stderr
-
-# Set log file path (when output=file, defaults to logs/afs_YYYYMMDD_HHMMSS.log)
-export AFS_LOG_FILE=logs/my_custom_log.json
-
-# Enable performance logging
-export AFS_LOG_PERFORMANCE=true
+# XLA optimization flags (auto-set based on platform)
+export XLA_FLAGS='--xla_cpu_multi_thread_eigen=true --xla_enable_fast_math=true'
 ```
 
-### CLI Options
-```bash
-# Enable debug logging with JSON output
-python -m computable_flows_shim.cli --log-level DEBUG --log-format json
+### Type Enforcement
+Use the centralized type system for consistent arrays:
 
-# Log to file (auto-generates timestamped file in logs/ folder)
-python -m computable_flows_shim.cli --log-level INFO --log-output file
-
-# Log to specific file
-python -m computable_flows_shim.cli --log-level INFO --log-output file --log-file logs/my_custom_log.json
-
-# Disable logging
-python -m computable_flows_shim.cli --log-output null
-```
-
-### Programmatic Configuration
 ```python
-from computable_flows_shim.logging import configure_logging
+from computable_flows_shim import create_array, zeros, get_dtype, enforce_dtype
 
-# Configure logging in your code
-configure_logging(
-    level="DEBUG",
-    format="json", 
-    output="stderr"
-)
+# Create arrays with enforced dtypes
+x = create_array([1.0, 2.0, 3.0])  # Uses default float32
+y = zeros((10, 10), dtype='high_precision')  # Uses float64
+
+# Enforce dtypes on existing arrays
+z = enforce_dtype(some_array, 'default')  # Convert to float32
 ```
 
-### What Gets Logged
-- **Controller operations**: Phase transitions, certificate assessments, optimization progress
-- **Performance metrics**: Operation timing, success/failure status
-- **Error conditions**: Detailed error context and stack traces
-- **Configuration**: System settings and initialization parameters
+### Platform-Specific XLA Flags
 
-### Log Levels
-- **DEBUG**: Detailed diagnostic information, performance metrics
-- **INFO**: General operational messages, phase transitions
-- **WARNING**: Potential issues, remediation attempts
-- **ERROR**: Failures and exceptions
-- **CRITICAL**: System-level failures
+#### CPU Development
+```bash
+export XLA_FLAGS='--xla_cpu_multi_thread_eigen=true --xla_cpu_enable_fast_math=true --xla_cpu_enable_xprof_traceme=true --xla_enable_fast_math=true --xla_optimization_level=3'
+```
+
+#### GPU Production
+```bash
+export XLA_FLAGS='--xla_gpu_enable_fast_min_max=true --xla_gpu_enable_llvm_module_compilation_parallelism=true --xla_gpu_enable_async_all_reduce=true --xla_enable_fast_math=true --xla_optimization_level=3'
+```
+
+#### Debug Mode
+```bash
+export AFS_DEBUG=true
+export XLA_FLAGS='--xla_dump_hlo_as_text=true --xla_enable_dumping=true --xla_dump_to=logs/xla_dumps/'
+```
 
 ## Launching the Flow Dynamics HUD
 

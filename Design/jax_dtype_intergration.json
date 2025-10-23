@@ -1,0 +1,278 @@
+{
+  "project": "JAX Dtype Integration & Precision Testing",
+  "version": "1.0",
+  "status": "planning",
+  "criticality": "high",
+  "description": "Ensure consistent dtype handling across entire AFS codebase for numerical stability in differential geometry and variational calculus",
+
+  "objectives": [
+    "Eliminate dtype truncation warnings",
+    "Ensure numerical stability in complex math operations",
+    "Establish testing patterns for precision validation",
+    "Prevent future dtype-related regressions",
+    "Determine optimal precision level(s) for AFS use cases"
+  ],
+
+  "current_status": {
+    "jax_x64_enabled": true,
+    "default_dtype": "float64",
+    "complex_dtype": "complex128",
+    "cli_integration": "complete",
+    "test_coverage": "minimal",
+    "warnings_suppressed": false
+  },
+
+  "risk_assessment": {
+    "high_risk": [
+      "Silent precision loss in differential geometry calculations",
+      "Inconsistent dtypes causing convergence failures",
+      "Complex number operations using wrong precision",
+      "Memory/performance issues from unnecessary 64-bit usage"
+    ],
+    "mitigation_strategy": "Comprehensive testing with multiple precision levels"
+  },
+
+  "precision_analysis": {
+    "complex_numbers_usage": "confirmed",
+    "evidence": [
+      "Fourier transforms in wavelet module",
+      "DFT operations in atoms library",
+      "Potential complex representations in physics atoms"
+    ],
+    "precision_requirements": {
+      "differential_geometry": "float64_minimum",
+      "variational_calculus": "float64_minimum",
+      "fourier_transforms": "complex128_for_accuracy",
+      "memory_constrained": "float32_acceptable",
+      "extreme_memory": "float16_acceptable"
+    }
+  },
+
+  "implementation_phases": [
+    {
+      "phase": "PHASE_1",
+      "name": "Assessment & Planning",
+      "status": "completed",
+      "tasks": [
+        {
+          "id": "inventory_source_files",
+          "description": "Catalog all Python files that use JAX arrays",
+          "scope": "src/**/*.py",
+          "deliverable": "file_inventory.json",
+          "status": "completed"
+        },
+        {
+          "id": "inventory_test_files",
+          "description": "Catalog all test files that need dtype validation",
+          "scope": "tests/**/*.py",
+          "deliverable": "test_inventory.json",
+          "status": "completed"
+        },
+        {
+          "id": "analyze_complex_usage",
+          "description": "Verify which components actually use complex numbers",
+          "scope": "atoms, transforms, physics modules",
+          "deliverable": "complex_usage_report.md",
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "phase": "PHASE_2",
+      "name": "Core Integration",
+      "status": "completed",
+      "prerequisites": ["PHASE_1"],
+      "tasks": [
+        {
+          "id": "update_cli_scripts",
+          "description": "Ensure all CLI entry points call configure_jax_environment()",
+          "scope": "src/scripts/cfs_cli.py",
+          "deliverable": "cli_integration_complete",
+          "status": "completed"
+        },
+        {
+          "id": "update_test_helpers",
+          "description": "Add dtype configuration to test fixtures and helpers",
+          "scope": "tests/conftest.py, test utilities",
+          "deliverable": "test_fixtures_updated",
+          "status": "completed"
+        },
+        {
+          "id": "validate_atom_dtype_usage",
+          "description": "Ensure all atom implementations respect global dtype policy",
+          "scope": "src/computable_flows_shim/atoms/",
+          "deliverable": "atoms_dtype_compliant",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "phase": "PHASE_3",
+      "name": "Testing Implementation",
+      "status": "in_progress",
+      "prerequisites": ["PHASE_2"],
+      "tasks": [
+        {
+          "id": "implement_precision_parametrized_tests",
+          "description": "Add parametrized tests for float32/float64 precision validation",
+          "scope": "tests/test_*.py",
+          "deliverable": "precision_tests_added",
+          "status": "in_progress"
+        },
+        {
+          "id": "implement_complex_precision_tests",
+          "description": "Add tests for complex64/complex128 in Fourier components",
+          "scope": "tests/atoms/test_fourier_*.py",
+          "deliverable": "complex_tests_added",
+          "status": "pending"
+        },
+        {
+          "id": "implement_dtype_enforcement_tests",
+          "description": "Test that dtype enforcement works across pipeline",
+          "scope": "tests/test_dtype_pipeline.py",
+          "deliverable": "pipeline_tests_added",
+          "status": "pending"
+        },
+        {
+          "id": "implement_regression_tests",
+          "description": "Add tests to prevent dtype-related regressions",
+          "scope": "tests/test_dtype_regression.py",
+          "deliverable": "regression_tests_added",
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "phase": "PHASE_4",
+      "name": "Validation & Optimization",
+      "status": "pending",
+      "prerequisites": ["PHASE_3"],
+      "tasks": [
+        {
+          "id": "run_full_precision_matrix",
+          "description": "Test entire suite with float32, float64, complex64, complex128",
+          "scope": "all tests",
+          "deliverable": "precision_matrix_results.json",
+          "status": "pending"
+        },
+        {
+          "id": "performance_impact_analysis",
+          "description": "Measure memory/performance impact of 64-bit vs 32-bit",
+          "scope": "benchmark suite",
+          "deliverable": "performance_report.md",
+          "status": "pending"
+        },
+        {
+          "id": "determine_optimal_precision",
+          "description": "Decide on default precision level(s) based on testing",
+          "scope": "analysis of all results",
+          "deliverable": "precision_recommendation.md",
+          "status": "pending"
+        },
+        {
+          "id": "update_documentation",
+          "description": "Update JAX configuration docs with final recommendations",
+          "scope": "docs/jax_configuration.md",
+          "deliverable": "docs_updated",
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+
+  "testing_strategy": {
+    "precision_levels": [
+      {"name": "float32", "use_case": "memory_constrained", "tolerance": "1e-5"},
+      {"name": "float64", "use_case": "numerical_stability", "tolerance": "1e-12"},
+      {"name": "complex64", "use_case": "fourier_memory", "tolerance": "1e-5"},
+      {"name": "complex128", "use_case": "fourier_accuracy", "tolerance": "1e-12"}
+    ],
+    "test_categories": [
+      {
+        "category": "unit_tests",
+        "strategy": "parametrize_precision",
+        "scope": "individual functions",
+        "validation": "mathematical_correctness"
+      },
+      {
+        "category": "integration_tests",
+        "strategy": "pipeline_dtype_consistency",
+        "scope": "full_flow_execution",
+        "validation": "end_to_end_consistency"
+      },
+      {
+        "category": "precision_tests",
+        "strategy": "cross_precision_comparison",
+        "scope": "same_operation_different_precision",
+        "validation": "precision_appropriate_tolerance"
+      },
+      {
+        "category": "regression_tests",
+        "strategy": "dtype_enforcement_validation",
+        "scope": "configuration_changes",
+        "validation": "no_silent_truncation"
+      }
+    ]
+  },
+
+  "validation_criteria": {
+    "success_criteria": [
+      "Zero dtype truncation warnings in test suite",
+      "All tests pass with float64 default",
+      "Complex operations use appropriate precision",
+      "CLI scripts properly configure JAX",
+      "Test suite validates multiple precision levels",
+      "Performance impact documented and acceptable"
+    ],
+    "failure_criteria": [
+      "Silent precision loss in critical calculations",
+      "Test failures due to dtype mismatches",
+      "Inconsistent dtype usage across pipeline",
+      "Performance regression >10% without justification"
+    ]
+  },
+
+  "file_modification_inventory": {
+    "cli_scripts": [
+      "src/scripts/cfs_cli.py",
+      "src/scripts/*.py"
+    ],
+    "core_modules": [
+      "src/computable_flows_shim/config.py",
+      "src/computable_flows_shim/__init__.py"
+    ],
+    "atom_implementations": [
+      "src/computable_flows_shim/atoms/*.py"
+    ],
+    "test_files": [
+      "tests/test_*.py",
+      "tests/atoms/test_*.py",
+      "tests/conftest.py"
+    ],
+    "documentation": [
+      "docs/jax_configuration.md",
+      "pyproject.toml"
+    ]
+  },
+
+  "estimated_effort": {
+    "phase_1": "2-3 hours",
+    "phase_2": "4-6 hours",
+    "phase_3": "6-8 hours",
+    "phase_4": "4-6 hours",
+    "total": "16-23 hours"
+  },
+
+  "next_actions": [
+    "Continue implementing parametrized precision tests for remaining test files",
+    "Add complex precision tests for wavelet operations",
+    "Implement dtype enforcement tests across pipeline",
+    "Run full precision matrix testing"
+  ],
+
+  "contingency_plans": {
+    "precision_standardization": "If testing shows one precision level works for all use cases, standardize on that level",
+    "fallback_to_float32": "If 64-bit causes performance issues, implement selective precision with float32 default",
+    "minimal_integration": "If integration proves too complex, implement minimal dtype enforcement in critical paths only"
+  }
+}

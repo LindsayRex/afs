@@ -12,15 +12,23 @@ from typing import Dict, List, Any
 from computable_flows_shim.multi.transform_op import TransformOp, make_transform
 
 
+@pytest.mark.dtype_parametrized
 class TestLensProbeContract:
     """Contract tests for lens probe compressibility and reconstruction analysis."""
+
+    @pytest.fixture(autouse=True)
+    def setup_method(self, float_dtype):
+        """Set up test method with dtype fixture."""
+        self.float_dtype = float_dtype
+        # Set tolerance based on precision
+        self.tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
 
     @pytest.fixture
     def sample_data_1d(self):
         """Generate 1D test signal with known compressibility properties."""
         key = random.PRNGKey(42)
         # Create a signal with different frequency components
-        x = jnp.linspace(0, 10, 256)
+        x = jnp.linspace(0, 10, 256, dtype=self.float_dtype)
         signal = jnp.sin(x) + 0.5 * jnp.sin(4*x) + 0.2 * jnp.sin(16*x)
         return signal
 
@@ -29,8 +37,8 @@ class TestLensProbeContract:
         """Generate 2D test image with known compressibility properties."""
         key = random.PRNGKey(42)
         # Create a simple 2D pattern
-        x = jnp.linspace(-1, 1, 64)
-        y = jnp.linspace(-1, 1, 64)
+        x = jnp.linspace(-1, 1, 64, dtype=self.float_dtype)
+        y = jnp.linspace(-1, 1, 64, dtype=self.float_dtype)
         X, Y = jnp.meshgrid(x, y)
         image = jnp.exp(-(X**2 + Y**2)) + 0.3 * jnp.sin(10*X) * jnp.sin(10*Y)
         return image
@@ -98,7 +106,7 @@ class TestLensProbeContract:
 
         # For perfect reconstruction (haar on dyadic length), relative error should be very small
         # Allow for floating point precision issues with non-power-of-2 signal lengths
-        assert error_metrics['relative_error'] < 1e-6
+        assert error_metrics['relative_error'] < self.tolerance
 
     def test_compressibility_vs_sparsity_tradeoff(self, sample_data_1d, candidate_transforms_1d):
         """Test that compressibility correlates with sparsity thresholding."""
@@ -195,7 +203,7 @@ class TestLensProbeContract:
             name = candidate.name
             comp1 = results1['candidate_results'][name]['compressibility']['overall_sparsity']
             comp2 = results2['candidate_results'][name]['compressibility']['overall_sparsity']
-            assert abs(comp1 - comp2) < 1e-10
+            assert abs(comp1 - comp2) < self.tolerance
 
     def test_edge_case_empty_data(self):
         """Test lens probe handles edge cases gracefully."""

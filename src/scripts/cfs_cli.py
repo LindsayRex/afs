@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CLI - Command Line Interface for Computable Flows Shim. 
+CLI - Command Line Interface for Computable Flows Shim.
 
 Provides commands for running optimizations, managing telemetry, and monitoring flows.
 """
@@ -13,9 +13,11 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import jax.numpy as jnp
 
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# CRITICAL: Configure JAX environment BEFORE any JAX imports
+from computable_flows_shim import configure_jax_environment
+configure_jax_environment()
 
+# Now safe to import JAX-dependent modules
 from computable_flows_shim.energy.specs import EnergySpec, StateSpec
 from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.controller import FlightController

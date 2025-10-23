@@ -7,11 +7,21 @@ using four core primitives: F_Dis, F_Proj, F_Multi, F_Con.
 
 __version__ = "0.1.0"
 
+# Core configuration and type system
+from . import config
+from .config import (
+    get_dtype, enforce_dtype, get_xla_flags_for_platform, configure_jax_environment,
+    create_array, zeros, ones, random_normal, validate_dtype_consistency, validate_xla_flags
+)
+
 # Logging infrastructure
 from .logging import configure_logging, get_logger, log_performance
 
 __all__ = [
-    'configure_logging',
-    'get_logger', 
-    'log_performance'
+    # Configuration and types
+    'config',
+    'get_dtype', 'enforce_dtype', 'get_xla_flags_for_platform', 'configure_jax_environment',
+    'create_array', 'zeros', 'ones', 'random_normal', 'validate_dtype_consistency', 'validate_xla_flags',
+    # Logging
+    'configure_logging', 'get_logger', 'log_performance'
 ]

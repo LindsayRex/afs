@@ -19,20 +19,25 @@ class TestTransformOpContract:
     with proper frame metadata, JAX compatibility, and round-trip accuracy.
     """
 
+    @pytest.fixture(params=[jnp.float32, jnp.float64])
+    def float_dtype(self, request):
+        """Parametrize tests with different floating point precisions."""
+        return request.param
+
     @pytest.fixture
-    def sample_1d_signal(self):
+    def sample_1d_signal(self, float_dtype):
         """1D test signal that should be compressible with wavelets."""
         # Create a signal with some structure: smooth part + high-frequency component
-        x = jnp.linspace(0, 4*jnp.pi, 64)
+        x = jnp.linspace(0, 4*jnp.pi, 64, dtype=float_dtype)
         signal = jnp.sin(x) + 0.1 * jnp.sin(20*x)  # Low + high frequency
         return signal
 
     @pytest.fixture
-    def sample_2d_image(self):
+    def sample_2d_image(self, float_dtype):
         """2D test image for wavelet transforms."""
         # Simple 2D pattern
-        x = jnp.linspace(-1, 1, 32)
-        y = jnp.linspace(-1, 1, 32)
+        x = jnp.linspace(-1, 1, 32, dtype=float_dtype)
+        y = jnp.linspace(-1, 1, 32, dtype=float_dtype)
         X, Y = jnp.meshgrid(x, y)
         image = jnp.exp(-(X**2 + Y**2)) + 0.1 * jnp.sin(10*X) * jnp.cos(10*Y)
         return image
@@ -49,7 +54,7 @@ class TestTransformOpContract:
         assert hasattr(transform, 'c')
         assert hasattr(transform, 'levels')
 
-    def test_1d_round_trip_accuracy(self, sample_1d_signal):
+    def test_1d_round_trip_accuracy(self, sample_1d_signal, float_dtype):
         """RED: 1D forward/inverse should achieve perfect reconstruction."""
         transform = make_jaxwt_transform('haar', levels=2)
 
@@ -60,10 +65,11 @@ class TestTransformOpContract:
         reconstructed = transform.inverse(coeffs)
 
         # Should achieve near-perfect reconstruction
+        tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
         error = jnp.max(jnp.abs(reconstructed - sample_1d_signal))
-        assert error < 1e-6, f"Round-trip error too large: {error}"
+        assert error < tolerance, f"Round-trip error too large: {error} (dtype: {float_dtype})"
 
-    def test_2d_round_trip_accuracy(self, sample_2d_image):
+    def test_2d_round_trip_accuracy(self, sample_2d_image, float_dtype):
         """RED: 2D forward/inverse should achieve perfect reconstruction."""
         transform = make_jaxwt_transform('haar', levels=2, ndim=2)
 
@@ -74,8 +80,9 @@ class TestTransformOpContract:
         reconstructed = transform.inverse(coeffs)
 
         # Should achieve near-perfect reconstruction
+        tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
         error = jnp.max(jnp.abs(reconstructed - sample_2d_image))
-        assert error < 1e-6, f"Round-trip error too large: {error}"
+        assert error < tolerance, f"Round-trip error too large: {error} (dtype: {float_dtype})"
 
     def test_frame_metadata_haar(self):
         """RED: Haar wavelet should be unitary frame."""

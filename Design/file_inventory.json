@@ -1,0 +1,215 @@
+{
+  "inventory_timestamp": "2024-01-01T00:00:00Z",
+  "phase": "PHASE_1",
+  "description": "Complete inventory of all Python files using JAX arrays and operations",
+
+  "source_files": {
+    "cli_scripts": [
+      {
+        "file": "src/scripts/cfs_cli.py",
+        "imports": ["jax.numpy as jnp", "jax"],
+        "usage": ["jnp.ndarray type hints", "jax import for version check"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      }
+    ],
+    "config_modules": [
+      {
+        "file": "src/computable_flows_shim/config.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["dtype definitions", "array creation functions", "enforcement utilities"],
+        "complex_usage": false,
+        "needs_dtype_config": false
+      }
+    ],
+    "runtime_modules": [
+      {
+        "file": "src/computable_flows_shim/runtime/step.py",
+        "imports": ["jax.numpy as jnp"],
+        "usage": ["jnp.ndarray type hints", "state dictionary operations"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      },
+      {
+        "file": "src/computable_flows_shim/runtime/primitives.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["Array type alias", "stochastic noise generation with jnp.sqrt"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      },
+      {
+        "file": "src/computable_flows_shim/runtime/manifolds.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["Array type alias", "vector operations", "QR decomposition", "projection operations"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      },
+      {
+        "file": "src/computable_flows_shim/runtime/engine.py",
+        "imports": ["jax.numpy as jnp"],
+        "usage": ["Array type alias", "state dictionary operations"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      },
+      {
+        "file": "src/computable_flows_shim/runtime/checkpoint.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["state serialization operations"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      }
+    ],
+    "multi_modules": [
+      {
+        "file": "src/computable_flows_shim/multi/transform_op.py",
+        "imports": ["jax", "jax.numpy as jnp", "jaxwt"],
+        "usage": ["wavelet transforms", "complex return types from jaxwt"],
+        "complex_usage": true,
+        "needs_dtype_config": true
+      },
+      {
+        "file": "src/computable_flows_shim/multi/lens_probe.py",
+        "imports": ["jax.numpy as jnp"],
+        "usage": ["array operations"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      }
+    ],
+    "tuner_modules": [
+      {
+        "file": "src/computable_flows_shim/tuner/gap_dial.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["spectral gap estimation", "lambda clipping with jnp.clip"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      }
+    ],
+    "telemetry_modules": [
+      {
+        "file": "src/telematry_cfs/flows/quadratic_flow.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["target array creation with jnp.array"],
+        "complex_usage": false,
+        "needs_dtype_config": true
+      }
+    ]
+  },
+
+  "test_files": {
+    "config_tests": [
+      {
+        "file": "tests/test_config.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["dtype testing", "array creation validation"],
+        "complex_usage": false,
+        "needs_dtype_parametrization": true
+      }
+    ],
+    "runtime_tests": [
+      {
+        "file": "tests/test_runtime.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["runtime execution testing"],
+        "complex_usage": false,
+        "needs_dtype_parametrization": true
+      },
+      {
+        "file": "tests/test_primitives.py",
+        "imports": ["jax", "jax.numpy as jnp", "jaxwt"],
+        "usage": ["primitive operations testing", "wavelet transforms"],
+        "complex_usage": true,
+        "needs_dtype_parametrization": true
+      }
+    ],
+    "transform_tests": [
+      {
+        "file": "tests/test_transform_op_contract.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["transform operation contracts"],
+        "complex_usage": false,
+        "needs_dtype_parametrization": true
+      }
+    ],
+    "manifold_tests": [
+      {
+        "file": "tests/test_manifold_adapters.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["manifold adapter testing"],
+        "complex_usage": false,
+        "needs_dtype_parametrization": true
+      }
+    ],
+    "analysis_tests": [
+      {
+        "file": "tests/test_fda_lanczos_mode.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["FDA lanczos mode analysis"],
+        "complex_usage": false,
+        "needs_dtype_parametrization": true
+      },
+      {
+        "file": "tests/test_lanczos_contract.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["lanczos contract testing"],
+        "complex_usage": false,
+        "needs_dtype_parametrization": true
+      },
+      {
+        "file": "tests/test_w_space_compiler.py",
+        "imports": ["jax", "jax.numpy as jnp"],
+        "usage": ["W-space compiler testing"],
+        "complex_usage": false,
+        "needs_dtype_parametrization": true
+      },
+      {
+        "file": "tests/test_lens_probe.py",
+        "imports": ["jax.numpy as jnp", "jax.random as random"],
+        "usage": ["lens probe testing"],
+        "complex_usage": false,
+        "needs_dtype_parametrization": true
+      }
+    ]
+  },
+
+  "complex_usage_analysis": {
+    "confirmed_complex_usage": [
+      "src/computable_flows_shim/multi/transform_op.py",
+      "tests/test_primitives.py"
+    ],
+    "complex_usage_details": {
+      "wavelet_transforms": "jaxwt operations return complex coefficients",
+      "fourier_transforms": "DFT operations in atoms library (potential)",
+      "evidence": [
+        "jaxwt.wavedec2 has complex return type annotation",
+        "Fourier transforms typically use complex numbers",
+        "Complex representations may be used in physics atoms"
+      ]
+    },
+    "real_valued_operations": [
+      "differential_geometry",
+      "variational_calculus",
+      "manifold_operations",
+      "stochastic_primitives"
+    ]
+  },
+
+  "integration_requirements": {
+    "files_needing_config": 15,
+    "files_using_complex": 2,
+    "test_files_needing_parametrization": 9,
+    "cli_scripts_needing_config": 1,
+    "priority_order": [
+      "CLI scripts (cfs_cli.py)",
+      "Core runtime modules",
+      "Transform/wavelet modules",
+      "Test files"
+    ]
+  },
+
+  "next_steps": [
+    "Update CLI script to call configure_jax_environment()",
+    "Add dtype parametrization to test files",
+    "Implement precision-aware testing patterns",
+    "Validate complex number handling in wavelet transforms"
+  ]
+}
