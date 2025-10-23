@@ -1,0 +1,272 @@
+{
+  "meta": {
+    "generated_by": "automated-gap-analyzer",
+    "reviewed_by": "manual-review-2025-10-23",
+    "date": "2025-10-23",
+    "repo": "afs",
+    "branch": "master",
+    "spec_folder": "Design/shim_build",
+    "source_folder": "src",
+    "qa_logs_folder": "qa_logs",
+    "last_update": "Gap analysis Part 5: Extensibility, UX, and remaining components - registries, user interfaces, and system completeness",
+    "document_purpose": "Part 5 of gap analysis series - focuses on extensibility, user experience, and remaining system components for completeness"
+  },
+  "summary": "Part 5: Extensibility, UX, and remaining components. These complete the system: plugin registries for extensibility, user interfaces for interaction, and the final pieces needed for a production-ready system.",
+  "items": [
+    {
+      "id": "extensibility_backends",
+      "spec": "Op/prox registries with Python entry points, transform/manifold registries, backend adapters (JAX/Torch), plugin system for ops without modifying core",
+      "status": "partial-1of4",
+      "implemented_in": [
+        "src/computable_flows_shim/atoms/registry.py",
+        "src/computable_flows_shim/atoms/base.py"
+      ],
+      "notes": [
+        "Atoms registry system implemented with register_atom/get_atom_class for dynamic discovery.",
+        "Abstract Atom base class with proper interface contracts.",
+        "Only atoms registry implemented - missing ops, transforms, manifolds, and backends registries.",
+        "No Python entry points defined in pyproject.toml.",
+        "No backend adapters implemented (JAX assumed, no Torch backend).",
+        "Plugin system exists for atoms but not extensible to other components."
+      ],
+      "gaps": [
+        "Ops registry not implemented - no Op class protocol or registry system.",
+        "Transform registry not implemented - no TransformOp registry or entry points.",
+        "Manifold registry not implemented - no manifold adapters or registry.",
+        "Backend adapters not implemented - no backend abstraction layer.",
+        "Python entry points not configured - no plugin system for external contributions.",
+        "Registry path constants not defined for consistency."
+      ],
+      "priority": "low",
+      "design_pattern_notes": [
+        "Registries are Imperative Shell: handle component discovery and instantiation side effects.",
+        "Backend adapters follow ports-and-adapters: stable interfaces with implementation-specific wrappers."
+      ],
+      "tdd_notes": [
+        "Registry systems require TDD: write failing tests for entry point discovery and plugin loading.",
+        "Backend adapters need TDD: contract tests for backend interchangeability and API compliance."
+      ],
+      "recommended_next_steps": [
+        "Implement Op class protocol and ops registry with entry points.",
+        "Create transform and manifold registries following atoms pattern.",
+        "Implement backend adapters for JAX/Torch interchangeability.",
+        "Configure Python entry points for plugin system.",
+        "Define registry path constants for consistency."
+      ]
+    },
+    {
+      "id": "naming_and_layout",
+      "spec": "Canonical file/module names, ports-and-adapters layout, registry paths, CLI entry points, dtype policy, examples as Python DSL",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/computable_flows_shim/",
+        "src/scripts/cfs_cli.py",
+        "README.md"
+      ],
+      "notes": [
+        "Basic ports-and-adapters layout implemented with shim/ subdirectory.",
+        "CLI entry points exist in cfs_cli.py.",
+        "File naming mostly follows spec but some inconsistencies remain."
+      ],
+      "gaps": [
+        "Registry path constants not defined - inconsistent registry discovery.",
+        "Dtype policy not explicitly documented or enforced.",
+        "Examples incomplete - missing comprehensive Python DSL examples.",
+        "Some file naming inconsistencies remain.",
+        "CLI entry points could be more comprehensive."
+      ],
+      "priority": "low",
+      "design_pattern_notes": [
+        "Ports-and-adapters maximizes backend substitution without code drift.",
+        "Registry paths and naming conventions are Functional Core: pure organizational structure."
+      ],
+      "tdd_notes": [
+        "CLI entry points need TDD: contract tests for command-line interface compliance.",
+        "Registry path resolution requires TDD: tests for consistent discovery across environments."
+      ],
+      "recommended_next_steps": [
+        "Define and document registry path constants.",
+        "Document explicit dtype policy and enforcement rules.",
+        "Create comprehensive Python DSL examples.",
+        "Audit and fix file naming inconsistencies.",
+        "Expand CLI entry points for all major operations."
+      ]
+    },
+    {
+      "id": "ux_flow_card",
+      "spec": "Flow Card UX: Math Card (LaTeX energy formula + term chips with grad pulses) + Stability Card (health light, coupling/settling gauges, score sparkline, complexity metrics, event ticker), anime.js animations, plain language mapping, data contract with active_terms/grad_share",
+      "status": "partial-1of2",
+      "implemented_in": [
+        "src/ux/sparsity_hud_demo.html",
+        "src/scripts/cfs_cli.py (hud command)"
+      ],
+      "notes": [
+        "Stability Card implemented with health light and coupling/settling gauges.",
+        "Anime.js animations working for gauge updates.",
+        "Plain language used for sparsity metrics and health status.",
+        "HUD command exists in CLI for launching interface."
+      ],
+      "gaps": [
+        "Math Card not implemented - missing LaTeX energy formula display.",
+        "Term chips with grad pulses not implemented.",
+        "Score sparkline not implemented.",
+        "Complexity metrics not implemented.",
+        "Event ticker not implemented.",
+        "Data contract incomplete - missing active_terms/grad_share fields.",
+        "HUD not integrated with actual telemetry streaming - demo mode only."
+      ],
+      "priority": "low",
+      "design_pattern_notes": [
+        "Data contract follows Functional Core: pure data structures for telemetry updates.",
+        "UI rendering and animations are Imperative Shell: DOM manipulation and visual updates."
+      ],
+      "tdd_notes": [
+        "Real-time streaming needs TDD: contract tests for WebSocket telemetry updates.",
+        "Data contract validation requires TDD: tests for required field presence and types."
+      ],
+      "recommended_next_steps": [
+        "Implement Math Card with LaTeX energy formula rendering.",
+        "Add term chips with gradient pulse animations.",
+        "Create score sparkline for optimization progress.",
+        "Add complexity metrics display.",
+        "Implement event ticker for system events.",
+        "Complete data contract with active_terms/grad_share.",
+        "Integrate with real telemetry streaming instead of demo mode."
+      ]
+    },
+    {
+      "id": "ux_backlog_scaffold",
+      "spec": "UX Backlog Scaffold: trimmed HUD with two-card layout, plain language, single updateTelemetry() function, anime.js animations, composable cards, WebSocket streaming adapter",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/ux/sparsity_hud_demo.html",
+        "src/scripts/cfs_cli.py (hud command with HTTP server)"
+      ],
+      "notes": [
+        "Two-card layout implemented (Math and Stability cards).",
+        "Anime.js animations working for visual updates.",
+        "Plain language used throughout interface.",
+        "HTTP server and WebSocket framework exists.",
+        "Particle system and sound effects implemented for enhanced UX."
+      ],
+      "gaps": [
+        "Unified updateTelemetry() function not implemented - separate update functions exist.",
+        "Composable cards not fully implemented - cards not easily swappable.",
+        "WebSocket streaming adapter incomplete - basic framework but not fully functional.",
+        "No Pareto front or side tab support.",
+        "Real telemetry integration missing - demo data only."
+      ],
+      "priority": "low",
+      "design_pattern_notes": [
+        "Data streaming follows Functional Core: pure data flow from telemetry to visual updates.",
+        "UI composition and WebSocket handling are Imperative Shell: component orchestration and network I/O."
+      ],
+      "tdd_notes": [
+        "WebSocket adapter needs TDD: contract tests for telemetry message parsing and UI updates.",
+        "Composable cards require TDD: tests for card interchangeability and data flow."
+      ],
+      "recommended_next_steps": [
+        "Implement unified updateTelemetry() function for all cards.",
+        "Make cards fully composable with clean interfaces.",
+        "Complete WebSocket streaming adapter for real telemetry.",
+        "Add Pareto front visualization and side tab support.",
+        "Integrate with actual telemetry streams instead of demo data."
+      ]
+    },
+    {
+      "id": "tensor_logic_frontend",
+      "spec": "Tensor Logic front-end: TTensor/TOp/TObjective IR, translation to EnergySpec, optional adapter for mathematicians",
+      "status": "not-implemented",
+      "implemented_in": [],
+      "notes": [
+        "Core Shim unchanged as designed (optional adapter).",
+        "No tensor logic IR or translation layer."
+      ],
+      "gaps": [
+        "TTensor/TOp/TObjective IR not implemented - no tensor logic intermediate representation.",
+        "Translation to EnergySpec not implemented - no conversion from tensor logic to energy functions.",
+        "Mathematician-friendly adapter not implemented - no high-level mathematical interface.",
+        "No telemetry tagging with front-end objective names."
+      ],
+      "priority": "low",
+      "design_pattern_notes": [
+        "Tensor logic IR could be Functional Core: pure mathematical expression trees.",
+        "Translation and adaptation are Imperative Shell: compilation and interface adaptation side effects."
+      ],
+      "tdd_notes": [
+        "Translation correctness needs TDD: contract tests for mathematical equivalence.",
+        "IR validation requires TDD: tests for expression tree correctness and type safety."
+      ],
+      "recommended_next_steps": [
+        "Implement TTensor/TOp/TObjective IR as expression trees.",
+        "Create translation layer from tensor logic to EnergySpec.",
+        "Build mathematician-friendly adapter with high-level mathematical syntax.",
+        "Add telemetry tagging with front-end objective names."
+      ]
+    },
+    {
+      "id": "contributor_guide",
+      "spec": "Branch/commit naming, ruff/mypy enforcement, test matrix, JAX-only runtime policy, IO stack recommendations, release process",
+      "status": "partial-1of6",
+      "implemented_in": [
+        "README.md",
+        "pyproject.toml (basic structure)"
+      ],
+      "notes": [
+        "Basic contributor guide exists in README.",
+        "pyproject.toml provides basic project structure.",
+        "JAX-only runtime policy documented but not enforced."
+      ],
+      "gaps": [
+        "Branch/commit naming conventions not enforced - no pre-commit hooks.",
+        "Ruff/mypy not integrated into CI or development workflow.",
+        "Test matrix not defined - no systematic testing across environments.",
+        "IO stack recommendations not documented.",
+        "Release process not documented - no version bumping or environment.lock procedures."
+      ],
+      "priority": "low",
+      "design_pattern_notes": [
+        "JAX-only policy enforcement could be Functional Core (static analysis) or Imperative Shell (runtime checks).",
+        "Pre-commit hooks and CI integration are Imperative Shell: automated validation side effects."
+      ],
+      "tdd_notes": [
+        "Policy enforcement needs TDD: contract tests for JAX-only runtime compliance.",
+        "Release process requires TDD: automated testing for deployment readiness."
+      ],
+      "recommended_next_steps": [
+        "Define and enforce branch/commit naming conventions with pre-commit hooks.",
+        "Integrate ruff/mypy into CI and development workflow.",
+        "Create test matrix for multiple Python/JAX versions.",
+        "Document IO stack recommendations and best practices.",
+        "Define release process with version bumping and environment.lock generation."
+      ]
+    }
+  ],
+  "top_priority_tasks": [
+    {
+      "task": "Complete ops and transform registries - core extensibility missing for user-defined operations",
+      "reason": "Without registries, users cannot extend the system with custom operations or transforms",
+      "priority": "low"
+    },
+    {
+      "task": "Implement Math Card in UX - users cannot see the actual energy formulations being optimized",
+      "reason": "Math Card is critical for users to understand what the system is actually optimizing",
+      "priority": "low"
+    },
+    {
+      "task": "Create unified updateTelemetry() function - current separate functions are maintenance burden",
+      "reason": "Unified interface would simplify maintenance and ensure consistent telemetry handling",
+      "priority": "low"
+    },
+    {
+      "task": "Integrate ruff/mypy into development workflow - prevents code quality issues",
+      "reason": "Automated linting and type checking prevent bugs and ensure consistent code quality",
+      "priority": "low"
+    },
+    {
+      "task": "Define release process and test matrix - ensures production readiness",
+      "reason": "Without defined processes, releases are inconsistent and testing coverage is unknown",
+      "priority": "low"
+    }
+  ]
+}

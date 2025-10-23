@@ -1,0 +1,258 @@
+{
+  "meta": {
+    "generated_by": "automated-gap-analyzer",
+    "reviewed_by": "manual-review-2025-10-23",
+    "date": "2025-10-23",
+    "repo": "afs",
+    "branch": "master",
+    "spec_folder": "Design/shim_build",
+    "source_folder": "src",
+    "qa_logs_folder": "qa_logs",
+    "last_update": "Gap analysis Part 2: Core functionality gaps - atoms library, energy compiler, runtime engine, and user-facing APIs",
+    "document_purpose": "Part 2 of gap analysis series - focuses on core functionality that must work for the system to be usable: atoms library completion, energy compilation, runtime execution, and user APIs"
+  },
+  "summary": "Part 2: Core functionality gaps that prevent the system from being usable. These are the foundational components that users depend on: complete atoms library, working energy compiler, functional runtime engine, and user-facing APIs. Without these, the system cannot solve actual optimization problems.",
+  "items": [
+    {
+      "id": "atoms_library",
+      "spec": "60-atom library (quadratic, tikhonov, l1, wavelet_l1, tv, etc.) with prox, energy, gradient, certificate contributions",
+      "status": "partial-5of60",
+      "implemented_in": [
+        "src/computable_flows_shim/atoms/library.py",
+        "src/computable_flows_shim/atoms/base.py",
+        "src/computable_flows_shim/atoms/registry.py",
+        "src/computable_flows_shim/atoms/quadratic/",
+        "src/computable_flows_shim/atoms/tikhonov/",
+        "src/computable_flows_shim/atoms/l1/",
+        "src/computable_flows_shim/atoms/wavelet_l1/",
+        "src/computable_flows_shim/atoms/tv/",
+        "tests/test_atoms.py",
+        "qa_logs/20251020_atoms_library_implementation.md",
+        "qa_logs/20251023_atoms_library_modularization.md"
+      ],
+      "notes": [
+        "Only 5 of 60 required atoms implemented (~8% complete): quadratic, tikhonov, l1, wavelet_l1, tv.",
+        "Registry system implemented with register_atom/get_atom_class for dynamic discovery.",
+        "Abstract Atom base class with proper interface contracts.",
+        "All implemented atoms expose certificate contribution stubs (lipschitz, eta_dd_contribution, gamma_contribution).",
+        "Individual test files per atom with comprehensive contract tests.",
+        "36 tests passing across the 5 implemented atom implementations."
+      ],
+      "gaps": [
+        "55 atoms missing implementation (design requires 60 total atoms).",
+        "Per-atom cost models and sparsity-band metadata (for FDA) are lightweight/missing.",
+        "W-space prox plumbing (atoms that act in W-space) not registered/handled specially."
+      ],
+      "priority": "high",
+      "design_pattern_notes": [
+        "Atoms are Functional Core: pure mathematical functions (energy, gradient, prox) with zero side effects.",
+        "Registry and factory are Imperative Shell: handle atom discovery and instantiation."
+      ],
+      "tdd_notes": [
+        "Atoms library built with TDD: each atom has comprehensive contract tests verifying mathematical properties.",
+        "Missing atoms (TV, Wavelet L1) require TDD: write failing contract tests first, then implement pure mathematical functions."
+      ],
+      "recommended_next_steps": [
+        "Implement remaining 55 atoms following TDD: write failing contract tests first, then implement pure mathematical functions.",
+        "Migrate energy compiler from legacy atoms.library import to new registry system.",
+        "Add per-atom cost models and sparsity-band metadata fields.",
+        "Implement W-space prox special handling in registry/factory."
+      ]
+    },
+    {
+      "id": "energy_compiler",
+      "spec": "Compile Python DSL EnergySpec -> CompiledEnergy {f_value, f_grad, g_prox, W, L_apply}, unit normalization, lens selection",
+      "status": "basic-implemented",
+      "implemented_in": [
+        "src/computable_flows_shim/energy/compile.py",
+        "src/computable_flows_shim/energy/specs.py",
+        "tests/test_energy_compiler.py",
+        "tests/test_w_space_compiler.py",
+        "qa_logs/20251020_energy_compiler_implementation.md",
+        "qa_logs/20251022_w_space_aware_compiler.md"
+      ],
+      "notes": [
+        "Compiler produces jitted f_value, f_grad, g_prox, g_prox_in_W, and L_apply operator.",
+        "EnergySpec implemented as Python DSL dataclasses (no YAML).",
+        "Basic CompileReport with unit_normalization_table and term_lenses.",
+        "W-space aware prox implemented with mathematical equivalence verification.",
+        "Lens probe integration present but rudimentary."
+      ],
+      "gaps": [
+        "Unit normalization is heuristic only - design requires RMS/MAD normalization per term.",
+        "Lens selection not implemented - compiler sets 'lens_name' to 'identity' by default.",
+        "CompileReport missing invariants_present, frame_type, and per-term normalization metadata.",
+        "No pydantic validation - design requires strict Python DSL validation."
+      ],
+      "priority": "high",
+      "recommended_next_steps": [
+        "Implement per-term unit normalization (RMS/MAD) and record in CompileReport.",
+        "Implement lens selection logic with lens probe integration.",
+        "Add pydantic validation for EnergySpec and TermSpec.",
+        "Complete CompileReport with all required metadata fields."
+      ],
+      "design_pattern_notes": [
+        "Compiler core is Functional Core: pure functions transforming specs to JAX functions.",
+        "Spec validation and error handling are Imperative Shell: side effects for user feedback."
+      ],
+      "tdd_notes": [
+        "Compiler built with TDD: comprehensive contract tests for compilation correctness.",
+        "Unit normalization and lens selection require TDD: write failing tests for RMS/MAD computation and lens probe integration."
+      ]
+    },
+    {
+      "id": "runtime_engine",
+      "spec": "Run compiled flow with primitives, FDA hooks, tuner integration, telemetry (Flight Recorder), checkpoints and resume",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/computable_flows_shim/runtime/engine.py",
+        "src/computable_flows_shim/controller.py",
+        "src/computable_flows_shim/telemetry/flight_recorder.py",
+        "src/computable_flows_shim/telemetry/duckdb_manager.py",
+        "src/computable_flows_shim/runtime/checkpoint.py",
+        "tests/test_runtime.py",
+        "tests/test_controller.py"
+      ],
+      "notes": [
+        "FlightController implements RED/AMBER/GREEN phase machine with rollback capability and certificate-gated tuning.",
+        "Basic run_flow_step and resume_flow exist with primitive composition (F_Dis → F_Proj).",
+        "CheckpointManager provides atomic saves and resume with JAX array serialization.",
+        "TelemetryManager and FlightRecorder integrated with Parquet/DuckDB output.",
+        "Controller phases tested with certificate validation, step remediation, and budget enforcement.",
+        "Missing FlowPolicy/MultiscaleSchedule integration - spec requires policy-driven flow execution.",
+        "Missing global dtype enforcement - no explicit dtype propagation or casting policies.",
+        "Missing formal gate conditions for phase transitions beyond basic certificate checks."
+      ],
+      "gaps": [
+        "FlowPolicy and MultiscaleSchedule specs not implemented - runtime lacks policy-driven execution.",
+        "Global dtype enforcement not implemented - no explicit dtype fields or propagation.",
+        "Flight Recorder schema incomplete - missing full Parquet schema validation and manifest writing.",
+        "Resume semantics incomplete - missing deterministic RNG/tuner state restoration tests."
+      ],
+      "priority": "high",
+      "design_pattern_notes": [
+        "Primitives and flow logic are Functional Core: pure computational steps.",
+        "Engine orchestration, telemetry logging, and checkpointing are Imperative Shell: side effects for monitoring and persistence.",
+        "Controller phase machine spans both: pure state transitions (Core) with logging side effects (Shell)."
+      ],
+      "tdd_notes": [
+        "Controller phases built with TDD: comprehensive tests for RED/AMBER/GREEN state machine and certificate gating.",
+        "Runtime engine has basic tests but missing policy integration and dtype enforcement tests.",
+        "Resume functionality requires TDD: write failing tests for deterministic state restoration."
+      ],
+      "recommended_next_steps": [
+        "Implement FlowPolicy and MultiscaleSchedule as Python DSL dataclasses.",
+        "Add global dtype enforcement with explicit dtype fields in specs and runtime casting.",
+        "Complete Flight Recorder schema validation and manifest.toml writing.",
+        "Add end-to-end resume tests ensuring deterministic restore of RNG, tuner state, and phase."
+      ]
+    },
+    {
+      "id": "atoms_library_review",
+      "spec": "Atom-based API: run_certified(spec) with terms using type/op/target/weight/weight_key, tuner section with parameter ranges, direct spec-to-energy compilation",
+      "status": "not-implemented",
+      "implemented_in": [],
+      "notes": [
+        "Review example shows clean user API: run_certified(spec=spec, initial_state=init_state, ops=ops, data=data) but this doesn't exist.",
+        "Atoms library exists but no way to specify energies using atoms as shown in review example."
+      ],
+      "gaps": [
+        "Spec validation not implemented - no pydantic validation for atom-based specs.",
+        "Atom-based energy compilation not implemented - no translation from atom specs to EnergySpec.",
+        "Tuner integration with weight_key not implemented - no parameter range specification.",
+        "User-facing run_certified() function not implemented - no high-level API for atom-based flows."
+      ],
+      "priority": "high",
+      "design_pattern_notes": [
+        "Spec parsing and compilation are Imperative Shell: validation, error handling, and compilation orchestration.",
+        "Atom-based specs are Functional Core: pure data structures for energy specification."
+      ],
+      "tdd_notes": [
+        "Spec validation needs TDD: contract tests for atom spec format compliance.",
+        "API implementation requires TDD: write failing tests for run_certified() function and atom compilation."
+      ],
+      "recommended_next_steps": [
+        "Implement AtomSpec dataclass with type/op/target/weight/weight_key fields.",
+        "Create atom-to-EnergySpec compiler that translates atom specs to energy functions.",
+        "Add tuner integration with parameter ranges and weight_key support.",
+        "Implement run_certified() high-level API function with certificate validation."
+      ]
+    },
+    {
+      "id": "cf_low_level_readiness_checklist",
+      "spec": "16 readiness requirements: reproducibility, schema/versioning, validation, checkpointing, performance, failure modes, UX, testing, security, documentation, backward compatibility, AI-friendliness, extensibility, release process",
+      "status": "partial-4of16",
+      "implemented_in": [
+        "src/computable_flows_shim/runtime/engine.py",
+        "src/computable_flows_shim/controller.py",
+        "tests/test_*.py",
+        ".github/workflows/ci.yml (basic CI)"
+      ],
+      "notes": [
+        "Basic checkpointing and controller phases implemented (4 of 16 requirements).",
+        "Test suite provides validation but not comprehensive readiness checking.",
+        "Basic CI exists but missing most readiness requirements."
+      ],
+      "gaps": [
+        "Reproducibility: no validation of deterministic behavior across runs.",
+        "Schema/versioning: incomplete manifest and schema validation.",
+        "Validation: missing spec linter and NaN/Inf guards.",
+        "Performance: no benchmarking or performance validation.",
+        "Failure modes: no systematic failure mode testing.",
+        "UX: basic CLI but missing comprehensive user experience.",
+        "Security: no security validation or vulnerability checks.",
+        "Documentation: incomplete API documentation and examples.",
+        "Backward compatibility: no compatibility testing.",
+        "AI-friendliness: no AI integration validation.",
+        "Extensibility: limited plugin system.",
+        "Release process: no automated release workflow."
+      ],
+      "priority": "high",
+      "design_pattern_notes": [
+        "Readiness checklist enforcement is Imperative Shell: validation and guardrail side effects.",
+        "Core algorithms remain Functional Core: pure mathematical operations."
+      ],
+      "tdd_notes": [
+        "Readiness validation needs TDD: contract tests for each requirement category.",
+        "Release process requires TDD: automated testing for deployment readiness."
+      ],
+      "recommended_next_steps": [
+        "Implement reproducibility validation with deterministic testing.",
+        "Complete schema versioning and manifest validation.",
+        "Add comprehensive validation guards (spec linting, NaN/Inf detection).",
+        "Implement performance benchmarking and failure mode testing.",
+        "Enhance UX with better CLI and user experience.",
+        "Add security validation and documentation completeness checks.",
+        "Implement backward compatibility and AI-friendliness validation.",
+        "Create automated release process with readiness gates."
+      ]
+    }
+  ],
+  "top_priority_tasks": [
+    {
+      "task": "Complete atoms library implementation - currently only 8% done (5/60 atoms) - users cannot specify most energy functions",
+      "reason": "Without complete atoms library, users cannot express the optimization problems they need to solve",
+      "priority": "critical"
+    },
+    {
+      "task": "Implement atom-based API (run_certified function) - users have no way to actually run optimizations with atoms",
+      "reason": "Atoms library exists but completely unusable - no user-facing API to leverage it",
+      "priority": "critical"
+    },
+    {
+      "task": "Complete energy compiler with proper unit normalization and lens selection - compiled energies may have numerical issues",
+      "reason": "Heuristic normalization can cause scaling problems and convergence issues in optimization",
+      "priority": "critical"
+    },
+    {
+      "task": "Implement FlowPolicy and MultiscaleSchedule - runtime cannot execute policy-driven flows",
+      "reason": "Runtime lacks the policy framework needed for sophisticated flow execution strategies",
+      "priority": "high"
+    },
+    {
+      "task": "Complete readiness checklist - only 4 of 16 requirements implemented, system not production-ready",
+      "reason": "Missing critical production requirements like reproducibility validation, performance benchmarking, and security checks",
+      "priority": "high"
+    }
+  ]
+}

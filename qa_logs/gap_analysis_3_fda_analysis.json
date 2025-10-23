@@ -1,0 +1,251 @@
+{
+  "meta": {
+    "generated_by": "automated-gap-analyzer",
+    "reviewed_by": "manual-review-2025-10-23",
+    "date": "2025-10-23",
+    "repo": "afs",
+    "branch": "master",
+    "spec_folder": "Design/shim_build",
+    "source_folder": "src",
+    "qa_logs_folder": "qa_logs",
+    "last_update": "Gap analysis Part 3: FDA and mathematical analysis components - certificates, multiscale transforms, and analysis hooks",
+    "document_purpose": "Part 3 of gap analysis series - focuses on Flow Dynamics Analysis components: certificate computations for convergence guarantees, multiscale transforms, and FDA integration hooks"
+  },
+  "summary": "Part 3: FDA (Flow Dynamics Analysis) and mathematical analysis components. These provide the theoretical guarantees and analysis capabilities that make the system trustworthy: convergence certificates, multiscale transforms for hierarchical analysis, and the hooks that integrate analysis into the runtime.",
+  "items": [
+    {
+      "id": "fda_certificates",
+      "spec": "Estimate eta_dd (diagonal dominance), gamma (spectral gap), Lyapunov checks, Lanczos/Gershgorin methods in W-space",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/computable_flows_shim/fda/certificates.py",
+        "src/computable_flows_shim/runtime/engine.py",
+        "qa_logs/20251022_lanczos_spectral_gap_fixes.md"
+      ],
+      "notes": [
+        "Functions estimate_eta_dd and estimate_gamma_lanczos fully implemented with JAX lax.scan for matrix-free operations.",
+        "Lanczos algorithm hardened with spurious eigenvalue filtering, JIT compatibility, and proper spectral gap detection for both positive and negative eigenvalues.",
+        "Engine calls certificate estimators at run start and logs results when telemetry_manager provided.",
+        "W-space awareness implemented via TransformOp integration in estimate_gamma_lanczos.",
+        "All certificate functions are JIT-compatible and type-safe."
+      ],
+      "gaps": [
+        "Lyapunov descent checks not implemented.",
+        "General LW_apply for frame-aware operator application missing.",
+        "Manifold-aware core operator selection not implemented.",
+        "KKT/duality gap and holdout checks missing.",
+        "Spec hooks (invariants, LensPolicy, CertificationProfile) not implemented.",
+        "Comprehensive telemetry integration incomplete."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Add automated certificate policies in runtime/controller for auto-remediation (reduce step sizes, adjust lambda candidates).",
+        "Integrate certificate checks with Flight Controller RED/AMBER/GREEN phase transitions.",
+        "Add tolerance parameters and fallback strategies for certificate estimation failures."
+      ],
+      "design_pattern_notes": [
+        "Certificate estimators are Functional Core: pure mathematical functions computing convergence guarantees.",
+        "Certificate logging and policy decisions are Imperative Shell: side effects for telemetry and control flow."
+      ],
+      "tdd_notes": [
+        "Certificate functions built with TDD: comprehensive contract tests for mathematical properties and JIT compatibility.",
+        "Integration with controller phases requires TDD: write failing tests for RED/AMBER/GREEN state machine with certificate gating.",
+        "Certificate policy automation needs TDD: contract tests for auto-remediation workflows."
+      ]
+    },
+    {
+      "id": "multiscale_module",
+      "spec": "Wavelet/transform registry, lens probe, frame-aware transforms, W-space prox, lens selection",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/computable_flows_shim/multi/transform_op.py",
+        "src/computable_flows_shim/multi/lens_probe.py",
+        "src/computable_flows_shim/atoms/library.py",
+        "src/computable_flows_shim/energy/compile.py",
+        "tests/test_transform_op.py",
+        "tests/test_lens_probe.py",
+        "qa_logs/20251020_multiscale_primitive_completion.md",
+        "qa_logs/20251020_multiscale_flow.md",
+        "qa_logs/20251022_lens_probe_implementation.md"
+      ],
+      "notes": [
+        "TransformOp class implemented with jaxwt integration and frame-aware metadata.",
+        "Lens probe implemented with compressibility metrics, reconstruction error analysis, and automatic lens selection.",
+        "Builder mode integration present but rudimentary - probe execution works but results integration incomplete.",
+        "Basic wavelet transforms (Haar, Daubechies) supported for 1D/2D.",
+        "Frame metadata correctly set (unitary vs tight frames).",
+        "Compiler integration exists but lens selection defaults to 'identity'."
+      ],
+      "gaps": [
+        "LW_apply for frame-aware operator application not implemented.",
+        "LensPolicy and MultiscaleSchedule specs not implemented.",
+        "Builder mode integration incomplete - lens probe exists but not fully integrated.",
+        "Validation & manifest recording missing (forward/inverse consistency checks, tight-frame energy validation).",
+        "Telemetry & controller integration incomplete.",
+        "Graph wavelets and chirplets not implemented."
+      ],
+      "priority": "high",
+      "recommended_next_steps": [
+        "Implement LW_apply for frame-aware operator application in W-space.",
+        "Implement LensPolicy and MultiscaleSchedule specs as Python DSL dataclasses.",
+        "Complete builder mode integration with full lens probe execution and CompileReport recording.",
+        "Add validation & manifest recording (forward/inverse consistency, tight-frame energy checks).",
+        "Complete telemetry & controller integration with phase transitions and event logging.",
+        "Implement graph wavelets and chirplets with proper frame constants."
+      ],
+      "design_pattern_notes": [
+        "TransformOp and wavelet transforms are Functional Core: pure mathematical operations.",
+        "Transform registry and lens probe are Imperative Shell: discovery, caching, and I/O for probe results."
+      ],
+      "tdd_notes": [
+        "TransformOp requires strict TDD: write failing contract tests for jaxwt integration, round-trip accuracy, and frame metadata.",
+        "Lens probe needs TDD: contract tests for compressibility metrics and reconstruction error calculations.",
+        "W-space prox plumbing requires TDD: tests for analysis/synthesis mapping correctness."
+      ]
+    },
+    {
+      "id": "tuner_and_gap_dial",
+      "spec": "Gap Dial tuner: automated lambda/alpha sweeps with rollback, commit gating by certificates",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/computable_flows_shim/tuner/gap_dial.py (exists but not integrated)"
+      ],
+      "notes": [
+        "GapDialTuner class implemented with basic spectral gap monitoring and adaptation logic.",
+        "Simple parameter adaptation based on gap error exists.",
+        "Factory function create_gap_dial_tuner() available.",
+        "Basic telemetry integration present but incomplete."
+      ],
+      "gaps": [
+        "Feasibility gates (η_dd ≤ η_max, γ ≥ γ_min) not implemented.",
+        "Per-trial move caps and rollback semantics missing.",
+        "GapDial policy parameters incomplete (missing beta_estimator, per_scale_seed, lambda_move_cap).",
+        "Feasibility sweep algorithm not implemented.",
+        "Frame-aware tuning (adjust prox thresholds by frame constant c) missing.",
+        "Per-scale λ_j policies with ratio limits not implemented.",
+        "Full telemetry integration incomplete."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Implement feasibility gates with η_dd and γ certificate checks.",
+        "Add per-trial move caps and rollback semantics with last-good checkpoint logic.",
+        "Complete GapDial policy parameters (beta_estimator, per_scale_seed, lambda_move_cap).",
+        "Implement feasibility sweep algorithm with certificate validation.",
+        "Add frame-aware tuning with prox threshold adjustments by frame constant c.",
+        "Implement per-scale λ_j policies with ratio limits between adjacent scales.",
+        "Complete telemetry integration with full event logging."
+      ],
+      "design_pattern_notes": [
+        "Tuner algorithms are Functional Core: pure optimization logic for parameter sweeps.",
+        "Tuner state management and rollback logic are Imperative Shell: side effects for persistence and control flow."
+      ],
+      "tdd_notes": [
+        "Tuner integration requires TDD: write failing tests for commit/rollback workflows and certificate gating.",
+        "GapDial parameter sweeps need TDD: contract tests for safe trial runs and deterministic rollback."
+      ]
+    },
+    {
+      "id": "fda_hooks",
+      "spec": "StateSpec invariants, LensPolicy, FlowPolicy, GapDial, MultiscaleSchedule, SparsityPolicy, CertificationProfile, compile report fields, telemetry columns",
+      "status": "partial-2of9",
+      "implemented_in": [
+        "src/computable_flows_shim/runtime/engine.py",
+        "src/computable_flows_shim/multi/lens_probe.py"
+      ],
+      "notes": [
+        "Basic FlowPolicy and LensPolicy dataclasses exist but incomplete.",
+        "Lens probe implemented with compressibility analysis.",
+        "Controller extensible but missing formal FDA hook integration."
+      ],
+      "gaps": [
+        "StateSpec.invariants not implemented - no runtime invariant checking.",
+        "GapDial policy integration incomplete - missing parameter sweep automation.",
+        "MultiscaleSchedule not implemented - no hierarchical flow scheduling.",
+        "SparsityPolicy not implemented - no sparsity-driven optimization strategies.",
+        "CertificationProfile not implemented - no certificate requirement specifications.",
+        "CompileReport missing FDA-specific fields (invariants_present, frame_type).",
+        "Telemetry schema missing FDA-specific columns and events."
+      ],
+      "priority": "high",
+      "recommended_next_steps": [
+        "Implement StateSpec.invariants with runtime invariant checking and violation handling.",
+        "Complete GapDial integration with automated parameter sweeps and certificate gating.",
+        "Implement MultiscaleSchedule for hierarchical flow execution planning.",
+        "Add SparsityPolicy for sparsity-aware optimization strategies.",
+        "Create CertificationProfile specs for certificate requirement definitions.",
+        "Extend CompileReport with FDA metadata fields.",
+        "Add FDA-specific telemetry columns and event logging."
+      ],
+      "design_pattern_notes": [
+        "FDA policy specs are Functional Core: pure data structures for analysis configuration.",
+        "Runtime invariant checking and policy enforcement are Imperative Shell: validation and control flow side effects."
+      ],
+      "tdd_notes": [
+        "Policy specs require TDD: write failing tests for dataclass validation and field requirements.",
+        "Runtime integration needs TDD: contract tests for invariant checking and policy enforcement."
+      ]
+    },
+    {
+      "id": "pareto_knob_surface",
+      "spec": "Pareto Manager for multi-objective experiments: register objectives/constraints, generate candidates, evaluate with certified sweeps, compute Pareto front",
+      "status": "not-implemented",
+      "implemented_in": [],
+      "notes": [
+        "No Pareto front computation or sidecar telemetry storage.",
+        "No multi-objective optimization framework."
+      ],
+      "gaps": [
+        "Pareto front computation not implemented - no multi-objective optimization.",
+        "Objective/constraint registration not implemented - no formal objective specification.",
+        "Candidate generation not implemented - no parameter space exploration.",
+        "Certified sweep evaluation not implemented - no certificate-validated optimization.",
+        "Sidecar telemetry storage not implemented - no experiment result persistence.",
+        "CLI commands missing - no 'cf pareto' commands or notebook UX."
+      ],
+      "priority": "low",
+      "recommended_next_steps": [
+        "Implement Pareto front computation with non-dominated sorting.",
+        "Create objective/constraint registration system with formal specifications.",
+        "Add candidate generation with parameter space sampling strategies.",
+        "Implement certified sweep evaluation with certificate validation.",
+        "Add sidecar telemetry storage for experiment results.",
+        "Create CLI commands and notebook UX for Pareto optimization."
+      ],
+      "design_pattern_notes": [
+        "Pareto front computation could be Functional Core: pure mathematical operations on objective data.",
+        "Experiment orchestration and storage are Imperative Shell: side effects for data persistence and execution control."
+      ],
+      "tdd_notes": [
+        "Certified sweeps need TDD: contract tests for RED/AMBER/GREEN gate integration.",
+        "Pareto computation requires TDD: contract tests for non-dominated sorting correctness."
+      ]
+    }
+  ],
+  "top_priority_tasks": [
+    {
+      "task": "Complete FDA hooks implementation - StateSpec invariants, CertificationProfile, and policy specs are missing",
+      "reason": "FDA hooks are foundational to the system's theoretical guarantees and analysis capabilities",
+      "priority": "high"
+    },
+    {
+      "task": "Implement LW_apply for frame-aware operator application - required for W-space prox operations",
+      "reason": "Without LW_apply, multiscale transforms cannot properly apply operators in wavelet space",
+      "priority": "high"
+    },
+    {
+      "task": "Complete lens probe integration with CompileReport recording - lens selection currently defaults to identity",
+      "reason": "Lens selection is critical for choosing appropriate wavelet bases for different data types",
+      "priority": "high"
+    },
+    {
+      "task": "Implement feasibility gates and rollback in GapDial tuner - prevents getting stuck with bad parameters",
+      "reason": "Without feasibility checks, parameter sweeps can fail catastrophically without recovery",
+      "priority": "medium"
+    },
+    {
+      "task": "Add Lyapunov descent checks and KKT/duality gap validation to certificates",
+      "reason": "Missing key convergence guarantees that users depend on for trust in optimization results",
+      "priority": "medium"
+    }
+  ]
+}

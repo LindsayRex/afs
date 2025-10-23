@@ -1,0 +1,234 @@
+{
+  "meta": {
+    "generated_by": "automated-gap-analyzer",
+    "reviewed_by": "manual-review-2025-10-23",
+    "date": "2025-10-23",
+    "repo": "afs",
+    "branch": "master",
+    "spec_folder": "Design/shim_build",
+    "source_folder": "src",
+    "qa_logs_folder": "qa_logs",
+    "last_update": "Gap analysis Part 4: Telemetry, I/O, and infrastructure - observability, data persistence, and system plumbing",
+    "document_purpose": "Part 4 of gap analysis series - focuses on telemetry, data persistence, and infrastructure components needed for system observability and reliability"
+  },
+  "summary": "Part 4: Telemetry, I/O, and infrastructure components. These provide observability, data persistence, and system reliability: flight recording for debugging, data management for analysis, and the plumbing that keeps everything running smoothly.",
+  "items": [
+    {
+      "id": "telemetry_and_io",
+      "spec": "Flight Recorder: manifest, telemetry.parquet, events.parquet, DuckDB integration, privacy flags",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/computable_flows_shim/telemetry/telemetry_manager.py",
+        "src/computable_flows_shim/telemetry/flight_recorder.py",
+        "src/computable_flows_shim/telemetry/duckdb_manager.py",
+        "src/computable_flows_shim/telemetry/manifest_writer.py",
+        "tests/test_flight_recorder.py"
+      ],
+      "notes": [
+        "TelemetryManager orchestrates run directories and FlightRecorder creation.",
+        "FlightRecorder writes Parquet files with atomic operations and schema metadata.",
+        "DuckDBManager consolidates telemetry across runs with query capabilities.",
+        "Manifest writer exists but basic - supports TOML format with fallback serializer.",
+        "Flight Recorder tested with core telemetry fields and Parquet validation.",
+        "Missing full schema validation against spec requirements.",
+        "Missing privacy/redaction flags implementation.",
+        "Manifest writing incomplete - missing dtype recording and schema version enforcement."
+      ],
+      "gaps": [
+        "Manifest.toml incomplete - missing schema_version, dtype recording, and full metadata fields.",
+        "Privacy flags not implemented - no redaction or privacy controls.",
+        "Parquet schema validation missing - no enforcement of required fields and types.",
+        "DuckDB integration tested but missing comprehensive query validation and cross-run analysis."
+      ],
+      "priority": "medium",
+      "design_pattern_notes": [
+        "Telemetry is Imperative Shell: all operations involve side effects (file I/O, database writes, logging).",
+        "Flight Recorder data structures could be Functional Core, but I/O operations are inherently imperative."
+      ],
+      "tdd_notes": [
+        "Flight Recorder has basic tests but requires TDD for schema validation and manifest correctness.",
+        "DuckDB integration needs TDD: contract tests for query correctness and cross-run consolidation.",
+        "Privacy flags require TDD: write failing tests for redaction behavior and data protection."
+      ],
+      "recommended_next_steps": [
+        "Complete manifest.toml writer with schema_version, dtype recording, and all required metadata.",
+        "Implement privacy flags and redaction controls for sensitive telemetry data.",
+        "Add Parquet schema validation against spec requirements.",
+        "Write comprehensive DuckDB integration tests for cross-run analysis and query correctness."
+      ]
+    },
+    {
+      "id": "telemetry_run_capsule",
+      "spec": "Telemetry & Run Capsule: directory structure (telematry_cfs/fda_run_{id}/), run ID scheme (YYYYMMDD_HHMMSS), manifest.toml/events.parquet/telemetry.parquet, DuckDB consolidation, append/atomic write modes, schema_version 3, phi_residual/invariant_drift_max as core fields",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/computable_flows_shim/telemetry/flight_recorder.py",
+        "src/computable_flows_shim/telemetry/duckdb_manager.py",
+        "src/computable_flows_shim/telemetry/manifest_writer.py",
+        "src/scripts/cfs_cli.py (append and atomic write modes)"
+      ],
+      "notes": [
+        "Directory structure exists with telematry_cfs/fda_run_{id}/ folders and Parquet files.",
+        "Run ID scheme implemented with timestamp-based naming.",
+        "Manifest.toml and Parquet files generated with atomic operations.",
+        "DuckDB manager exists for cross-run consolidation.",
+        "Schema version hardcoded to 3 in FlightRecorder but not bumped from previous version 1."
+      ],
+      "gaps": [
+        "Schema version not properly bumped to 3 - still using version 1 logic.",
+        "DuckDB consolidation not implemented - no actual cross-run data aggregation.",
+        "Core fields phi_residual/invariant_drift_max not computed or stored.",
+        "Missing telemetry columns: metric_ber, lens_name, level_active_max, sparsity_mode, flow_family.",
+        "Append mode not fully tested with concurrent writes."
+      ],
+      "priority": "medium",
+      "design_pattern_notes": [
+        "Run capsule structure follows Functional Core boundaries: data persistence at JAX/PyArrow boundary.",
+        "DuckDB consolidation is Imperative Shell: database operations and data aggregation side effects."
+      ],
+      "tdd_notes": [
+        "DuckDB integration needs TDD: contract tests for Parquet attachment and cross-run queries.",
+        "Schema versioning requires TDD: tests for version compatibility and migration."
+      ],
+      "recommended_next_steps": [
+        "Bump schema version to 3 and implement version-aware serialization.",
+        "Implement DuckDB consolidation with cross-run query capabilities.",
+        "Add computation and storage of phi_residual and invariant_drift_max fields.",
+        "Complete telemetry schema with all required columns.",
+        "Test append mode with concurrent write scenarios."
+      ]
+    },
+    {
+      "id": "telemetry_schema",
+      "spec": "Telemetry & Events Schema: schema_version 3, telemetry.parquet columns (run_id, phase, iter, trial_id, t_wall_ms, alpha, lambda, lambda_j, E, grad_norm, eta_dd, gamma, sparsity_wx, metric_ber, warnings, notes, invariant_drift_max, phi_residual, lens_name, level_active_max, sparsity_mode, flow_family), events.parquet columns (run_id, t_wall_ms, event, payload), events enum (SPEC_LINT_FAIL, CERT_FAIL, CERT_PASS, TUNER_MOVE_REJECTED, ROLLBACK, TIMEOUT, CANCELLED, RUN_STARTED, RUN_FINISHED, LENS_SELECTED, SCALE_ACTIVATED), versioning & compatibility",
+      "status": "partial-improved",
+      "implemented_in": [
+        "src/computable_flows_shim/telemetry/flight_recorder.py",
+        "src/computable_flows_shim/telemetry/duckdb_manager.py",
+        "tests/test_flight_recorder.py"
+      ],
+      "notes": [
+        "Flight Recorder writes Parquet with core telemetry fields.",
+        "Events system exists with basic event logging.",
+        "DuckDB manager provides schema-aware table creation.",
+        "Flight Recorder tested with atomic writes and schema validation."
+      ],
+      "gaps": [
+        "Schema validation incomplete - no enforcement of required fields and types against spec.",
+        "Missing telemetry columns: metric_ber, lens_name, level_active_max, sparsity_mode, flow_family.",
+        "Events enum not fully implemented - missing SPEC_LINT_FAIL, CERT_FAIL, etc.",
+        "Versioning & compatibility not implemented - no schema evolution handling.",
+        "Events.parquet not implemented - only telemetry.parquet exists."
+      ],
+      "priority": "medium",
+      "design_pattern_notes": [
+        "Schema definitions could be Functional Core: pure data structure specifications.",
+        "Schema validation and versioning are Imperative Shell: compatibility checking and migration side effects."
+      ],
+      "tdd_notes": [
+        "Event logging needs TDD: contract tests for event enum compliance and payload validation.",
+        "Schema versioning requires TDD: tests for backward compatibility and migration logic."
+      ],
+      "recommended_next_steps": [
+        "Implement complete telemetry schema validation with all required columns.",
+        "Add missing telemetry fields: metric_ber, lens_name, level_active_max, sparsity_mode, flow_family.",
+        "Implement full events enum and events.parquet file generation.",
+        "Add schema versioning with compatibility checks and migration support."
+      ]
+    },
+    {
+      "id": "checkpoints_and_resume",
+      "spec": "Atomic checkpoints, last-good-GREEN checkpoint, deterministic resume with RNG and tuner state",
+      "status": "partial",
+      "implemented_in": [
+        "src/computable_flows_shim/runtime/engine.py (checkpoint calls)",
+        "src/computable_flows_shim/serialization/ (exists)"
+      ],
+      "notes": [
+        "Engine references CheckpointManager and uses checkpoint creation/loading calls; serialization folder exists but full resume semantics need tests.",
+        "Manifest writing and atomic file operations need to be validated on Windows (rename semantics)."
+      ],
+      "gaps": [
+        "Implement last-good-GREEN checkpoint logic and automatic rollback; add tests that simulate tuner-regression and verify rollback behavior.",
+        "Ensure resume restores RNG keys, tuner state, and phase counter deterministically."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Add 'last_good_green' checkpoint marker and test rollback path; integrate with telemetry events and manifest update.",
+        "Add resume integration tests asserting exact float equality (where expected) given deterministic seeds."
+      ],
+      "design_pattern_notes": [
+        "Checkpoint/resume logic is Imperative Shell: all operations involve file I/O and state persistence.",
+        "RNG and state restoration could have Functional Core components for deterministic state transitions."
+      ],
+      "tdd_notes": [
+        "Checkpoint semantics require TDD: write failing tests for last-good-GREEN logic and rollback behavior.",
+        "Resume determinism needs TDD: contract tests for exact state restoration including RNG keys and phase counters."
+      ]
+    },
+    {
+      "id": "architecture_overview",
+      "spec": "Shim Build Architecture: Python DSL specs, JAX-only runtime, PyArrow/DuckDB boundaries, global dtype enforcement, readiness checklist",
+      "status": "partial-implemented",
+      "implemented_in": [
+        "src/computable_flows_shim/energy/specs.py",
+        "src/computable_flows_shim/runtime/engine.py",
+        "src/computable_flows_shim/telemetry/duckdb_manager.py",
+        "pyproject.toml",
+        "qa_logs/20251020_initial_spec_definition.md"
+      ],
+      "notes": [
+        "Python DSL implemented as dataclasses in energy/specs.py (no YAML).",
+        "Runtime boundaries enforced: JAX-only inside flow, PyArrow/DuckDB at boundaries.",
+        "Global dtype enforcement partially implemented - JAX arrays used but no explicit dtype propagation policy.",
+        "Readiness checklist exists but not systematically enforced."
+      ],
+      "gaps": [
+        "Global dtype enforcement not fully implemented - design requires explicit dtype declaration and propagation everywhere.",
+        "Readiness checklist not enforced - missing systematic checks for required components before flow execution.",
+        "PyArrow/DuckDB integration exists but schema validation and manifest writing incomplete."
+      ],
+      "priority": "medium",
+      "recommended_next_steps": [
+        "Implement global dtype enforcement with explicit dtype fields in specs and runtime casting.",
+        "Add readiness checklist enforcement in engine before flow execution.",
+        "Complete PyArrow schema validation and manifest.toml writing."
+      ],
+      "design_pattern_notes": [
+        "Python DSL specs are Functional Core: pure data structures.",
+        "Runtime boundaries and dtype enforcement are Imperative Shell: side effects for validation and casting."
+      ],
+      "tdd_notes": [
+        "Architecture components require TDD: write failing tests for dtype consistency and readiness checklist enforcement.",
+        "Boundary enforcement needs TDD: contract tests for JAX-only runtime and PyArrow/DuckDB schema validation."
+      ]
+    }
+  ],
+  "top_priority_tasks": [
+    {
+      "task": "Complete telemetry schema with all required columns and events - missing critical observability fields",
+      "reason": "Without complete telemetry, users cannot debug optimization issues or understand system behavior",
+      "priority": "high"
+    },
+    {
+      "task": "Implement DuckDB consolidation for cross-run analysis - telemetry data cannot be analyzed across experiments",
+      "reason": "Cross-run analysis is essential for understanding optimization patterns and performance trends",
+      "priority": "high"
+    },
+    {
+      "task": "Add last-good-GREEN checkpoint rollback - prevents system getting stuck in failed states",
+      "reason": "Without rollback capability, failed optimization runs can leave the system unusable",
+      "priority": "medium"
+    },
+    {
+      "task": "Implement privacy flags and data redaction - prevents accidental exposure of sensitive information",
+      "reason": "Telemetry may contain sensitive optimization data that needs protection",
+      "priority": "medium"
+    },
+    {
+      "task": "Complete manifest.toml with schema versioning and dtype recording",
+      "reason": "Incomplete manifests make it impossible to understand or reproduce past runs",
+      "priority": "medium"
+    }
+  ]
+}
