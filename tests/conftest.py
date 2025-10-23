@@ -68,6 +68,42 @@ def low_precision_config(request):
     }
 
 
+@pytest.fixture(params=['cpu', 'gpu_mock'])
+def device_type(request):
+    """Parametrize tests with different device types (CPU and mock GPU)."""
+    return request.param
+
+
+@pytest.fixture
+def device_context(device_type):
+    """Fixture providing device context for tests."""
+    if device_type == 'cpu':
+        return {'device': 'cpu', 'backend': 'cpu'}
+    elif device_type == 'gpu_mock':
+        # Mock GPU context - simulates GPU behavior for testing
+        return {'device': 'gpu', 'backend': 'gpu_mock'}
+    else:
+        raise ValueError(f"Unknown device type: {device_type}")
+
+
+@pytest.fixture(params=[
+    ('cpu', jnp.float32), ('cpu', jnp.float64),
+    ('gpu_mock', jnp.float32), ('gpu_mock', jnp.float64)
+])
+def device_precision_config(request):
+    """Cross-cutting parametrization: device × precision combinations."""
+    device_type, precision = request.param
+    tolerance = 1e-5 if precision == jnp.float32 else 1e-12
+    complex_dtype = jnp.complex64 if precision == jnp.float32 else jnp.complex128
+    
+    return {
+        'device': device_type,
+        'float_dtype': precision,
+        'complex_dtype': complex_dtype,
+        'tolerance': tolerance
+    }
+
+
 def create_test_array(*args, dtype=jnp.float64, **kwargs):
     """Create test arrays with specified dtype."""
     return jnp.array(*args, dtype=dtype, **kwargs)

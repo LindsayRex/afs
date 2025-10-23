@@ -256,3 +256,87 @@ y = create_array([1.0, 2.0, 3.0], dtype='low_precision')  # float32
 # Extreme memory constraints  
 z = create_array([1.0, 2.0, 3.0], dtype='lowest_precision')  # float16
 ```
+
+
+
+Mostly yes—**if you write “pure JAX” code, it’ll usually run on GPU without changes.**
+But there are a few gotchas worth checking before you assume it’ll “just work.”
+
+### What generally transfers cleanly
+
+* Using `jax.numpy`/`jax.lax`/`jit`/`vmap`/`grad` exclusively (no NumPy-on-the-hot-path).
+* No Python-side side effects inside `jit`-compiled functions.
+* Pure functions with static-in-shape control flow handled via `jax.lax` or `jax.experimental` control-flow ops.
+
+### Common CPU→GPU surprises (and how to avoid them)
+
+1. **Data on the host vs device**
+
+   * Moving large arrays back/forth is slow. Keep arrays as `jnp.ndarray` and avoid `np.asarray(...)` inside compute.
+   * When benchmarking, use `.block_until_ready()` to measure actual compute time.
+
+2. **Dtypes & precision**
+
+   * Many GPUs are *much* slower in `float64`. If you’ve enabled 64-bit (`jax.config.update("jax_enable_x64", True)`), be aware of the perf hit.
+   * Small numeric diffs can happen (different reduction orders, cuDNN/cublas kernels). If you need tighter tolerances, set:
+
+     ```python
+     import jax
+     from jax import config
+     config.update("jax_default_matmul_precision", "high")  # or "highest"
+     ```
+
+     And for determinism on NVIDIA, you can run with `XLA_FLAGS=--xla_gpu_deterministic_ops=true` (may cost speed).
+
+3. **Libraries used under the hood**
+
+   * Convs/FFTs lower to cuDNN/cuFFT; behaviors are numerically close but not bitwise identical.
+   * Some less-common ops or experimental features might be backend-limited (e.g., parts of `jax.experimental.sparse`). If you use niche primitives, double-check GPU support.
+
+4. **Memory/OOM**
+
+   * GPU memory is limited vs CPU RAM. Watch batch sizes, static allocations inside `jit`, and intermediate sizes after fusion.
+   * Use `jax.profiler`/`XLA_FLAGS=--xla_dump_hlo_as_text` if something balloons.
+
+5. **Hidden NumPy**
+
+   * Any `numpy` (CPU) computation inside your step function breaks device residency and performance. Replace with `jax.numpy` or move it outside the `jit`.
+
+6. **Static shapes in jitted code**
+
+   * Big shape polymorphism or data-dependent shapes can trigger recompiles or fail on GPU. Keep shapes stable where possible.
+
+### A quick “GPU-readiness” checklist
+
+* [ ] All math uses `jnp`/`lax`, not `numpy`.
+* [ ] Functions passed to `jit`/`vmap` are pure (no in-place mutation, no printing, no RNG without `jax.random`).
+* [ ] No host↔device copies inside the training step.
+* [ ] Dtype expectations don’t rely on `float64`.
+* [ ] Convs/FFTs only if you’re okay with tiny numeric diffs.
+* [ ] Batch sizes fit in GPU memory.
+
+### Minimal smoke test you can run later on a GPU box
+
+```python
+import jax, jax.numpy as jnp
+print("Backends:", jax.default_backend(), "GPUs:", jax.devices("gpu"))
+
+@jax.jit
+def step(x, w):
+    y = jnp.tanh(x @ w)
+    return y.mean()
+
+x = jnp.ones((8192, 1024), dtype=jnp.float32)
+w = jnp.ones((1024, 1024), dtype=jnp.float32)
+
+y = step(x, w).block_until_ready()
+print("OK, result:", float(y))
+```
+
+If that runs and `jax.devices("gpu")` lists at least one device, your code path is likely fine.
+
+### Bottom line
+
+* **API-true JAX code is usually portable** across CPU/GPU.
+* It’s *not* a guarantee—**precision, memory, and niche ops** are the usual culprits.
+* If you keep things pure-JAX and watch dtype/memory, developing on CPU and validating on GPU later is a sound workflow.
