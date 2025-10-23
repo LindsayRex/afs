@@ -16,6 +16,7 @@ from computable_flows_shim.fda.certificates import estimate_gamma_lanczos, estim
 from computable_flows_shim.runtime.checkpoint import CheckpointManager
 from .telemetry import TelemetryManager
 from .tuner.gap_dial import GapDialTuner
+from .logging import get_logger, log_performance
 
 
 class Phase(Enum):
@@ -59,7 +60,7 @@ class Checkpoint:
     alpha: float
     certificates: Dict[str, float]
     tuner_state: Optional[Dict[str, Any]] = None
-    timestamp: float = None
+    timestamp: Optional[float] = None
 
     def __post_init__(self):
         if self.timestamp is None:
@@ -76,11 +77,21 @@ class FlightController:
 
     def __init__(self, config: Optional[ControllerConfig] = None):
         self.config = config or ControllerConfig()
+        self.logger = get_logger(__name__)
         self.phase = Phase.RED
         self.checkpoints: list[Checkpoint] = []
         self.rollback_count = 0
         self.tuner_move_count = 0
         self.start_time = time.time()
+        
+        self.logger.debug("FlightController initialized", extra={
+            'config': {
+                'eta_max': self.config.eta_max,
+                'gamma_min': self.config.gamma_min,
+                'max_iterations': self.config.max_iterations,
+                'max_wall_time_ms': self.config.max_wall_time_ms
+            }
+        })
 
     def get_status(self) -> Dict[str, Any]:
         """Get current controller status."""
@@ -115,11 +126,27 @@ class FlightController:
         Returns:
             eta_dd, gamma, is_feasible
         """
+        self.logger.debug("Assessing certificates", extra={
+            'input_shape': input_shape
+        })
+        
         eta = estimate_eta_dd(compiled.L_apply, input_shape)
         gamma = estimate_gamma_lanczos(compiled.L_apply, key, input_shape)
 
-        is_feasible = (eta <= self.config.eta_max and gamma >= self.config.gamma_min)
-        return eta, gamma, is_feasible
+        # Convert to scalars for boolean logic
+        eta_scalar = float(eta)
+        gamma_scalar = float(gamma)
+        is_feasible = (eta_scalar <= self.config.eta_max and gamma_scalar >= self.config.gamma_min)
+        
+        self.logger.debug("Certificate assessment completed", extra={
+            'eta_dd': eta_scalar,
+            'gamma': gamma_scalar,
+            'is_feasible': is_feasible,
+            'eta_max': self.config.eta_max,
+            'gamma_min': self.config.gamma_min
+        })
+        
+        return eta_scalar, gamma_scalar, is_feasible
 
     def create_checkpoint(self, iteration: int, state: Dict[str, jnp.ndarray],
                          energy: float, alpha: float, certificates: Dict[str, float],
@@ -143,7 +170,7 @@ class FlightController:
 
     def rollback_to_checkpoint(self, target_checkpoint: Checkpoint,
                              telemetry_manager: Optional[TelemetryManager] = None,
-                             run_id: str = "") -> Tuple[Dict[str, jnp.ndarray], float, Dict[str, Any]]:
+                             run_id: str = "") -> Tuple[Dict[str, jnp.ndarray], float, Optional[Dict[str, Any]]]:
         """
         Rollback to a previous checkpoint.
 
@@ -204,230 +231,295 @@ class FlightController:
         Implements RED/AMBER/GREEN phases with certificate gating,
         rollback capability, and budget enforcement.
         """
-        # Initialize
-        state = initial_state.copy()
-        current_alpha = initial_alpha
-        step_func = _step_function_for_testing or run_flow_step
-        key = jax.random.PRNGKey(42)  # For certificate estimation
-        input_shape = state['x'].shape
+        start_time_perf = time.perf_counter()
+        try:
+            self.logger.info("Starting certified flow execution", extra={
+                'flow_name': flow_name,
+                'run_id': run_id,
+                'num_iterations': num_iterations,
+                'initial_alpha': initial_alpha,
+                'input_shape': initial_state['x'].shape
+            })
+            
+            # Initialize
+            state = initial_state.copy()
+            current_alpha = initial_alpha
+            step_func = _step_function_for_testing or run_flow_step
+            key = jax.random.PRNGKey(42)  # For certificate estimation
+            input_shape = state['x'].shape
 
-        # Phase 0: Initial certificate assessment (RED/AMBER)
-        self.transition_phase(Phase.RED, telemetry_manager, run_id, stage="initial_assessment")
+            # Phase 0: Initial certificate assessment (RED/AMBER)
+            self.transition_phase(Phase.RED, telemetry_manager, run_id, stage="initial_assessment")
 
-        eta, gamma, is_feasible = self.assess_certificates(compiled, input_shape, key)
+            eta, gamma, is_feasible = self.assess_certificates(compiled, input_shape, key)
 
-        # Log initial certificate check
-        if telemetry_manager:
-            telemetry_manager.flight_recorder.log_event(
-                run_id=run_id,
-                event="CERT_CHECK",
-                payload={"eta_dd": eta, "gamma": gamma, "feasible": is_feasible}
-            )
-
-        if not is_feasible:
-            # Try remediation by reducing alpha
-            for attempt in range(self.config.max_remediation_attempts):
-                current_alpha *= self.config.alpha_reduction_factor
-                eta, gamma, is_feasible = self.assess_certificates(compiled, input_shape, key)
-
-                if telemetry_manager:
-                    telemetry_manager.flight_recorder.log_event(
-                        run_id=run_id,
-                        event="CERT_REMEDIATION",
-                        payload={
-                            'attempt': attempt,
-                            'alpha': current_alpha,
-                            'eta': eta,
-                            'gamma': gamma,
-                            'feasible': is_feasible
-                        }
-                    )
-
-                if is_feasible:
-                    break
-
-        if not is_feasible:
-            # Still not feasible - fail
-            self.transition_phase(Phase.RED, telemetry_manager, run_id,
-                                stage="certification_failed", eta=eta, gamma=gamma)
-            raise ValueError(
-                f"System failed certification after {self.config.max_remediation_attempts} "
-                f"remediation attempts. Final eta={eta:.4f}, gamma={gamma:.4f}."
-            )
-
-        # Phase 1: Certification passed - enter GREEN phase
-        self.transition_phase(Phase.GREEN, telemetry_manager, run_id,
-                            stage="certification_passed", eta=eta, gamma=gamma)
-
-        # Initialize Gap Dial tuner if provided
-        if gap_dial_tuner:
-            gap_dial_tuner.reset()
+            # Log initial certificate check
             if telemetry_manager:
                 telemetry_manager.flight_recorder.log_event(
                     run_id=run_id,
-                    event="GAP_DIAL_ENABLED",
-                    payload=gap_dial_tuner.get_tuning_status()
+                    event="CERT_CHECK",
+                    payload={"eta_dd": eta, "gamma": gamma, "feasible": is_feasible}
                 )
 
-        # Phase 2: Main optimization loop with tuning and rollback
-        energy = compiled.f_value(state)
-        last_good_checkpoint = self.create_checkpoint(
-            0, state, energy, current_alpha,
-            {'eta_dd': eta, 'gamma': gamma},
-            gap_dial_tuner.get_tuning_status() if gap_dial_tuner else None
-        )
-
-        for i in range(num_iterations):
-            # Check budget limits
-            if not self.check_budget_limits(i):
-                if telemetry_manager:
-                    telemetry_manager.flight_recorder.log_event(
-                        run_id=run_id,
-                        event="BUDGET_EXCEEDED",
-                        payload={'iteration': i, 'status': self.get_status()}
-                    )
-                break
-
-            # Compute telemetry fields
-            t_wall_ms = (time.time() - self.start_time) * 1000.0
-            grad = compiled.f_grad(state)
-            grad_norm = float(jnp.linalg.norm(grad['x']))
-            eta = estimate_eta_dd(compiled.L_apply, input_shape)
-            gamma = estimate_gamma_lanczos(compiled.L_apply, key, input_shape)
-
-            # Sparsity computation
-            x = state['x']
-            l1_norm = float(jnp.linalg.norm(x, ord=1))
-            l2_norm = float(jnp.linalg.norm(x, ord=2))
-            n = float(jnp.prod(jnp.array(x.shape)))
-            sparsity_wx = l1_norm / (l2_norm * float(jnp.sqrt(n))) if l2_norm > 0 else 0.0
-
-            # Gap Dial: Monitor and adapt parameters
-            gap_dial_status = None
-            if gap_dial_tuner and gap_dial_tuner.should_check_gap(i):
-                current_gap = gap_dial_tuner.estimate_spectral_gap(compiled, state)
-                gap_dial_status = gap_dial_tuner.adapt_parameters(current_gap, compiled)
-
-                if gap_dial_status['adaptation_applied']:
-                    self.tuner_move_count += 1
-
-                    # Validate certificates after tuner move
-                    eta_after, gamma_after, still_feasible = self.assess_certificates(
-                        compiled, input_shape, key
-                    )
-
-                    if not still_feasible and self.config.rollback_on_cert_failure:
-                        # Rollback to last good checkpoint
-                        state, current_alpha, tuner_state = self.rollback_to_checkpoint(
-                            last_good_checkpoint, telemetry_manager, run_id
-                        )
-                        if gap_dial_tuner and tuner_state:
-                            # Restore tuner state
-                            gap_dial_tuner.current_lambda = tuner_state.get('current_lambda', 1.0)
-                        energy = compiled.f_value(state)
-                        continue  # Skip this iteration and retry
+            if not is_feasible:
+                self.logger.warning("Initial certificate assessment failed, attempting remediation", extra={
+                    'eta_dd': float(eta),
+                    'gamma': float(gamma),
+                    'eta_max': self.config.eta_max,
+                    'gamma_min': self.config.gamma_min
+                })
+                # Try remediation by reducing alpha
+                for attempt in range(self.config.max_remediation_attempts):
+                    current_alpha *= self.config.alpha_reduction_factor
+                    eta, gamma, is_feasible = self.assess_certificates(compiled, input_shape, key)
 
                     if telemetry_manager:
                         telemetry_manager.flight_recorder.log_event(
                             run_id=run_id,
-                            event="GAP_DIAL_ADAPTATION",
+                            event="CERT_REMEDIATION",
                             payload={
-                                'iteration': i,
-                                'gap': current_gap,
-                                'lambda': gap_dial_status['lambda_regularization'],
-                                'eta_after': eta_after,
-                                'gamma_after': gamma_after
+                                'attempt': attempt,
+                                'alpha': current_alpha,
+                                'eta': eta,
+                                'gamma': gamma,
+                                'feasible': is_feasible
                             }
                         )
 
-            # Log telemetry
-            if telemetry_manager:
-                telemetry_manager.flight_recorder.log(
-                    run_id=run_id,
-                    flow_name=flow_name,
-                    phase=self.phase.value,
-                    iter=i,
-                    t_wall_ms=t_wall_ms,
-                    E=float(energy),
-                    grad_norm=grad_norm,
-                    eta_dd=float(eta),
-                    gamma=float(gamma),
-                    alpha=float(current_alpha),
-                    phi_residual=float(jnp.nan),  # Placeholder
-                    invariant_drift_max=float(jnp.nan),  # Placeholder
-                    sparsity_wx=sparsity_wx
+                    if is_feasible:
+                        self.logger.info("Certificate remediation successful", extra={
+                            'attempt': attempt,
+                            'final_alpha': current_alpha,
+                            'eta_dd': float(eta),
+                            'gamma': float(gamma)
+                        })
+                        break
+
+            if not is_feasible:
+                # Still not feasible - fail
+                self.logger.error("Certificate assessment failed after all remediation attempts", extra={
+                    'max_attempts': self.config.max_remediation_attempts,
+                    'final_eta': float(eta),
+                    'final_gamma': float(gamma)
+                })
+                self.transition_phase(Phase.RED, telemetry_manager, run_id,
+                                    stage="certification_failed", eta=eta, gamma=gamma)
+                raise ValueError(
+                    f"System failed certification after {self.config.max_remediation_attempts} "
+                    f"remediation attempts. Final eta={eta:.4f}, gamma={gamma:.4f}."
                 )
 
-            # Try step with current alpha, with remediation if energy increases
-            step_succeeded = False
-            step_alpha_local = current_alpha
+            # Phase 1: Certification passed - enter GREEN phase
+            self.logger.info("Certificate assessment passed, entering GREEN phase", extra={
+                'final_alpha': current_alpha,
+                'eta_dd': float(eta),
+                'gamma': float(gamma)
+            })
+            self.transition_phase(Phase.GREEN, telemetry_manager, run_id,
+                                stage="certification_passed", eta=eta, gamma=gamma)
 
-            for step_attempt in range(self.config.max_step_attempts):
-                candidate_state = step_func(state, compiled, step_alpha_local)
-                new_energy = compiled.f_value(candidate_state)
-
-                if new_energy <= energy:
-                    # Success - accept the step
-                    state = candidate_state
-                    energy = new_energy
-                    step_succeeded = True
-
-                    # Update last good checkpoint
-                    last_good_checkpoint = self.create_checkpoint(
-                        i + 1, state, energy, current_alpha,
-                        {'eta_dd': eta, 'gamma': gamma},
-                        gap_dial_tuner.get_tuning_status() if gap_dial_tuner else None
+            # Initialize Gap Dial tuner if provided
+            if gap_dial_tuner:
+                gap_dial_tuner.reset()
+                if telemetry_manager:
+                    telemetry_manager.flight_recorder.log_event(
+                        run_id=run_id,
+                        event="GAP_DIAL_ENABLED",
+                        payload=gap_dial_tuner.get_tuning_status()
                     )
-                    break
-                else:
-                    # Energy increased - reduce alpha and retry
+
+            # Phase 2: Main optimization loop with tuning and rollback
+            energy = compiled.f_value(state)
+            last_good_checkpoint = self.create_checkpoint(
+                0, state, energy, current_alpha,
+                {'eta_dd': float(eta), 'gamma': float(gamma)},
+                gap_dial_tuner.get_tuning_status() if gap_dial_tuner else None
+            )
+
+            for i in range(num_iterations):
+                # Check budget limits
+                if not self.check_budget_limits(i):
+                    self.logger.warning("Budget limits exceeded, terminating optimization", extra={
+                        'iteration': i,
+                        'budget_status': self.get_status()
+                    })
                     if telemetry_manager:
                         telemetry_manager.flight_recorder.log_event(
                             run_id=run_id,
-                            event="STEP_REMEDIATION",
+                            event="BUDGET_EXCEEDED",
+                            payload={'iteration': i, 'status': self.get_status()}
+                        )
+                    break
+
+                # Compute telemetry fields
+                t_wall_ms = (time.time() - self.start_time) * 1000.0
+                grad = compiled.f_grad(state)
+                grad_norm = float(jnp.linalg.norm(grad['x']))
+                eta = estimate_eta_dd(compiled.L_apply, input_shape)
+                gamma = estimate_gamma_lanczos(compiled.L_apply, key, input_shape)
+
+                # Sparsity computation
+                x = state['x']
+                l1_norm = float(jnp.linalg.norm(x, ord=1))
+                l2_norm = float(jnp.linalg.norm(x, ord=2))
+                n = float(jnp.prod(jnp.array(x.shape)))
+                sparsity_wx = l1_norm / (l2_norm * float(jnp.sqrt(n))) if l2_norm > 0 else 0.0
+
+                # Gap Dial: Monitor and adapt parameters
+                gap_dial_status = None
+                if gap_dial_tuner and gap_dial_tuner.should_check_gap(i):
+                    current_gap = gap_dial_tuner.estimate_spectral_gap(compiled, state)
+                    gap_dial_status = gap_dial_tuner.adapt_parameters(current_gap, compiled)
+
+                    if gap_dial_status['adaptation_applied']:
+                        self.tuner_move_count += 1
+                        self.logger.debug("Gap Dial adaptation applied", extra={
+                            'iteration': i,
+                            'current_gap': float(current_gap),
+                            'lambda_regularization': gap_dial_status['lambda_regularization']
+                        })
+
+                        # Validate certificates after tuner move
+                        eta_after, gamma_after, still_feasible = self.assess_certificates(
+                            compiled, input_shape, key
+                        )
+
+                        if not still_feasible and self.config.rollback_on_cert_failure:
+                            # Rollback to last good checkpoint
+                            self.logger.warning("Certificate violation after tuner adaptation, rolling back", extra={
+                                'eta_after': float(eta_after),
+                                'gamma_after': float(gamma_after)
+                            })
+                            state, current_alpha, tuner_state = self.rollback_to_checkpoint(
+                                last_good_checkpoint, telemetry_manager, run_id
+                            )
+                            if gap_dial_tuner and tuner_state:
+                                # Restore tuner state
+                                gap_dial_tuner.current_lambda = tuner_state.get('current_lambda', 1.0)
+                            energy = compiled.f_value(state)
+                            continue  # Skip this iteration and retry
+
+                        if telemetry_manager:
+                            telemetry_manager.flight_recorder.log_event(
+                                run_id=run_id,
+                                event="GAP_DIAL_ADAPTATION",
+                                payload={
+                                    'iteration': i,
+                                    'gap': current_gap,
+                                    'lambda': gap_dial_status['lambda_regularization'],
+                                    'eta_after': eta_after,
+                                    'gamma_after': gamma_after
+                                }
+                            )
+
+                # Log telemetry
+                if telemetry_manager:
+                    telemetry_manager.flight_recorder.log(
+                        run_id=run_id,
+                        flow_name=flow_name,
+                        phase=self.phase.value,
+                        iter=i,
+                        t_wall_ms=t_wall_ms,
+                        E=float(energy),
+                        grad_norm=grad_norm,
+                        eta_dd=float(eta),
+                        gamma=float(gamma),
+                        alpha=float(current_alpha),
+                        phi_residual=float(jnp.nan),  # Placeholder
+                        invariant_drift_max=float(jnp.nan),  # Placeholder
+                        sparsity_wx=sparsity_wx
+                    )
+
+                # Try step with current alpha, with remediation if energy increases
+                step_succeeded = False
+                step_alpha_local = current_alpha
+
+                for step_attempt in range(self.config.max_step_attempts):
+                    candidate_state = step_func(state, compiled, step_alpha_local)
+                    new_energy = compiled.f_value(candidate_state)
+
+                    if new_energy <= energy:
+                        # Success - accept the step
+                        state = candidate_state
+                        energy = new_energy
+                        step_succeeded = True
+
+                        # Update last good checkpoint
+                        last_good_checkpoint = self.create_checkpoint(
+                            i + 1, state, energy, current_alpha,
+                            {'eta_dd': float(eta), 'gamma': float(gamma)},
+                            gap_dial_tuner.get_tuning_status() if gap_dial_tuner else None
+                        )
+                        break
+                    else:
+                        # Energy increased - reduce alpha and retry
+                        if telemetry_manager:
+                            telemetry_manager.flight_recorder.log_event(
+                                run_id=run_id,
+                                event="STEP_REMEDIATION",
+                                payload={
+                                    'iter': i,
+                                    'attempt': step_attempt,
+                                    'E_prev': float(energy),
+                                    'E_new': float(new_energy),
+                                    'alpha': float(step_alpha_local)
+                                }
+                            )
+                        step_alpha_local *= self.config.step_alpha_reduction_factor
+
+                if not step_succeeded:
+                    # All step attempts failed
+                    self.logger.error("Step failed to decrease energy after all remediation attempts", extra={
+                        'iteration': i,
+                        'max_attempts': self.config.max_step_attempts,
+                        'previous_energy': float(energy)
+                    })
+                    if telemetry_manager:
+                        telemetry_manager.flight_recorder.log_event(
+                            run_id=run_id,
+                            event="STEP_FAIL",
                             payload={
                                 'iter': i,
-                                'attempt': step_attempt,
-                                'E_prev': float(energy),
-                                'E_new': float(new_energy),
-                                'alpha': float(step_alpha_local)
+                                'attempts': self.config.max_step_attempts,
+                                'E_prev': float(energy)
                             }
                         )
-                    step_alpha_local *= self.config.step_alpha_reduction_factor
-
-            if not step_succeeded:
-                # All step attempts failed
-                if telemetry_manager:
-                    telemetry_manager.flight_recorder.log_event(
-                        run_id=run_id,
-                        event="STEP_FAIL",
-                        payload={
-                            'iter': i,
-                            'attempts': self.config.max_step_attempts,
-                            'E_prev': float(energy)
-                        }
+                    raise ValueError(
+                        f"Step failed to decrease energy after {self.config.max_step_attempts} "
+                        f"remediation attempts at iteration {i}."
                     )
-                raise ValueError(
-                    f"Step failed to decrease energy after {self.config.max_step_attempts} "
-                    f"remediation attempts at iteration {i}."
+
+            # Phase 3: Finalization
+            self.logger.info("Certified flow execution completed", extra={
+                'total_iterations': min(i + 1, num_iterations),
+                'final_energy': float(energy),
+                'rollbacks': self.rollback_count,
+                'tuner_moves': self.tuner_move_count,
+                'final_phase': self.phase.value
+            })
+            if telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(
+                    run_id=run_id,
+                    event="RUN_FINISHED",
+                    payload={
+                        'final_phase': self.phase.value,
+                        'total_iterations': min(i + 1, num_iterations),
+                        'final_energy': float(energy),
+                        'rollbacks': self.rollback_count,
+                        'tuner_moves': self.tuner_move_count
+                    }
                 )
+                telemetry_manager.flush()
 
-        # Phase 3: Finalization
-        if telemetry_manager:
-            telemetry_manager.flight_recorder.log_event(
-                run_id=run_id,
-                event="RUN_FINISHED",
-                payload={
-                    'final_phase': self.phase.value,
-                    'total_iterations': min(i + 1, num_iterations),
-                    'final_energy': float(energy),
-                    'rollbacks': self.rollback_count,
-                    'tuner_moves': self.tuner_move_count
-                }
-            )
-            telemetry_manager.flush()
-
-        return state
+            duration = time.perf_counter() - start_time_perf
+            self.logger.debug("run_certified_flow completed",
+                             extra={'duration_ms': duration * 1000, 'success': True})
+            return state
+        except Exception as e:
+            duration = time.perf_counter() - start_time_perf
+            self.logger.error("run_certified_flow failed",
+                             extra={'duration_ms': duration * 1000, 'error': str(e), 'success': False})
+            raise
 
 
 

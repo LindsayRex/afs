@@ -44,6 +44,68 @@ pip install -r requirements.txt
 pytest -q
 ```
 
+## Logging Configuration
+
+The AFS SDK includes comprehensive logging for debugging and monitoring. Logging is configured via environment variables or CLI options.
+
+### Environment Variables
+```bash
+# Set logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+export AFS_LOG_LEVEL=DEBUG
+
+# Set output format (json, text)
+export AFS_LOG_FORMAT=json
+
+# Set output destination (stderr, stdout, file, null)
+export AFS_LOG_OUTPUT=stderr
+
+# Set log file path (when output=file, defaults to logs/afs_YYYYMMDD_HHMMSS.log)
+export AFS_LOG_FILE=logs/my_custom_log.json
+
+# Enable performance logging
+export AFS_LOG_PERFORMANCE=true
+```
+
+### CLI Options
+```bash
+# Enable debug logging with JSON output
+python -m computable_flows_shim.cli --log-level DEBUG --log-format json
+
+# Log to file (auto-generates timestamped file in logs/ folder)
+python -m computable_flows_shim.cli --log-level INFO --log-output file
+
+# Log to specific file
+python -m computable_flows_shim.cli --log-level INFO --log-output file --log-file logs/my_custom_log.json
+
+# Disable logging
+python -m computable_flows_shim.cli --log-output null
+```
+
+### Programmatic Configuration
+```python
+from computable_flows_shim.logging import configure_logging
+
+# Configure logging in your code
+configure_logging(
+    level="DEBUG",
+    format="json", 
+    output="stderr"
+)
+```
+
+### What Gets Logged
+- **Controller operations**: Phase transitions, certificate assessments, optimization progress
+- **Performance metrics**: Operation timing, success/failure status
+- **Error conditions**: Detailed error context and stack traces
+- **Configuration**: System settings and initialization parameters
+
+### Log Levels
+- **DEBUG**: Detailed diagnostic information, performance metrics
+- **INFO**: General operational messages, phase transitions
+- **WARNING**: Potential issues, remediation attempts
+- **ERROR**: Failures and exceptions
+- **CRITICAL**: System-level failures
+
 ## Launching the Flow Dynamics HUD
 
 The AFS Flow Dynamics HUD provides real-time visualization of optimization flows, including sparsity monitoring and system health.

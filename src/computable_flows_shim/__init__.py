@@ -6,3 +6,12 @@ using four core primitives: F_Dis, F_Proj, F_Multi, F_Con.
 """
 
 __version__ = "0.1.0"
+
+# Logging infrastructure
+from .logging import configure_logging, get_logger, log_performance
+
+__all__ = [
+    'configure_logging',
+    'get_logger', 
+    'log_performance'
+]

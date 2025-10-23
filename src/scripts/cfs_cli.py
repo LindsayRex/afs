@@ -23,6 +23,7 @@ from computable_flows_shim.telemetry import TelemetryManager
 from computable_flows_shim.telemetry.telemetry_streamer import start_streamer
 from computable_flows_shim.api import Op
 from computable_flows_shim.tuner.gap_dial import GapDialTuner, create_gap_dial_tuner
+from computable_flows_shim import configure_logging, get_logger
 
 def load_spec_from_file(spec_file: str) -> Dict[str, Any]:
     """
@@ -76,6 +77,13 @@ def run_flow(spec_file: str, output_dir: Optional[str] = None, telemetry: bool =
     """
     Run a certified flow from a spec file.
     """
+    logger = get_logger(__name__)
+    logger.info("Starting flow execution", extra={
+        'spec_file': spec_file,
+        'telemetry_enabled': telemetry,
+        'gap_dial_enabled': gap_dial
+    })
+    
     print(f"Loading spec from: {spec_file}")
     
     # Load the specification
@@ -87,7 +95,20 @@ def run_flow(spec_file: str, output_dir: Optional[str] = None, telemetry: bool =
         step_alpha = flow_data['step_alpha']
         num_iterations = flow_data['num_iterations']
         flow_name = flow_data['flow_name']
+        
+        logger.debug("Specification loaded successfully", extra={
+            'flow_name': flow_name,
+            'num_terms': len(spec.terms),
+            'state_shapes': {k: v.shape for k, v in initial_state.items()},
+            'step_alpha': step_alpha,
+            'num_iterations': num_iterations
+        })
+        
     except Exception as e:
+        logger.error("Failed to load specification", extra={
+            'spec_file': spec_file,
+            'error': str(e)
+        })
         print(f"Error loading spec: {e}")
         return
     
@@ -121,7 +142,11 @@ def run_flow(spec_file: str, output_dir: Optional[str] = None, telemetry: bool =
     try:
         # Compile the energy functional
         print("Compiling energy functional...")
+        logger.debug("Starting energy compilation")
         compiled = compile_energy(spec, op_registry)
+        logger.info("Energy compilation completed successfully", extra={
+            'has_compile_report': compiled.compile_report is not None
+        })
         print("Compilation successful")
         
         # Write manifest
@@ -138,6 +163,13 @@ def run_flow(spec_file: str, output_dir: Optional[str] = None, telemetry: bool =
         
         # Run the certified flow
         print("Starting certified flow execution...")
+        logger.info("Starting certified flow execution", extra={
+            'num_iterations': num_iterations,
+            'initial_alpha': step_alpha,
+            'has_telemetry': telemetry_manager is not None,
+            'has_gap_dial': gap_dial_tuner is not None
+        })
+        
         controller = FlightController()
         final_state = controller.run_certified_flow(
             initial_state=initial_state,
@@ -150,15 +182,29 @@ def run_flow(spec_file: str, output_dir: Optional[str] = None, telemetry: bool =
             gap_dial_tuner=gap_dial_tuner
         )
         
+        final_energy = compiled.f_value(final_state)
+        logger.info("Flow execution completed successfully", extra={
+            'final_energy': float(final_energy),
+            'run_id': telemetry_manager.run_id if telemetry_manager else "cli_run"
+        })
+        
         print("Flow execution completed successfully")
-        print(f"Final energy: {compiled.f_value(final_state):.6f}")
+        print(f"Final energy: {final_energy:.6f}")
         
         # Save final state
         if telemetry_manager:
             telemetry_manager.flush()
+            logger.debug("Telemetry data flushed", extra={
+                'run_path': telemetry_manager.run_path
+            })
             print(f"Results saved to: {telemetry_manager.run_path}")
         
     except Exception as e:
+        logger.error("Flow execution failed", extra={
+            'error_type': type(e).__name__,
+            'error_message': str(e),
+            'run_id': telemetry_manager.run_id if telemetry_manager else "unknown"
+        })
         print(f"Flow execution failed: {e}")
         if telemetry_manager:
             telemetry_manager.flight_recorder.log_event(
@@ -324,6 +370,23 @@ def tune_flow(spec_file: str, output_dir: Optional[str] = None, target_gap: floa
 
 def main():
     parser = argparse.ArgumentParser(description="CFS - Computable Flow Shim CLI")
+    
+    # Global logging options
+    parser.add_argument('--log-level', 
+                       choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
+                       default='WARNING',
+                       help='Set logging level (default: WARNING)')
+    parser.add_argument('--log-format',
+                       choices=['json', 'text'],
+                       default='json',
+                       help='Set log output format (default: json)')
+    parser.add_argument('--log-output',
+                       choices=['stderr', 'stdout', 'file'],
+                       default='stderr',
+                       help='Set log output destination (default: stderr)')
+    parser.add_argument('--log-file',
+                       help='Log file path (optional when --log-output=file, defaults to logs/afs_YYYYMMDD_HHMMSS.log)')
+    
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
 
     # cf-run command
@@ -347,6 +410,14 @@ def main():
 
     # Parse arguments
     args = parser.parse_args()
+
+    # Configure logging
+    configure_logging(
+        level=args.log_level,
+        format=args.log_format,
+        output=args.log_output,
+        log_file=getattr(args, 'log_file', None)
+    )
 
     if not args.command:
         parser.print_help()
