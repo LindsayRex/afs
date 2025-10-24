@@ -4,10 +4,12 @@ Certificate estimators for Flow Dynamic Analysis (FDA).
 from typing import Callable, Optional, TYPE_CHECKING
 import jax
 import jax.numpy as jnp
+from computable_flows_shim.core import numerical_stability_check
 
 if TYPE_CHECKING:
     from computable_flows_shim.multi.transform_op import TransformOp
 
+@numerical_stability_check
 def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_iterations: int = 20, mode: str = "dense", lanczos_k: int = 20) -> float:
     """
     Estimates the spectral gap (minimum eigenvalue for symmetric matrices, Gershgorin lower bound for non-symmetric).
@@ -86,6 +88,7 @@ def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_
         return float(jnp.min(gershgorin_bounds))
     # End of function
 
+@numerical_stability_check
 def estimate_gamma_lanczos(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, k: int = 20, transform_op: Optional['TransformOp'] = None):
     """
     Estimates the spectral gap using matrix-free Lanczos method with JAX lax.scan.
@@ -207,6 +210,7 @@ def estimate_gamma_lanczos(L_apply: Callable, key: jnp.ndarray, input_shape: tup
     min_abs = jnp.min(abs_eigenvals)
     return jnp.where(min_significant < 1e9, min_significant, min_abs)
 
+@numerical_stability_check
 def estimate_eta_dd(L_apply: Callable, input_shape: tuple, eps: float = 1e-9) -> float:
     """
     Estimates the diagonal dominance (eta) of a linear operator.

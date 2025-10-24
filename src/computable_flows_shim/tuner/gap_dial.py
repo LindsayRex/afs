@@ -12,6 +12,7 @@ import jax.numpy as jnp
 from dataclasses import dataclass
 from ..energy.compile import CompiledEnergy
 from ..fda.certificates import estimate_gamma_lanczos
+from ..core import numerical_stability_check
 
 
 @dataclass
@@ -49,6 +50,7 @@ class GapDialTuner:
             return False
         return (iteration - self.last_gap_check) >= self.config.monitoring_interval
 
+    @numerical_stability_check
     def estimate_spectral_gap(self, compiled: CompiledEnergy, state: Dict[str, jnp.ndarray]) -> float:
         """
         Estimate the spectral gap of the Hessian at current state.

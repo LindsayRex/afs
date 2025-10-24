@@ -7,6 +7,7 @@ This module implements the quadratic data fidelity atom: (1/2)‖Ax - b‖²
 from typing import Dict, Any
 import jax.numpy as jnp
 from ..base import Atom
+from computable_flows_shim.core import numerical_stability_check
 
 # Type aliases
 Array = jnp.ndarray
@@ -32,6 +33,7 @@ class QuadraticAtom(Atom):
     def form(self) -> str:
         return r"\frac{1}{2}\|Ax - b\|_2^2"
 
+    @numerical_stability_check
     def energy(self, state: State, params: Dict[str, Any]) -> float:
         """Compute quadratic energy: (1/2)‖Ax - b‖²"""
         A = params['A']
@@ -41,6 +43,7 @@ class QuadraticAtom(Atom):
         residual = A @ x - b
         return 0.5 * float(jnp.sum(residual**2))
 
+    @numerical_stability_check
     def gradient(self, state: State, params: Dict[str, Any]) -> State:
         """Compute gradient: A^T(Ax - b)"""
         A = params['A']
@@ -52,6 +55,7 @@ class QuadraticAtom(Atom):
 
         return {params['variable']: grad_x}
 
+    @numerical_stability_check
     def prox(self, state: State, step_size: float, params: Dict[str, Any]) -> State:
         """
         Proximal operator for quadratic (exact solution via linear system).

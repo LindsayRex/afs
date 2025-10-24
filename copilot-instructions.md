@@ -52,10 +52,34 @@ Is this contract meaningful outside the system? If not, write a behavior/integra
 Is the test verifying a real property, or just making the test pass? Only keep tests that enforce real contracts or behaviors.
 
 
-## General Rules
-- Branching: `copilot/*` => open PRs to `test`.
-- CI must pass on PRs.
-- Keep copies of evidence in `qa_logs/`.
+## Code Guidelines (MANDATORY)
+
+**ALWAYS follow these rules for ALL new code:**
+
+### JAX Usage
+- **Use `jax.numpy` functions, NEVER `numpy`** - `jnp.sum()`, `jnp.array()`, etc.
+- **All mathematical operations must use JAX arrays** - No raw Python lists or numpy arrays in math functions
+- **Reference:** `Design/shim_build/03b_energy_spec_hygiene_spec.md` (JAX Compatibility section)
+
+### Hygiene Requirements  
+- **Decorate ALL mathematical functions** with `@numerical_stability_check`
+- **Use Pydantic models** for ALL data structures (`BaseModel` with field validation)
+- **Apply to:** Energy functions, gradient computations, prox operators, runtime primitives
+- **Reference:** `Design/shim_build/03b_energy_spec_hygiene_spec.md` (Core Hygiene Requirements)
+
+### Design Pattern Compliance
+- **Functional Core:** Pure mathematical functions with zero side effects
+- **Imperative Shell:** All I/O, validation, error handling in outer layers  
+- **Reference:** `Design/shim_build/17_design_pattern.md`
+
+### Verification Checklist (Pre-commit)
+- [ ] JAX functions used throughout?
+- [ ] `@numerical_stability_check` on all math functions?
+- [ ] Pydantic models for data structures?
+- [ ] Functional Core/Imperative Shell pattern followed?
+- [ ] Tests written and passing?
+
+**These are NOT optional - they prevent catastrophic failures and maintain SDK reliability.**
 
 ## Testing guidance
 - Prefer small, focused unit tests built via the TDD cycle.

@@ -7,6 +7,7 @@ This module implements the total variation regularization atom: λ‖Dx‖₁
 from typing import Dict, Any
 import jax.numpy as jnp
 from ..base import Atom
+from computable_flows_shim.core import numerical_stability_check
 
 # Type aliases
 Array = jnp.ndarray
@@ -30,6 +31,7 @@ class TVAtom(Atom):
     def form(self) -> str:
         return r"\lambda\|Dx\|_1"
 
+    @numerical_stability_check
     def energy(self, state: State, params: Dict[str, Any]) -> float:
         """Compute TV energy: λ‖Dx‖₁"""
         lam = params.get('lambda', 1.0)
@@ -50,6 +52,7 @@ class TVAtom(Atom):
 
         return lam * float(jnp.sum(jnp.abs(diff)))
 
+    @numerical_stability_check
     def gradient(self, state: State, params: Dict[str, Any]) -> State:
         """Compute subgradient of TV regularization."""
         lam = params.get('lambda', 1.0)
@@ -80,6 +83,7 @@ class TVAtom(Atom):
 
         return {params['variable']: subgrad}
 
+    @numerical_stability_check
     def prox(self, state: State, step_size: float, params: Dict[str, Any]) -> State:
         """
         Proximal operator for TV regularization.

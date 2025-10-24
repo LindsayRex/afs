@@ -5,7 +5,9 @@ from typing import Dict, Any, Optional
 import jax.numpy as jnp
 from computable_flows_shim.energy.compile import CompiledEnergy
 from computable_flows_shim.runtime.primitives import F_Dis, F_Proj, F_Multi
+from computable_flows_shim.core import numerical_stability_check
 
+@numerical_stability_check
 def run_flow_step(
     state: Dict[str, jnp.ndarray],
     compiled: CompiledEnergy,

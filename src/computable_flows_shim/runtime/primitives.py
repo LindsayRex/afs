@@ -4,6 +4,7 @@ Primitive flow operators for the Computable Flows Shim.
 from typing import Callable, Dict, Any, Union, List, Protocol
 import jax
 import jax.numpy as jnp
+from computable_flows_shim.core import numerical_stability_check
 
 # JAX types for clarity
 Array = jnp.ndarray
@@ -17,6 +18,7 @@ class TransformProtocol(Protocol):
     def inverse(self, x: List[Array]) -> Array:
         ...
 
+@numerical_stability_check
 def F_Dis(state: State, grad_f: Callable[[State], State], step_alpha: float, manifolds: Dict[str, Any]) -> State:
     """
     Dissipative Step (F_Dis): Performs a single gradient descent step.
@@ -54,12 +56,14 @@ def F_Dis(state: State, grad_f: Callable[[State], State], step_alpha: float, man
             
     return new_state
 
+@numerical_stability_check
 def F_Proj(state: State, prox_g: Callable, step_alpha: float) -> State:
     """
     Projective/Proximal Step (F_Proj): Applies a proximal operator.
     """
     return prox_g(state, step_alpha)
 
+@numerical_stability_check
 def F_Multi(x: Union[Array, List[Array]], W: TransformProtocol, direction: str) -> Union[Array, List[Array]]:
     """
     Multiscale Transform (F_Multi): Applies wavelet transform forward or inverse.
@@ -80,6 +84,7 @@ def F_Multi(x: Union[Array, List[Array]], W: TransformProtocol, direction: str) 
     else:
         raise ValueError(f"Invalid direction: {direction}. Must be 'forward' or 'inverse'.")
 
+@numerical_stability_check
 def F_Con(state: State, H: Callable[[State], Array], dt: float) -> State:
     """
     Conservative/Symplectic Step (F_Con): Performs one step of a symplectic integrator.
@@ -97,6 +102,7 @@ def F_Con(state: State, H: Callable[[State], Array], dt: float) -> State:
 
     return {'q': q_full, 'p': p_full}
 
+@numerical_stability_check
 def F_Ann(state: State, key: Array, temperature: float, dt: float) -> State:
     """
     Annealing/Stochastic Step (F_Ann): Adds noise for Langevin dynamics.

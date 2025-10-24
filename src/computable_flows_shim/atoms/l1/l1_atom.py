@@ -7,6 +7,7 @@ This module implements the L1 regularization atom: λ‖x‖₁
 from typing import Dict, Any
 import jax.numpy as jnp
 from ..base import Atom
+from computable_flows_shim.core import numerical_stability_check
 
 # Type aliases
 Array = jnp.ndarray
@@ -29,6 +30,7 @@ class L1Atom(Atom):
     def form(self) -> str:
         return r"\lambda\|x\|_1"
 
+    @numerical_stability_check
     def energy(self, state: State, params: Dict[str, Any]) -> float:
         """Compute L1 energy: λ‖x‖₁"""
         lam = params.get('lambda', 1.0)
@@ -36,6 +38,7 @@ class L1Atom(Atom):
 
         return lam * float(jnp.sum(jnp.abs(x)))
 
+    @numerical_stability_check
     def gradient(self, state: State, params: Dict[str, Any]) -> State:
         """L1 regularization is not differentiable, but subgradient exists."""
         # L1 is not differentiable at zero, so we return a subgradient
@@ -48,6 +51,7 @@ class L1Atom(Atom):
 
         return {params['variable']: subgrad_x}
 
+    @numerical_stability_check
     def prox(self, state: State, step_size: float, params: Dict[str, Any]) -> State:
         """
         Proximal operator for L1 regularization: soft-thresholding.

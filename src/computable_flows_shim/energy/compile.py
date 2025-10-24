@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 from jax import random
 from computable_flows_shim.energy.specs import EnergySpec
+from computable_flows_shim.core import numerical_stability_check
 
 class CompiledEnergy(NamedTuple):
     f_value: Callable
@@ -201,6 +202,7 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
     # --- Compile the smooth part (f) ---
 
     # --- Compile the smooth part (f) ---
+    @numerical_stability_check
     def f_value(state: Dict[str, jnp.ndarray]) -> Any:
         total_energy = 0.0
         for term in spec.terms:
@@ -220,6 +222,7 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
     f_grad = jax.grad(f_value)
 
     # --- Compile the non-smooth part (g) ---
+    @numerical_stability_check
     def g_prox(state: Dict[str, jnp.ndarray], step_alpha: float) -> Dict[str, jnp.ndarray]:
         new_state = state.copy()
         for term in spec.terms:
@@ -251,6 +254,7 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
         return new_state
 
     # --- Compile the non-smooth part (g) in W-space ---
+    @numerical_stability_check
     def g_prox_in_W(coeffs: List[jnp.ndarray], step_alpha: float) -> List[jnp.ndarray]:
         """
         Apply proximal operators directly in W-space (wavelet coefficient space).

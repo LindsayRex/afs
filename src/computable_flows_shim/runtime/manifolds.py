@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Protocol, Union
 import jax
 import jax.numpy as jnp
+from ..core import numerical_stability_check
 
 # Type aliases
 Array = jnp.ndarray
@@ -77,14 +78,17 @@ class EuclideanManifold(ManifoldAdapter):
     All operations are identity operations.
     """
     
+    @numerical_stability_check
     def proj_tangent(self, x: Array, v: Array) -> Array:
         """Tangent space is the entire space."""
         return v
     
+    @numerical_stability_check
     def retract(self, x: Array, v: Array) -> Array:
         """Retraction is just vector addition."""
         return x + v
     
+    @numerical_stability_check
     def riemannian_gradient(self, x: Array, euclidean_grad: Array) -> Array:
         """Riemannian gradient equals Euclidean gradient."""
         return euclidean_grad
@@ -100,17 +104,20 @@ class SphereManifold(ManifoldAdapter):
     def __init__(self, radius: float = 1.0):
         self.radius = radius
     
+    @numerical_stability_check
     def proj_tangent(self, x: Array, v: Array) -> Array:
         """Project v onto tangent space: v - (⟨x,v⟩/‖x‖²)x"""
         x_norm_sq = jnp.sum(x**2)
         return v - (jnp.sum(x * v) / x_norm_sq) * x
     
+    @numerical_stability_check
     def retract(self, x: Array, v: Array) -> Array:
         """Exponential map retraction: normalize(x + v) * radius"""
         x_new = x + v
         x_norm = jnp.sqrt(jnp.sum(x_new**2))
         return (x_new / x_norm) * self.radius
     
+    @numerical_stability_check
     def riemannian_gradient(self, x: Array, euclidean_grad: Array) -> Array:
         """Riemannian gradient on sphere."""
         return self.proj_tangent(x, euclidean_grad)
@@ -127,11 +134,13 @@ class StiefelManifold(ManifoldAdapter):
         self.n = n
         self.k = k
     
+    @numerical_stability_check
     def proj_tangent(self, x: Array, v: Array) -> Array:
         """Project onto tangent space: v - x(x^T v + v^T x)/2"""
         xtv = x.T @ v
         return v - x @ (xtv + xtv.T) / 2
     
+    @numerical_stability_check
     def retract(self, x: Array, v: Array) -> Array:
         """QR retraction: orthogonalize(x + v)"""
         x_new = x + v
@@ -141,6 +150,7 @@ class StiefelManifold(ManifoldAdapter):
         q = q * signs
         return q
     
+    @numerical_stability_check
     def riemannian_gradient(self, x: Array, euclidean_grad: Array) -> Array:
         """Riemannian gradient on Stiefel manifold."""
         return self.proj_tangent(x, euclidean_grad)
@@ -153,14 +163,17 @@ class PositiveDefiniteManifold(ManifoldAdapter):
     Useful for covariance matrices, metrics, etc.
     """
     
+    @numerical_stability_check
     def proj_tangent(self, x: Array, v: Array) -> Array:
         """Project onto tangent space: symmetrize(v)"""
         return (v + v.T) / 2
     
+    @numerical_stability_check
     def retract(self, x: Array, v: Array) -> Array:
         """Matrix exponential retraction: exp(v) @ x"""
         return jax.scipy.linalg.expm(v) @ x
     
+    @numerical_stability_check
     def riemannian_gradient(self, x: Array, euclidean_grad: Array) -> Array:
         """Riemannian gradient on SPD manifold."""
         return self.proj_tangent(x, euclidean_grad)

@@ -7,6 +7,7 @@ This module implements the wavelet L1 regularization atom: λ‖Wx‖₁
 from typing import Dict, Any
 import jax.numpy as jnp
 from ..base import Atom
+from computable_flows_shim.core import numerical_stability_check
 
 # Type aliases
 Array = jnp.ndarray
@@ -29,6 +30,7 @@ class WaveletL1Atom(Atom):
     def form(self) -> str:
         return r"\lambda\|Wx\|_1"
 
+    @numerical_stability_check
     def energy(self, state: State, params: Dict[str, Any]) -> float:
         """Compute wavelet L1 energy: λ‖Wx‖₁"""
         from computable_flows_shim.multi.transform_op import make_transform
@@ -50,6 +52,7 @@ class WaveletL1Atom(Atom):
 
         return lam * total_l1
 
+    @numerical_stability_check
     def gradient(self, state: State, params: Dict[str, Any]) -> State:
         """Compute subgradient of wavelet L1 regularization."""
         from computable_flows_shim.multi.transform_op import make_transform
@@ -74,6 +77,7 @@ class WaveletL1Atom(Atom):
 
         return {params['variable']: subgrad_x}
 
+    @numerical_stability_check
     def prox(self, state: State, step_size: float, params: Dict[str, Any]) -> State:
         """
         Proximal operator for wavelet L1 regularization.

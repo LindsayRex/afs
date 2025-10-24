@@ -8,8 +8,10 @@ optimal transforms based on sparsity and reconstruction quality metrics.
 from typing import Dict, List, Any, Union, Tuple
 import jax.numpy as jnp
 from computable_flows_shim.multi.transform_op import TransformOp
+from ..core import numerical_stability_check
 
 
+@numerical_stability_check
 def calculate_compressibility(
     coeffs: Union[List[jnp.ndarray], Any],
     threshold: float = 1e-8
@@ -79,6 +81,7 @@ def calculate_compressibility(
     }
 
 
+@numerical_stability_check
 def calculate_reconstruction_error(
     original: jnp.ndarray,
     reconstruction: jnp.ndarray
@@ -209,6 +212,7 @@ def _flatten_coeff_structure(coeffs: Any) -> List[jnp.ndarray]:
     return flattened
 
 
+@numerical_stability_check
 def _calculate_sparsity_at_target(
     coeffs: Union[List[jnp.ndarray], Any],
     target_sparsity: float

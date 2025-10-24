@@ -7,6 +7,7 @@ This module implements the Tikhonov regularized quadratic atom: (1/2)‖Ax - b�
 from typing import Dict, Any
 import jax.numpy as jnp
 from ..base import Atom
+from computable_flows_shim.core import numerical_stability_check
 
 # Type aliases
 Array = jnp.ndarray
@@ -29,6 +30,7 @@ class TikhonovAtom(Atom):
     def form(self) -> str:
         return r"\frac{1}{2}\|Ax - b\|_2^2 + \frac{\lambda}{2}\|x\|_2^2"
 
+    @numerical_stability_check
     def energy(self, state: State, params: Dict[str, Any]) -> float:
         """Compute Tikhonov energy: (1/2)‖Ax - b‖² + (λ/2)‖x‖²"""
         A = params['A']
@@ -42,6 +44,7 @@ class TikhonovAtom(Atom):
 
         return data_fidelity + regularization
 
+    @numerical_stability_check
     def gradient(self, state: State, params: Dict[str, Any]) -> State:
         """Compute gradient: A^T(Ax - b) + λx"""
         A = params['A']
@@ -54,6 +57,7 @@ class TikhonovAtom(Atom):
 
         return {params['variable']: grad_x}
 
+    @numerical_stability_check
     def prox(self, state: State, step_size: float, params: Dict[str, Any]) -> State:
         """
         Proximal operator for Tikhonov regularization.

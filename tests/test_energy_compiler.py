@@ -105,15 +105,13 @@ class TestEnergyCompilerContract:
     
     def test_unknown_atom_type_error(self):
         """RED: Compiler should raise error for unknown atom types."""
-        spec = EnergySpec(
-            terms=[TermSpec(type='unknown_atom', op='A', weight=1.0, variable='x')],
-            state=StateSpec(shapes={'x': [3]})
-        )
+        from pydantic import ValidationError
         
-        op_registry = {'A': lambda x: x}
-        
-        with pytest.raises(ValueError, match="Unknown atom type"):
-            compile_energy(spec, op_registry)
+        with pytest.raises(ValidationError, match="Unknown term type"):
+            spec = EnergySpec(
+                terms=[TermSpec(type='unknown_atom', op='A', weight=1.0, variable='x')],
+                state=StateSpec(shapes={'x': [3]})
+            )
     
     def test_jit_compilation(self, simple_quadratic_spec, op_registry):
         """RED: Compiled functions should be JIT-compiled."""
