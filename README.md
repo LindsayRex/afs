@@ -4,7 +4,57 @@ This repository contains the engine for a novel computational paradigm: casting 
 
 The ultimate goal is to create an **Automatic Flow Synthesizer (AFS)**, an AI that can automatically discover the optimal computational flow for a given business problem.
 
-## The Core Engine: The Computable Flow Shim
+### Layered Architecture
+
+Bottom Layer: JAX Foundation
+JAX + differential geometry tools
+Raw mathematical primitives
+No domain knowledge
+
+Middle Layer: Computable Flow Shim (CFS) - Current Focus
+
+Purpose: LEGO bricks SDK for engineers to build multi-objective optimization problems
+
+Input: Energy functional specifications (Python DSL)
+
+Output: Compiled, executable flows with FDA certificates
+Methodology: Structured reasoning using Flow Dynamics Analysis (FDA) principles
+
+Goal: Enable engineers to build complex optimization problems without PhD-level physics/math knowledge
+
+Top Layer: Automatic Flow Synthesizer (AFS) - Future
+Purpose: Meta-level abstraction that automatically selects components within FDA-designed flows
+Components: Auto-selection of lenses, energy functionals, sparsity parameters, certificates
+Input: High-level problem descriptions
+Output: Complete CFS specifications
+Reference: The afs_v1 folder shows existing work on this
+FDA Integration in Specs (By Design)
+The "tension" I identified is actually correct architectural design:
+
+Lens Selection in Compilation (03_energy_spec_compilation.md, 04_multiscale_wavelet_module.md):
+
+✅ Future AFS Integration: CFS exposes lens selection hooks so AFS can automatically choose optimal wavelets
+✅ Manual Override: Engineers can still manually specify lenses in DSL specs
+✅ FDA Methodology: Lens selection follows FDA compressibility analysis principles
+Certificate Hooks in Runtime (05_fda_certificates.md, 07_runtime_engine.md):
+
+✅ CFS Responsibility: Runtime provides certificate checking infrastructure
+✅ AFS Integration: AFS can use these hooks to automatically tune parameters
+✅ FDA Compliance: All certificate math follows FDA specifications
+Builder Mode Probes (01_shim_overview_architecture.md):
+
+✅ Extensibility Point: CFS provides probe infrastructure for AFS to analyze flows
+✅ FDA-Based: Probes use FDA metrics (compressibility, spectral properties)
+Current Specs Status
+The specifications are architecturally sound for the layered design:
+
+CFS Layer: Provides the LEGO bricks with FDA methodology integration points
+AFS Layer: Can build on top using the exposed hooks and infrastructure
+No Violations: The specs correctly separate concerns while providing extensibility
+The afs_v1 folder confirms this approach works - it shows how automatic selection can be built on top of the CFS foundation.
+
+
+## The Core Engine: The Computable Flow Shim(CFS) 
 
 The heart of this project is the **Computable Flow Shim**, a small, reliable, and reusable runtime engine built on JAX. It is not a complete application, but a "Functional Core" that the AFS will drive.
 

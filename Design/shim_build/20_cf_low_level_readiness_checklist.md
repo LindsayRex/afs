@@ -21,7 +21,7 @@ Events enum registry: single file listing allowed `event` types + payload keys.
 ## 3. Validation & Guardrails
 - Spec linter: hard errors for missing ops/terms, wrong manifolds, unstable frames; warnings for scale mismatches.
 - NaN/Inf sentry: after each primitive, scan for non-finite values; add a `WARN` + store a mini “nan core dump”.
-- Unit/scale normalization: automatic RMS/MAD scaling + printed table of effective weights.
+- Unit/scale normalization: automatic energy-based scaling + printed table of effective weights.
 
 ## 4. Checkpointing & Resume
 - Atomic checkpoints (write temp → rename) with manifest pointer to “latest good”.

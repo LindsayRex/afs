@@ -105,7 +105,7 @@ CertificationProfile(
 `compile_energy` returns `CompiledEnergy` and `CompileReport` with:
 - `lens_name`
 - `frame_type` and `c`
-- `unit_normalization_table` (RMS/MAD per term)
+- `unit_normalization_table` (per-term energy-based normalization)
 - `invariants` list and checkers present flag
 
 ## Telemetry & Schema additions

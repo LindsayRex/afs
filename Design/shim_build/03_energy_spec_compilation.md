@@ -42,13 +42,13 @@ The canonical decomposition for energies is:
 Spec authors must declare terms under `data_term`, `physics_term`, and `regularizer` with explicit units to enable normalization and comparison across domains.
 
 ### Unit normalization
-At compile-time, compute an RMS or MAD normalization per term and store it in a `unit_normalization_table` inside the `CompileReport`. This table is used to seed initial weights and to make slider/policy knobs meaningful across objectives.
+At compile-time, compute energy-based normalization per term and store it in a `unit_normalization_table` inside the `CompileReport`. This table is used to seed initial weights and to make slider/policy knobs meaningful across objectives. Normalization is computed by evaluating each term's energy contribution on sample data, maintaining the pure energy-based paradigm without introducing statistical branching logic.
 
 Example `CompileReport` fields:
 
 - `lens_name`
 - `frame_type` and `c`
-- `unit_normalization_table` (per-term RMS/MAD)
+- `unit_normalization_table` (per-term energy-based normalization)
 - `invariants_present` (bool)
 
 All compile-time normalization info is written to the manifest for reproducibility.
