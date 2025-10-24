@@ -49,12 +49,13 @@ pytest -q
 The AFS system uses JAX for high-performance numerical computing with a strict type system and configuration policy.
 
 ### Dtype Policy
-All AFS computations use **float32** as the default dtype for optimal performance/memory balance:
+All AFS computations use **float64** as the default dtype for numerical stability in differential geometry:
 
-- **Default dtype**: `float32` (for real numbers)
-- **Complex dtype**: `complex64` (for complex numbers)
-- **High precision**: `float64` (when precision is critical)
-- **Low precision**: `float16` (for memory-constrained operations)
+- **Default dtype**: `float64` (for real numbers - numerical stability)
+- **Complex dtype**: `complex128` (for complex numbers)
+- **High precision**: `float64` (default - for when precision is critical)
+- **Low precision**: `float32` (for memory-constrained operations)
+- **Lowest precision**: `float16` (for extreme memory constraints)
 
 ### JAX Environment Configuration
 Configure JAX before importing AFS modules:
@@ -66,7 +67,7 @@ configure_jax_environment()
 
 # Or configure manually
 import jax
-jax.config.update('jax_default_dtype', jnp.float32)
+jax.config.update('jax_default_dtype', jnp.float64)
 ```
 
 ### Environment Variables
@@ -74,7 +75,7 @@ jax.config.update('jax_default_dtype', jnp.float32)
 # JAX platform and XLA flags
 export JAX_PLATFORM_NAME=cpu  # or gpu, tpu
 export AFS_JAX_PLATFORM=auto  # auto-detect platform
-export AFS_ENABLE_64BIT=false # use float32 (default)
+export AFS_DISABLE_64BIT=true # use float32 instead of default float64
 
 # XLA optimization flags (auto-set based on platform)
 export XLA_FLAGS='--xla_cpu_multi_thread_eigen=true --xla_enable_fast_math=true'
@@ -87,11 +88,11 @@ Use the centralized type system for consistent arrays:
 from computable_flows_shim import create_array, zeros, get_dtype, enforce_dtype
 
 # Create arrays with enforced dtypes
-x = create_array([1.0, 2.0, 3.0])  # Uses default float32
-y = zeros((10, 10), dtype='high_precision')  # Uses float64
+x = create_array([1.0, 2.0, 3.0])  # Uses default float64
+y = zeros((10, 10), dtype='low_precision')  # Uses float32
 
 # Enforce dtypes on existing arrays
-z = enforce_dtype(some_array, 'default')  # Convert to float32
+z = enforce_dtype(some_array, 'default')  # Convert to float64
 ```
 
 ### Platform-Specific XLA Flags
