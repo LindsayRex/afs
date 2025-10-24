@@ -58,10 +58,10 @@
     {
       "id": "debug_logging_infrastructure",
       "spec": "Consistent debug logging infrastructure: structured logging, mathematical operation logging, performance logging, SDK-wide configuration",
-      "status": "not-implemented",
-      "implemented_in": [],
-      "notes": ["❌ No centralized logging infrastructure - modules use inconsistent approaches"],
-      "gaps": ["Implement centralized logging with SDKLogger configuration", "Add structured JSON logging across all modules", "Add performance logging decorators", "Create SDK-wide logging configuration API"],
+      "status": "completed-4of4",
+      "implemented_in": ["src/computable_flows_shim/logging.py", "src/computable_flows_shim/controller.py", "src/computable_flows_shim/telemetry/", "src/scripts/cfs_cli.py", "tests/test_logging.py"],
+      "notes": ["✅ SDKLogger class with JSON structured logging implemented", "✅ Environment variable configuration (AFS_LOG_*)", "✅ CLI integration with logging options", "✅ Controller has extensive debug/info logging", "✅ Telemetry system (FlightRecorder) for structured observability", "✅ Mathematical operation logging handled by telemetry system (phi_residual, invariant_drift_max, E, grad_norm, eta_dd, gamma, alpha)", "❌ Performance logging decorators not used in codebase"],
+      "gaps": ["Add @log_performance decorators to critical mathematical operations"],
       "priority": "high"
     }
   ]

@@ -7,6 +7,21 @@ description: Project-specific agent instructions. Edit to reflect new project ru
 ## Core Development Methodology
 This project follows a strict, verifiable, and incremental development process. Adherence to this methodology is mandatory for all contributions. It is designed to prevent self-deception and ensure correctness.
 
+## Documentation and Knowledge Base
+- **New Component Quick Start:** `Design/shim_build/24_new_component_quick_start.md` - Standardized templates and checklists for creating new components
+- Before using a function from a third-party library, you MUST consult the local documentation in the `archive/` directory to ensure you are using the correct API and respecting its contract.
+- Do not rely on assumed knowledge. Verify the correct usage from the archived documentation.
+- Key documentation paths:
+  - **JAX:** `archive/jax-docs-archive/`
+  - **Optax:** `archive/optax-docs/`
+  - **Orbax:** `archive/orbax-docs/`
+  - **Jax-Wavelet-Toolbox (jaxwt):** `archive/jaxwt-docs/`
+  - **NetworkX:** `archive/networkx-docs/`
+  - **DuckDB:** `archive/duckdb-docs/`
+  - **PyArrow:** `archive/pyarrow-docs/`
+  - **frozendict:** `archive/frozendict-docs/`
+
+
 **1. Architectural Pattern: Functional Core, Imperative Shell**
    - **Functional Core:** All core logic (primitives, compiler, math) MUST be implemented as pure functions with zero side effects. This is our reusable, testable engine.
    - **Imperative Shell:** All side effects (file I/O, tests, logging) MUST be in the outer shell.
@@ -85,16 +100,5 @@ Is the test verifying a real property, or just making the test pass? Only keep t
 - Prefer small, focused unit tests built via the TDD cycle.
 - Use repository `pyproject.toml` pytest settings; run with `pytest -q`.
 
-## Documentation and Knowledge Base
-- Before using a function from a third-party library, you MUST consult the local documentation in the `archive/` directory to ensure you are using the correct API and respecting its contract.
-- Do not rely on assumed knowledge. Verify the correct usage from the archived documentation.
-- Key documentation paths:
-  - **JAX:** `archive/jax-docs-archive/`
-  - **Optax:** `archive/optax-docs/`
-  - **Orbax:** `archive/orbax-docs/`
-  - **Jax-Wavelet-Toolbox (jaxwt):** `archive/jaxwt-docs/`
-  - **NetworkX:** `archive/networkx-docs/`
-  - **DuckDB:** `archive/duckdb-docs/`
-  - **PyArrow:** `archive/pyarrow-docs/`
-  - **frozendict:** `archive/frozendict-docs/`
+
 

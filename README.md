@@ -35,6 +35,7 @@ This project is built with a strict, verifiable methodology designed for correct
 1.  **Understand the Math:** The foundational mathematics are described in `background/On_Compitable_Flows_v2.1.md`.
 2.  **Understand the Architecture:** The Shim's architecture and naming conventions are in `Design/shim_build/`.
 3.  **Follow the Rules:** Read and adhere to the `copilot-instructions.md`.
+4.  **New Components:** Use `Design/shim_build/24_new_component_quick_start.md` for standardized templates and checklists.
 
 To set up the environment:
 ```powershell
