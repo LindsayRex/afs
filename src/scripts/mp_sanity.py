@@ -4,7 +4,9 @@ Minimal multi-core sanity test for Windows: spins up N processes, each doing
 CPU work for D seconds, and reports speedup vs. serial time.
 
 Usage (PowerShell):
-  "J:/Google Drive/Software/msFlow/msflow_env/Scripts/python.exe" "j:/Google Drive/Software/msFlow/scripts/mp_sanity.py" --workers ([Environment]::ProcessorCount) --duration 3
+  "J:/Google Drive/Software/msFlow/msflow_env/Scripts/python.exe" \
+  "j:/Google Drive/Software/msFlow/scripts/mp_sanity.py" \
+  --workers ([Environment]::ProcessorCount) --duration 3
 
 You should see ~`workers` python.exe processes and wall-clock time close to
 `duration` seconds (not workers*duration) if parallelism is working.
@@ -61,9 +63,11 @@ def main() -> None:
     print(f"  logical processors (os.cpu_count): {os.cpu_count()}")
     print(f"  workers launched: {workers}")
     print(f"  distinct worker PIDs: {len(uniq_pids)} -> {uniq_pids}")
-    print(f"  wall time: {wall:.3f}s  |  serial time: {serial:.3f}s  |  speedup: {speedup:.2f}x")
+    print(f"  wall time: {wall:.3f}s  |  serial time: {serial:.3f}s  |  "
+          f"speedup: {speedup:.2f}x")
     if speedup < 1.5 and workers > 1:
-        print("  note: low speedup suggests multiprocessing isn’t engaging; check __main__ guard or antivirus/defender interference.")
+        print("  note: low speedup suggests multiprocessing isn't engaging; "
+              "check __main__ guard or antivirus/defender interference.")
 
 
 if __name__ == "__main__":

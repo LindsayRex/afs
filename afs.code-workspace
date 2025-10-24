@@ -1,0 +1,76 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        // ---- Python interpreter (your venv) ----
+        "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+        
+        // ---- Pylint configuration ----
+        "pylint.enabled": true,
+        "pylint.interpreter": [
+            "${workspaceFolder}\\.venv\\Scripts\\python.exe"
+        ],
+        "pylint.path": ["${interpreter}"],
+        "pylint.cwd": "${workspaceFolder}",
+
+        // ---- Pyright/Pylance ----
+        "python.analysis.typeCheckingMode": "basic",
+        "python.analysis.diagnosticMode": "workspace",
+        "python.analysis.exclude": [
+            "**/archive/**",
+            "**/background/**",
+            "**/Design/**",
+            "**/outputs/**",
+            "**/__pycache__/**",
+            "**/.pytest_cache/**",
+            "**/archive/**/*.py",
+            "**/archive/**/*.md"
+        ],
+
+        // ---- Pytest ----
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.testing.cwd": "${workspaceFolder}",
+        "python.testing.pytestArgs": [
+            "--tb=short",
+            "--strict-markers",
+            "--disable-warnings"
+        ],
+
+        // ---- Keep VS Code snappy ----
+        "files.exclude": {
+            "**/__pycache__/**": true,
+            "**/*.pyc": true,
+            "**/.venv/**": true,
+            "**/venv/**": true
+        },
+        
+        "files.watcherExclude": {
+            "**/.git/**": true,
+            "**/__pycache__/**": true,
+            "**/.venv/**": true,
+            "**/venv/**": true,
+            "**/archive/**": true,
+            "**/background/**": true,
+            "**/Design/**": true,
+            "**/outputs/**": true
+        },
+
+        // ---- Terminal configuration ----
+        "terminal.integrated.shellArgs.windows": ["-Command", "& '${workspaceFolder}\\.venv\\Scripts\\Activate.ps1'"],
+
+        "testExplorer.useNativeTesting": true
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.pylint",
+            "ms-python.black-formatter",
+            "ms-python.isort",
+            "hbenl.vscode-test-explorer"
+        ]
+    }
+}

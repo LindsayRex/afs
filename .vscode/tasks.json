@@ -38,7 +38,7 @@
 				"-m",
 				"pylint",
 				"--fail-under=9.0",
-				"scripts"
+				"src/scripts"
 			],
 			"problemMatcher": [
 				"$python"

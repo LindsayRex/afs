@@ -1,0 +1,46 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.11",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "warning",
+  "exclude": [
+    "**/archive/**",
+    "**/background/**",
+    "**/Design/**",
+    "**/outputs/**",
+    "**/logs/**",
+    "**/qa_logs/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "archive",
+    "background",
+    "Design", 
+    "outputs",
+    "logs",
+    "qa_logs",
+    "build",
+    "dist",
+    ".venv",
+    "venv"
+  ],
+  "ignore": [
+    "**/archive/**",
+    "**/background/**",
+    "**/outputs/**",
+    "**/Design/**",
+    "**/logs/**",
+    "**/qa_logs/**"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "./",
+      "extraPaths": ["./src", "./src/afs_v2"]
+    }
+  ],
+  "stubPath": "typings"
+}

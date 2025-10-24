@@ -53,7 +53,7 @@ norecursedirs = [
 [tool.pylint.main]
 # Set this to your actual interpreter version (match your venv). Replace placeholder if needed.
 py-version = "3.12"
-# init-hook = "import sys, pathlib; sys.path.insert(0, str(pathlib.Path.cwd()))"
+init-hook = "import sys, pathlib; src_path = pathlib.Path.cwd() / 'src'; sys.path.insert(0, str(src_path))"
 
 # Files or directories to be skipped by basename
 ignore = [".venv", "venv", "__pycache__", ".git", "outputs", "archive", "background", "Design", "logs", "pm", "qa_logs"]

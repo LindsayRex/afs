@@ -10,6 +10,10 @@ from typing import Dict, List, Set, Optional, Any
 from dataclasses import dataclass, asdict
 import time
 
+# Handle websockets API compatibility across versions
+# Using Any for websocket types due to API changes between websockets versions
+WebSocketType = Any
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -36,9 +40,9 @@ class TelemetryStreamer:
     def __init__(self, host: str = "localhost", port: int = 8765):
         self.host = host
         self.port = port
-        self.connected_clients: Set[websockets.WebSocketServerProtocol] = set()
+        self.connected_clients: Set[WebSocketType] = set()  # WebSocket connections
         self.active_runs: Dict[str, Dict[str, Any]] = {}
-        self._server: Optional[websockets.WebSocketServer] = None
+        self._server = None
         
     async def start(self):
         """Start the WebSocket server."""
@@ -58,7 +62,7 @@ class TelemetryStreamer:
             await self._server.wait_closed()
         logger.info("Telemetry streamer stopped")
         
-    async def _handle_connection(self, websocket: websockets.WebSocketServerProtocol, path: str):
+    async def _handle_connection(self, websocket: WebSocketType):
         """Handle incoming WebSocket connections."""
         logger.info(f"New dashboard client connected: {websocket.remote_address}")
         self.connected_clients.add(websocket)
@@ -69,14 +73,18 @@ class TelemetryStreamer:
             
             # Keep connection alive and handle client messages
             async for message in websocket:
-                await self._handle_client_message(websocket, message)
+                if isinstance(message, str):
+                    await self._handle_client_message(websocket, message)
+                else:
+                    # Handle binary messages if needed
+                    logger.warning(f"Received binary message from client: {websocket.remote_address}")
                 
         except websockets.exceptions.ConnectionClosed:
             logger.info(f"Dashboard client disconnected: {websocket.remote_address}")
         finally:
             self.connected_clients.discard(websocket)
             
-    async def _handle_client_message(self, websocket: websockets.WebSocketServerProtocol, message: str):
+    async def _handle_client_message(self, websocket: WebSocketType, message: str):
         """Handle messages from dashboard clients."""
         try:
             data = json.loads(message)
@@ -96,7 +104,7 @@ class TelemetryStreamer:
         except json.JSONDecodeError:
             logger.warning(f"Invalid JSON message from client: {message}")
             
-    async def _send_active_runs(self, websocket: websockets.WebSocketServerProtocol):
+    async def _send_active_runs(self, websocket: WebSocketType):
         """Send information about currently active runs to a client."""
         active_runs_info = {
             "type": "active_runs",
@@ -105,7 +113,7 @@ class TelemetryStreamer:
         }
         await websocket.send(json.dumps(active_runs_info))
         
-    async def _send_run_list(self, websocket: websockets.WebSocketServerProtocol):
+    async def _send_run_list(self, websocket: WebSocketType):
         """Send list of all known runs to a client."""
         run_list = {
             "type": "run_list",
@@ -122,7 +130,7 @@ class TelemetryStreamer:
         }
         await websocket.send(json.dumps(run_list))
         
-    async def _send_run_history(self, websocket: websockets.WebSocketServerProtocol, run_id: str):
+    async def _send_run_history(self, websocket: WebSocketType, run_id: str):
         """Send historical telemetry data for a specific run."""
         if run_id in self.active_runs:
             run_info = self.active_runs[run_id]

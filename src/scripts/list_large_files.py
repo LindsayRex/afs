@@ -37,7 +37,8 @@ def is_git_tracked(repo, relpath):
 
 def is_git_ignored(repo, relpath):
     try:
-        subprocess.check_call(['git', 'check-ignore', '-q', relpath], cwd=repo, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.check_call(['git', 'check-ignore', '-q', relpath], cwd=repo,
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         return True
     except subprocess.CalledProcessError:
         return False
@@ -97,7 +98,10 @@ def main():
         tracked_lfs = rel in lfs_names
         ignored = is_git_ignored(repo, rel)
         s = human(size)
-        print(f"{s:>10}  {('YES' if tracked_lfs else 'NO '):3}  {('YES' if tracked_git else 'NO '):3}  {('YES' if ignored else 'NO '):3}  {rel}")
+        lfs_status = 'YES' if tracked_lfs else 'NO '
+        git_status = 'YES' if tracked_git else 'NO '
+        ignore_status = 'YES' if ignored else 'NO '
+        print(f"{s:>10}  {lfs_status:3}  {git_status:3}  {ignore_status:3}  {rel}")
         shown += 1
         if shown >= args.top:
             break

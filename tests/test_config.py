@@ -228,7 +228,7 @@ class TestIntegration:
     def test_dtype_policy_coverage(self):
         """Test that all dtype policy entries are valid JAX dtypes."""
         # Enable 64-bit precision for this test to properly test all dtypes
-        original_x64 = jax.config.jax_enable_x64
+        original_x64 = jax.config.read('jax_enable_x64')
         jax.config.update('jax_enable_x64', True)
 
         try:

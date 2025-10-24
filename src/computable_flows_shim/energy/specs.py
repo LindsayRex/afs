@@ -17,9 +17,9 @@ class TermSpec(BaseModel):
     target: Optional[str] = Field(None, min_length=1, max_length=50, description="Target variable name")
 
     # Wavelet-specific parameters
-    wavelet: Optional[str] = Field(None, min_length=1, max_length=20, description="Wavelet type")
-    levels: Optional[int] = Field(None, gt=0, le=10, description="Decomposition levels")
-    ndim: Optional[int] = Field(None, gt=0, le=3, description="Spatial dimensions")
+    wavelet: Optional[str] = None
+    levels: Optional[int] = None
+    ndim: Optional[int] = None
 
     @field_validator('type')
     @classmethod
@@ -28,6 +28,30 @@ class TermSpec(BaseModel):
         known_types = {'quadratic', 'tikhonov', 'l1', 'wavelet_l1'}
         if v not in known_types:
             raise ValueError(f"Unknown term type '{v}'. Supported types: {sorted(known_types)}")
+        return v
+
+    @field_validator('wavelet')
+    @classmethod
+    def validate_wavelet(cls, v):
+        """Validate wavelet parameter if provided."""
+        if v is not None and (len(v) < 1 or len(v) > 20):
+            raise ValueError("wavelet must be between 1 and 20 characters")
+        return v
+
+    @field_validator('levels')
+    @classmethod
+    def validate_levels(cls, v):
+        """Validate levels parameter if provided."""
+        if v is not None and (v <= 0 or v > 10):
+            raise ValueError("levels must be between 1 and 10")
+        return v
+
+    @field_validator('ndim')
+    @classmethod
+    def validate_ndim(cls, v):
+        """Validate ndim parameter if provided."""
+        if v is not None and (v <= 0 or v > 3):
+            raise ValueError("ndim must be between 1 and 3")
         return v
 
 

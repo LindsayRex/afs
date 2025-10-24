@@ -1,28 +1,12 @@
 {
   // ---- Python interpreter (your venv) ----
   "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-  
-  // ---- Pylint configuration ----
-  "pylint.enabled": true,
-  "pylint.interpreter": [
-    "${workspaceFolder}\\.venv\\Scripts\\python.exe"
-  ],
-  "pylint.path": ["${interpreter}"],
-  "pylint.cwd": "${workspaceFolder}",
 
   // ---- Pyright/Pylance ----
-  "python.analysis.typeCheckingMode": "basic",
+  // Configuration moved to pyrightconfig.json for centralized management
   "python.analysis.diagnosticMode": "workspace",
-  "python.analysis.exclude": [
-    "**/archive/**",
-    "**/background/**",
-    "**/Design/**",
-    "**/outputs/**",
-    "**/__pycache__/**",
-    "**/.pytest_cache/**",
-    "**/archive/**/*.py",
-    "**/archive/**/*.md"
-  ],
+  "python.analysis.indexing": false,
+  "python.analysis.autoImportCompletions": false,
 
   // ---- Pytest ----
   "python.testing.pytestEnabled": true,
@@ -39,7 +23,9 @@
     "**/__pycache__/**": true,
     "**/*.pyc": true,
     "**/.venv/**": true,
-    "**/venv/**": true
+    "**/venv/**": true,
+    "**/build/**": true,
+    "**/dist/**": true
   },
   
   "files.watcherExclude": {
@@ -50,7 +36,11 @@
     "**/archive/**": true,
     "**/background/**": true,
     "**/Design/**": true,
-    "**/outputs/**": true
+    "**/outputs/**": true,
+    "**/logs/**": true,
+    "**/qa_logs/**": true,
+    "**/build/**": true,
+    "**/dist/**": true
   },
 
   // ---- Terminal configuration ----
