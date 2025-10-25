@@ -1,0 +1,9 @@
+schema_version = 3
+flow_name = "test"
+run_id = "test_001"
+[residual]
+method = "atom_based"
+norm = "L2"
+notes = "1 atoms"
+[extra]
+atom_types = ['quadratic']

@@ -394,11 +394,12 @@ def test_flow_policy_driven_execution(float_dtype):
 
 
 @pytest.mark.dtype_parametrized
-def test_multiscale_schedule_runtime_integration_red(float_dtype):
+def test_multiscale_schedule_runtime_integration_green(float_dtype):
     """
-    RED: MultiscaleSchedule runtime integration not yet implemented.
+    GREEN: MultiscaleSchedule runtime integration implemented and working.
 
-    This test will fail until MultiscaleSchedule is integrated into run_flow_step.
+    This test verifies that MultiscaleSchedule is properly integrated into run_flow_step
+    and produces different behavior than running without a schedule.
     """
     # GIVEN a MultiscaleSchedule with fixed_schedule mode
     from computable_flows_shim.energy.policies import MultiscaleSchedule
@@ -446,19 +447,19 @@ def test_multiscale_schedule_runtime_integration_red(float_dtype):
         multiscale_schedule=None,
     )
 
-    # With schedule, behavior should be different (currently fails because schedule is ignored)
-    # This assertion will fail until schedule integration is implemented
+    # With schedule, behavior should be different due to multiscale processing
     assert not jnp.allclose(result_state["x"], result_no_schedule["x"]), (
         "MultiscaleSchedule should produce different results than no schedule"
     )
 
 
 @pytest.mark.dtype_parametrized
-def test_multiscale_schedule_event_emission_red(float_dtype):
+def test_multiscale_schedule_event_emission_green(float_dtype):
     """
-    RED: SCALE_ACTIVATED events not yet emitted.
+    GREEN: SCALE_ACTIVATED events are properly emitted during multiscale level activation.
 
-    This test will fail until telemetry integration emits SCALE_ACTIVATED events.
+    This test verifies that telemetry integration correctly emits SCALE_ACTIVATED events
+    when multiscale levels are activated during flow execution.
     """
     # GIVEN a MultiscaleSchedule and telemetry manager
     from computable_flows_shim.energy.policies import MultiscaleSchedule
@@ -520,9 +521,9 @@ def test_multiscale_schedule_event_emission_red(float_dtype):
 
 
 @pytest.mark.dtype_parametrized
-def test_multiscale_schedule_mode_differences_red(float_dtype):
+def test_multiscale_schedule_mode_differences_green(float_dtype):
     """
-    RED: Different MultiscaleSchedule modes not yet implemented.
+    GREEN: Different MultiscaleSchedule modes produce different behaviors.
 
     Tests that different modes (fixed_schedule, residual_driven, energy_driven)
     produce different behaviors.
