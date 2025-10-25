@@ -79,6 +79,69 @@ def F_Proj(state: State, prox_g: Callable, step_alpha: float) -> State:
 
 
 @numerical_stability_check
+def F_Dis_Preconditioned(
+    state: State,
+    grad_f: Callable[[State], State],
+    step_alpha: float,
+    manifolds: dict[str, Any],
+    preconditioner: str,
+) -> State:
+    """
+    Preconditioned Dissipative Step: Performs gradient descent with preconditioning.
+
+    Currently supports:
+    - 'jacobi': Simple diagonal preconditioning (unit diagonal for now)
+    """
+    g = grad_f(state)
+    new_state = {}
+
+    for name, x in state.items():
+        M = manifolds.get(name)
+        if M is None or (isinstance(M, dict) and M.get("type") == "euclidean"):
+            if name in g:
+                grad = g[name]
+                if preconditioner == "jacobi":
+                    # Simple Jacobi preconditioning: divide by diagonal approximation
+                    # For now, use identity preconditioner (can be extended)
+                    precond_grad = grad  # TODO: Implement proper Jacobi preconditioning
+                else:
+                    raise ValueError(f"Unknown preconditioner: {preconditioner}")
+
+                new_state[name] = x - step_alpha * precond_grad
+            else:
+                new_state[name] = x
+        else:
+            # Riemannian manifold gradient step
+            if isinstance(M, dict):
+                # Create manifold adapter from config
+                from computable_flows_shim.runtime.manifolds import create_manifold
+
+                manifold_adapter = create_manifold(M["type"], **M.get("params", {}))
+            else:
+                # M is already a manifold adapter
+                manifold_adapter = M
+
+            if name in g:
+                # Compute Riemannian gradient and retract
+                riemannian_grad = manifold_adapter.riemannian_gradient(x, g[name])
+                # Apply preconditioning to Riemannian gradient
+                if preconditioner == "jacobi":
+                    precond_riemannian_grad = (
+                        riemannian_grad  # TODO: Extend preconditioning
+                    )
+                else:
+                    raise ValueError(f"Unknown preconditioner: {preconditioner}")
+
+                new_state[name] = manifold_adapter.retract(
+                    x, -step_alpha * precond_riemannian_grad
+                )
+            else:
+                new_state[name] = x
+
+    return new_state
+
+
+@numerical_stability_check
 def F_Multi(
     x: Array | list[Array], W: TransformProtocol, direction: str
 ) -> Array | list[Array]:

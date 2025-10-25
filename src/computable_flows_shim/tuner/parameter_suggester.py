@@ -104,6 +104,7 @@ def suggest_parameters(db_manager, flow_name: str | None = None) -> dict[str, An
         ValueError,
         KeyError,
         TypeError,
+        Exception,  # Catch all other exceptions including DuckDB errors (e.g., CatalogException)
     ) as e:
         logger.warning(
             "Error analyzing historical data: %s, falling back to defaults", e

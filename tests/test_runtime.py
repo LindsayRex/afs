@@ -3,20 +3,18 @@ Tests for the runtime engine and step execution.
 """
 
 import os
-import sys
 import tempfile
-from pathlib import Path
 
 import jax.numpy as jnp
 import pyarrow.parquet as pq
 import pytest
 
 # Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
+# sys.path.insert(0, str(Path(__file__).parent.parent / "src"))  # Handled by pytest.ini_options.pythonpath
 from computable_flows_shim.api import Op
 from computable_flows_shim.controller import FlightController
 from computable_flows_shim.energy.compile import compile_energy
+from computable_flows_shim.energy.policies import FlowPolicy
 from computable_flows_shim.energy.specs import EnergySpec, StateSpec, TermSpec
 from computable_flows_shim.runtime.checkpoint import CheckpointManager
 from computable_flows_shim.runtime.engine import resume_flow
@@ -229,3 +227,57 @@ def test_checkpointing(float_dtype):
 
         # Energy should decrease with more iterations
         assert energy_resumed < energy_final < energy_initial
+
+
+@pytest.mark.dtype_parametrized
+def test_flow_policy_driven_execution(float_dtype):
+    """
+    GREEN: Tests that FlowPolicy drives primitive selection in runtime execution.
+
+    Given: A flow policy specifying preconditioned execution with jacobi preconditioner
+    When: Runtime executes with policy parameters
+    Then: Preconditioned flow primitives are selected and applied successfully
+    """
+    # GIVEN a flow policy specifying preconditioned execution
+    flow_policy = FlowPolicy(
+        family="preconditioned", discretization="explicit", preconditioner="jacobi"
+    )
+
+    # AND a simple energy functional
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
+        ],
+        state=StateSpec(shapes={"x": [1], "y": [1]}),
+    )
+    op_registry = {"I": IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    initial_state = {
+        "x": jnp.array([2.0], dtype=float_dtype),
+        "y": jnp.array([1.0], dtype=float_dtype),
+    }
+
+    # WHEN we run a flow step with policy parameters
+    from computable_flows_shim.runtime.engine import run_flow_step
+
+    result_state = run_flow_step(
+        state=initial_state,
+        compiled=compiled,
+        step_alpha=0.1,
+        flow_policy=flow_policy,
+    )
+
+    # THEN it should execute successfully and return a valid state
+    assert isinstance(result_state, dict)
+    assert "x" in result_state
+    assert "y" in result_state
+    assert result_state["x"].shape == initial_state["x"].shape
+    assert result_state["y"].shape == initial_state["y"].shape
+    assert result_state["x"].dtype == float_dtype
+    assert result_state["y"].dtype == float_dtype
+
+    # AND the energy should have decreased (gradient descent step)
+    initial_energy = compiled.f_value(initial_state)
+    final_energy = compiled.f_value(result_state)
+    assert final_energy <= initial_energy

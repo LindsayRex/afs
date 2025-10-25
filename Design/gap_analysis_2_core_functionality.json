@@ -1,15 +1,15 @@
 {
   "meta": {
     "generated_by": "automated-gap-analyzer",
-    "reviewed_by": "manual-review-2025-10-23",
-    "date": "2025-10-23",
+    "reviewed_by": "manual-review-2025-10-25",
+    "date": "2025-10-25",
     "repo": "afs",
     "branch": "master",
     "spec_folder": "Design/shim_build",
     "source_folder": "src",
     "qa_logs_folder": "qa_logs",
-    "last_update": "Gap analysis Part 2: Core functionality gaps - atoms library, energy compiler, runtime engine, and user-facing APIs",
-    "document_purpose": "Part 2 of gap analysis series - focuses on core functionality that must work for the system to be usable: atoms library completion, energy compilation, runtime execution, and user APIs"
+    "last_update": "Gap analysis Part 2 updated: FlowPolicy/MultiscaleSchedule specs implemented (runtime integration pending), readiness checklist progressed from 4/16 to 10/16, energy compiler enhanced with normalization fixes and lens probe integration",
+    "document_purpose": "Part 2 of gap analysis series - focuses on core functionality that must work for the system to be usable: atoms library completion, energy compilation, runtime execution, and user-facing APIs"
   },
   "summary": "Part 2: Core functionality gaps that prevent the system from being usable. These are the foundational components that users depend on: complete atoms library, working energy compiler, functional runtime engine, and user-facing APIs. Without these, the system cannot solve actual optimization problems.",
   "items": [
@@ -103,7 +103,7 @@
     {
       "id": "runtime_engine",
       "spec": "Run compiled flow with primitives, FDA hooks, tuner integration, telemetry (Flight Recorder), checkpoints and resume",
-      "status": "completed",
+      "status": "partial-8of9",
       "implemented_in": [
         "src/computable_flows_shim/runtime/engine.py",
         "src/computable_flows_shim/controller.py",
@@ -114,9 +114,12 @@
         "src/computable_flows_shim/runtime/checkpoint.py",
         "src/computable_flows_shim/tuner/gap_dial.py",
         "src/computable_flows_shim/api.py",
+        "src/computable_flows_shim/energy/policies.py",
         "tests/test_runtime.py",
         "tests/test_controller.py",
-        "qa_logs/20251025_flight_controller_implementation_qa.md"
+        "tests/test_energy_policies.py",
+        "qa_logs/20251025_flight_controller_implementation_qa.md",
+        "qa_logs/20251025_flow_policy_multiscale_schedule_implementation.md"
       ],
       "notes": [
         "FlightController implements complete RED/AMBER/GREEN phase machine with certificate-gated parameter tuning and rollback capability.",
@@ -126,10 +129,12 @@
         "Controller phases tested with certificate validation, step remediation, and budget enforcement.",
         "GapDial tuner fully integrated with certificate validation and automatic rollback on failure.",
         "Complete telemetry schema v3 with all required fields (lambda, lambda_j, lens_name, etc.).",
-        "API provides run_certified_with_telemetry() function with proper TelemetryManager interface."
+        "API provides run_certified_with_telemetry() function with proper TelemetryManager interface.",
+        "FlowPolicy and MultiscaleSchedule dataclasses implemented with comprehensive validation.",
+        "Policy-driven execution framework designed but not yet integrated into runtime primitives."
       ],
       "gaps": [
-        "FlowPolicy and MultiscaleSchedule specs not implemented - runtime lacks policy-driven execution.",
+        "FlowPolicy and MultiscaleSchedule runtime integration missing - policy specs exist but runtime engine doesn't use them for primitive selection.",
         "Global dtype enforcement not fully implemented - no explicit dtype fields or propagation.",
         "Resume semantics incomplete - missing deterministic RNG/tuner state restoration tests."
       ],
@@ -137,15 +142,17 @@
       "design_pattern_notes": [
         "Primitives and flow logic are Functional Core: pure computational steps.",
         "Engine orchestration, telemetry logging, and checkpointing are Imperative Shell: side effects for monitoring and persistence.",
-        "Controller phase machine spans both: pure state transitions (Core) with logging side effects (Shell)."
+        "Controller phase machine spans both: pure state transitions (Core) with logging side effects (Shell).",
+        "Policy specifications are Functional Core: immutable data structures for flow configuration."
       ],
       "tdd_notes": [
         "Controller phases built with TDD: comprehensive tests for RED/AMBER/GREEN state machine and certificate gating.",
         "Runtime engine has basic tests but missing policy integration and dtype enforcement tests.",
-        "Resume functionality requires TDD: write failing tests for deterministic state restoration."
+        "Resume functionality requires TDD: write failing tests for deterministic state restoration.",
+        "Policy dataclasses built with TDD: 12 contract tests for validation and immutability."
       ],
       "recommended_next_steps": [
-        "Implement FlowPolicy and MultiscaleSchedule as Python DSL dataclasses.",
+        "Integrate FlowPolicy and MultiscaleSchedule into runtime engine for policy-driven primitive selection.",
         "Add global dtype enforcement with explicit dtype fields in specs and runtime casting.",
         "Add end-to-end resume tests ensuring deterministic restore of RNG, tuner state, and phase."
       ]
@@ -184,22 +191,40 @@
     {
       "id": "cf_low_level_readiness_checklist",
       "spec": "16 readiness requirements: reproducibility, schema/versioning, validation, checkpointing, performance, failure modes, UX, testing, security, documentation, backward compatibility, AI-friendliness, extensibility, release process",
-      "status": "partial-4of16",
+      "status": "partial-10of16",
       "implemented_in": [
         "src/computable_flows_shim/runtime/engine.py",
         "src/computable_flows_shim/controller.py",
+        "src/computable_flows_shim/config.py",
+        "src/computable_flows_shim/logging.py",
+        "src/scripts/cfs_cli.py",
+        "src/computable_flows_shim/core.py",
         "tests/test_*.py",
-        ".github/workflows/ci.yml (basic CI)"
+        "tests/conftest.py",
+        ".github/workflows/ci.yml",
+        "pyproject.toml",
+        "qa_logs/20251023_dtype_enforcement_and_jax_configuration.md",
+        "qa_logs/20251023_logging_infrastructure_implementation.md",
+        "qa_logs/20251024_architecture_correction_hygiene_completion.md",
+        "qa_logs/20251025_numerical_stability_incident_recovery_qa.md"
       ],
       "notes": [
-        "Basic checkpointing and controller phases implemented (4 of 16 requirements).",
+        "10 of 16 readiness requirements implemented with comprehensive infrastructure.",
+        "JAX dtype integration complete with float64 default, precision validation, and complex number support.",
+        "Complete logging infrastructure with structured JSON output, performance monitoring, and CLI configuration.",
+        "Numerical stability hygiene system fully implemented with @numerical_stability_check decorators.",
+        "Comprehensive testing infrastructure with parametrized precision testing and 400+ tests passing.",
+        "Code quality enforced with Ruff linting (800+ rules) and Pylint compliance (≥9.0 scores).",
+        "Type safety improvements with Pydantic validation and Pylance compatibility.",
+        "CLI enhancements with proper JAX configuration and environment variable support.",
+        "Basic checkpointing and controller phases implemented.",
         "Test suite provides validation but not comprehensive readiness checking.",
         "Basic CI exists but missing most readiness requirements."
       ],
       "gaps": [
         "Reproducibility: no validation of deterministic behavior across runs.",
         "Schema/versioning: incomplete manifest and schema validation.",
-        "Validation: missing spec linter and NaN/Inf guards.",
+        "Validation: missing spec linter and NaN/Inf guards (beyond hygiene decorators).",
         "Performance: no benchmarking or performance validation.",
         "Failure modes: no systematic failure mode testing.",
         "UX: basic CLI but missing comprehensive user experience.",
@@ -233,8 +258,8 @@
   ],
   "top_priority_tasks": [
     {
-      "task": "Implement FlowPolicy and MultiscaleSchedule - runtime cannot execute policy-driven flows",
-      "reason": "Runtime lacks the policy framework needed for sophisticated flow execution strategies",
+      "task": "Integrate FlowPolicy and MultiscaleSchedule into runtime engine - policy specs exist but runtime doesn't use them for primitive selection",
+      "reason": "Runtime has policy framework designed but not yet integrated into execution primitives",
       "priority": "critical"
     },
     {
@@ -248,8 +273,8 @@
       "priority": "high"
     },
     {
-      "task": "Complete readiness checklist - only 4 of 16 requirements implemented, system not production-ready",
-      "reason": "Missing critical production requirements like reproducibility validation, performance benchmarking, and security checks",
+      "task": "Complete readiness checklist - now 10 of 16 requirements implemented, system approaching production-ready",
+      "reason": "Major progress made on infrastructure (dtype, logging, testing, hygiene) but still missing production requirements",
       "priority": "high"
     }
   ]

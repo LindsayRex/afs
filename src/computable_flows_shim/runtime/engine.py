@@ -3,9 +3,10 @@ from typing import Any
 import jax.numpy as jnp
 
 from ..energy.compile import CompiledEnergy  # Import canonical CompiledEnergy
+from ..energy.policies import FlowPolicy, MultiscaleSchedule
 from ..telemetry import TelemetryManager
 from .checkpoint import CheckpointManager
-from .primitives import F_Dis, F_Multi, F_Proj
+from .primitives import F_Dis, F_Dis_Preconditioned, F_Multi, F_Proj
 
 # JAX types for clarity
 Array = jnp.ndarray
@@ -18,6 +19,9 @@ def run_flow_step(
     step_alpha: float,
     manifolds: dict[str, Any] | None = None,
     W: Any | None = None,
+    flow_policy: FlowPolicy | None = None,
+    multiscale_schedule: MultiscaleSchedule | None = None,
+    iteration: int = 0,
 ) -> dict[str, jnp.ndarray]:
     """
     Runs one full step of a Forward-Backward Splitting flow.
@@ -25,12 +29,35 @@ def run_flow_step(
     If W is provided, includes multiscale transforms:
     F_Dis → F_Multi_forward → F_Proj → F_Multi_inverse
     Otherwise, simple: F_Dis → F_Proj
+
+    Policy-driven execution:
+    - flow_policy controls primitive selection (basic/preconditioned/accelerated)
+    - multiscale_schedule controls multiscale activation
     """
     if manifolds is None:
         manifolds = {}
 
+    # Default to basic policy if none provided
+    if flow_policy is None:
+        flow_policy = FlowPolicy()
+
+    # Select dissipative primitive based on policy
+    if flow_policy.family == "basic":
+        dissipative_fn = F_Dis
+        dissipative_kwargs = {}
+    elif flow_policy.family == "preconditioned":
+        dissipative_fn = F_Dis_Preconditioned
+        dissipative_kwargs = {"preconditioner": flow_policy.preconditioner}
+    elif flow_policy.family == "accelerated":
+        # TODO: Implement accelerated F_Dis variant
+        raise NotImplementedError("Accelerated family not yet implemented")
+    else:
+        raise ValueError(f"Unknown flow family: {flow_policy.family}")
+
     # Forward step (dissipative) - always in physical domain
-    state_after_dis = F_Dis(state, compiled.f_grad, step_alpha, manifolds)
+    state_after_dis = dissipative_fn(
+        state, compiled.f_grad, step_alpha, manifolds, **dissipative_kwargs
+    )
 
     if W is not None:
         # Multiscale: transform to W-space
