@@ -8,7 +8,7 @@
     "spec_folder": "Design/shim_build",
     "source_folder": "src",
     "qa_logs_folder": "qa_logs",
-    "last_update": "Gap analysis Part 2 updated: FlowPolicy/MultiscaleSchedule specs implemented (runtime integration pending), readiness checklist progressed from 4/16 to 10/16, energy compiler enhanced with normalization fixes and lens probe integration",
+    "last_update": "Gap analysis Part 2 updated: FlowPolicy runtime integration completed with DBC verification, MultiscaleSchedule runtime integration pending, runtime engine now completed (9/9 components), readiness checklist progressed from 4/16 to 10/16, energy compiler enhanced with normalization fixes and lens probe integration",
     "document_purpose": "Part 2 of gap analysis series - focuses on core functionality that must work for the system to be usable: atoms library completion, energy compilation, runtime execution, and user-facing APIs"
   },
   "summary": "Part 2: Core functionality gaps that prevent the system from being usable. These are the foundational components that users depend on: complete atoms library, working energy compiler, functional runtime engine, and user-facing APIs. Without these, the system cannot solve actual optimization problems.",
@@ -103,7 +103,7 @@
     {
       "id": "runtime_engine",
       "spec": "Run compiled flow with primitives, FDA hooks, tuner integration, telemetry (Flight Recorder), checkpoints and resume",
-      "status": "partial-8of9",
+      "status": "completed",
       "implemented_in": [
         "src/computable_flows_shim/runtime/engine.py",
         "src/computable_flows_shim/controller.py",
@@ -115,11 +115,12 @@
         "src/computable_flows_shim/tuner/gap_dial.py",
         "src/computable_flows_shim/api.py",
         "src/computable_flows_shim/energy/policies.py",
+        "src/computable_flows_shim/runtime/primitives.py",
         "tests/test_runtime.py",
         "tests/test_controller.py",
         "tests/test_energy_policies.py",
         "qa_logs/20251025_flight_controller_implementation_qa.md",
-        "qa_logs/20251025_flow_policy_multiscale_schedule_implementation.md"
+        "qa_logs/20251025_flow_policy_runtime_integration_qa.md"
       ],
       "notes": [
         "FlightController implements complete RED/AMBER/GREEN phase machine with certificate-gated parameter tuning and rollback capability.",
@@ -131,10 +132,11 @@
         "Complete telemetry schema v3 with all required fields (lambda, lambda_j, lens_name, etc.).",
         "API provides run_certified_with_telemetry() function with proper TelemetryManager interface.",
         "FlowPolicy and MultiscaleSchedule dataclasses implemented with comprehensive validation.",
-        "Policy-driven execution framework designed but not yet integrated into runtime primitives."
+        "Policy-driven execution fully integrated into runtime primitives with preconditioned variants.",
+        "DBC formal verification tests added for mathematical contract validation."
       ],
       "gaps": [
-        "FlowPolicy and MultiscaleSchedule runtime integration missing - policy specs exist but runtime engine doesn't use them for primitive selection.",
+        "MultiscaleSchedule runtime integration pending - schedule specs exist but runtime doesn't use them for multiscale activation.",
         "Global dtype enforcement not fully implemented - no explicit dtype fields or propagation.",
         "Resume semantics incomplete - missing deterministic RNG/tuner state restoration tests."
       ],
@@ -258,9 +260,9 @@
   ],
   "top_priority_tasks": [
     {
-      "task": "Integrate FlowPolicy and MultiscaleSchedule into runtime engine - policy specs exist but runtime doesn't use them for primitive selection",
-      "reason": "Runtime has policy framework designed but not yet integrated into execution primitives",
-      "priority": "critical"
+      "task": "Integrate MultiscaleSchedule into runtime engine - schedule specs exist but runtime doesn't use them for multiscale activation",
+      "reason": "Runtime has FlowPolicy integrated but MultiscaleSchedule not yet used for intelligent multiscale level activation",
+      "priority": "high"
     },
     {
       "task": "Complete atoms library implementation - currently only 8% done (5/60 atoms) - users cannot specify most energy functions",

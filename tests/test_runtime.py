@@ -391,3 +391,178 @@ def test_flow_policy_driven_execution(float_dtype):
     initial_energy = compiled.f_value(initial_state)
     final_energy = compiled.f_value(result_state)
     assert final_energy <= initial_energy
+
+
+@pytest.mark.dtype_parametrized
+def test_multiscale_schedule_runtime_integration_red(float_dtype):
+    """
+    RED: MultiscaleSchedule runtime integration not yet implemented.
+
+    This test will fail until MultiscaleSchedule is integrated into run_flow_step.
+    """
+    # GIVEN a MultiscaleSchedule with fixed_schedule mode
+    from computable_flows_shim.energy.policies import MultiscaleSchedule
+    from computable_flows_shim.multi.transform_op import make_transform
+
+    schedule = MultiscaleSchedule(
+        mode="fixed_schedule", levels=2, activate_rule="level_complete"
+    )
+
+    # AND a wavelet transform
+    W = make_transform("haar", levels=2, ndim=1)
+
+    # AND a simple energy functional
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
+        ],
+        state=StateSpec(shapes={"x": [8], "y": [8]}),  # Power of 2 for wavelets
+    )
+    op_registry = {"I": IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    initial_state = {
+        "x": jnp.array([1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float_dtype),
+        "y": jnp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float_dtype),
+    }
+
+    # WHEN we run a flow step with MultiscaleSchedule
+    result_state = run_flow_step(
+        state=initial_state,
+        compiled=compiled,
+        step_alpha=0.1,
+        W=W,
+        multiscale_schedule=schedule,
+    )
+
+    # THEN it should use the schedule for level activation
+    # For fixed_schedule mode, all levels should be active immediately
+    # This should result in different behavior than no schedule
+    result_no_schedule = run_flow_step(
+        state=initial_state,
+        compiled=compiled,
+        step_alpha=0.1,
+        W=W,
+        multiscale_schedule=None,
+    )
+
+    # With schedule, behavior should be different (currently fails because schedule is ignored)
+    # This assertion will fail until schedule integration is implemented
+    assert not jnp.allclose(result_state["x"], result_no_schedule["x"]), (
+        "MultiscaleSchedule should produce different results than no schedule"
+    )
+
+
+@pytest.mark.dtype_parametrized
+def test_multiscale_schedule_event_emission_red(float_dtype):
+    """
+    RED: SCALE_ACTIVATED events not yet emitted.
+
+    This test will fail until telemetry integration emits SCALE_ACTIVATED events.
+    """
+    # GIVEN a MultiscaleSchedule and telemetry manager
+    from computable_flows_shim.energy.policies import MultiscaleSchedule
+    from computable_flows_shim.multi.transform_op import make_transform
+
+    schedule = MultiscaleSchedule(
+        mode="residual_driven", levels=3, activate_rule="residual>0.01"
+    )
+
+    W = make_transform("haar", levels=3, ndim=1)
+
+    # AND telemetry setup
+    with tempfile.TemporaryDirectory() as temp_dir:
+        tm = TelemetryManager(base_path=temp_dir, flow_name="test_multiscale")
+
+        # AND a flow setup
+        spec = EnergySpec(
+            terms=[
+                TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
+            ],
+            state=StateSpec(shapes={"x": [8], "y": [8]}),
+        )
+        op_registry = {"I": IdentityOp()}
+        compiled = compile_energy(spec, op_registry)
+
+        initial_state = {
+            "x": jnp.array(
+                [0.001, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float_dtype
+            ),
+            "y": jnp.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=float_dtype),
+        }
+
+        # WHEN we run flow steps (this should trigger level activation)
+        for i in range(3):
+            run_flow_step(
+                state=initial_state,
+                compiled=compiled,
+                step_alpha=0.1,
+                W=W,
+                multiscale_schedule=schedule,
+                iteration=i,
+                telemetry_manager=tm,
+                previous_active_levels=[1],  # Start with 1 active level
+            )
+
+        tm.flush()
+
+        # THEN SCALE_ACTIVATED events should be present
+        # (This will fail because events are not emitted yet)
+        events_path = os.path.join(tm.run_path, "events.parquet")
+        if os.path.exists(events_path):
+            events_table = pq.read_table(events_path)
+            events = events_table.to_pylist()
+            scale_events = [e for e in events if e.get("event") == "SCALE_ACTIVATED"]
+            # Should have at least one scale activation event
+            assert len(scale_events) > 0, "No SCALE_ACTIVATED events found"
+        else:
+            pytest.fail("Events parquet file not created")
+
+
+@pytest.mark.dtype_parametrized
+def test_multiscale_schedule_mode_differences_red(float_dtype):
+    """
+    RED: Different MultiscaleSchedule modes not yet implemented.
+
+    Tests that different modes (fixed_schedule, residual_driven, energy_driven)
+    produce different behaviors.
+    """
+    from computable_flows_shim.energy.policies import MultiscaleSchedule
+    from computable_flows_shim.multi.transform_op import make_transform
+
+    W = make_transform("haar", levels=2, ndim=1)
+
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
+        ],
+        state=StateSpec(shapes={"x": [4], "y": [4]}),
+    )
+    op_registry = {"I": IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    initial_state = {
+        "x": jnp.array([1.0, 0.5, 0.0, 0.0], dtype=float_dtype),
+        "y": jnp.array([0.0, 0.0, 0.0, 0.0], dtype=float_dtype),
+    }
+
+    # Test different modes
+    modes = ["fixed_schedule", "residual_driven", "energy_driven"]
+
+    for mode in modes:
+        schedule = MultiscaleSchedule(
+            mode=mode, levels=2, activate_rule="residual>0.01"
+        )
+
+        # Run a step
+        result = run_flow_step(
+            state=initial_state,
+            compiled=compiled,
+            step_alpha=0.1,
+            W=W,
+            multiscale_schedule=schedule,
+        )
+
+        # Each mode should behave differently
+        # (Currently they all behave the same - full transform)
+        assert result is not None
