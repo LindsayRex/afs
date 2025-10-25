@@ -96,7 +96,7 @@ def device_context(device_type):
     ]
 )
 def device_precision_config(request):
-    """Cross-cutting parametrization: device × precision combinations."""
+    """Cross-cutting parametrization: device x precision combinations."""
     device_type, precision = request.param
     tolerance = 1e-5 if precision == jnp.float32 else 1e-12
     complex_dtype = jnp.complex64 if precision == jnp.float32 else jnp.complex128

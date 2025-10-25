@@ -89,7 +89,7 @@ class TestQuadraticAtomContract:
 
     def test_certificate_contributions(self, quadratic_atom, simple_problem):
         """RED: Should provide Lipschitz constant and certificate contributions."""
-        A, b, x = simple_problem
+        A, b, _ = simple_problem
         params = {"A": A, "b": b, "variable": "x"}
 
         certs = quadratic_atom.certificate_contributions(params)

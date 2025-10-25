@@ -1,5 +1,5 @@
 """
-Cross-cutting tests for device × precision combinations.
+Cross-cutting tests for device x precision combinations.
 
 Tests dtype enforcement and numerical behavior across CPU/GPU and float32/float64.
 """
@@ -33,9 +33,9 @@ class TestDevicePrecisionCrossCutting:
         test_array = jnp.array([1.0, 2.0, 3.0], dtype=precision)
 
         # Verify dtype
-        assert (
-            test_array.dtype == precision
-        ), f"Expected {precision}, got {test_array.dtype}"
+        assert test_array.dtype == precision, (
+            f"Expected {precision}, got {test_array.dtype}"
+        )
 
         # Verify device context (mock for GPU)
         if device_type == "gpu_mock":

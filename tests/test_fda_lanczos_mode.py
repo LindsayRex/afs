@@ -27,5 +27,5 @@ def test_estimate_gamma_lanczos_mode(float_dtype):
 
     assert gamma is not None
     assert gamma > 0
-    tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
+    # tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
     assert jnp.isfinite(gamma)

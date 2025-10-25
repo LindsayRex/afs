@@ -18,7 +18,7 @@ class NumericalInstabilityError(Exception):
     """Raised when numerical instability is detected (NaN/Inf values)."""
 
 
-def numerical_stability_check(func: F) -> F:
+def numerical_stability_check[F](func: F) -> F:
     """
     Decorator that checks for numerical stability in mathematical functions.
 

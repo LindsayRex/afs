@@ -29,7 +29,9 @@ from computable_flows_shim import configure_logging, get_logger
 from computable_flows_shim.controller import FlightController
 from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.telemetry import TelemetryManager
-from computable_flows_shim.telemetry.telemetry_streamer import start_streamer
+from computable_flows_shim.telemetry.telemetry_streamer import (
+    start_streamer,
+)
 from computable_flows_shim.tuner.gap_dial import create_gap_dial_tuner
 
 
@@ -286,7 +288,7 @@ def cert_flow(spec_file: str) -> bool:
         gamma = estimate_gamma(compiled.L_apply, key, input_shape)
 
         print(f"Diagonal dominance (η_dd): {eta:.6f}")
-        print(f"Spectral gap (γ): {gamma:.6f}")
+        print(f"Spectral gap (gamma): {gamma:.6f}")
 
         # Certificate assessment
         if eta < 1.0 and gamma > 0:
@@ -297,7 +299,7 @@ def cert_flow(spec_file: str) -> bool:
         if eta >= 1.0:
             print(f"   Issue: η_dd = {eta:.6f} >= 1.0 (too high)")
         if gamma <= 0:
-            print(f"   Issue: γ = {gamma:.6f} <= 0 (no gap)")
+            print(f"   Issue: gamma = {gamma:.6f} <= 0 (no gap)")
         return False
 
     except (ValueError, RuntimeError, AttributeError) as e:

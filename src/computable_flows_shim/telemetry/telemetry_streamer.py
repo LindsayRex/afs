@@ -58,7 +58,7 @@ class TelemetryStreamer:
             ping_interval=30,
             ping_timeout=10,
         )
-        logger.info(f"Telemetry streamer started on ws://{self.host}:{self.port}")
+        logger.info("Telemetry streamer started on ws://%s:%s", self.host, self.port)
 
     async def stop(self):
         """Stop the WebSocket server."""
@@ -69,7 +69,7 @@ class TelemetryStreamer:
 
     async def _handle_connection(self, websocket: WebSocketType):
         """Handle incoming WebSocket connections."""
-        logger.info(f"New dashboard client connected: {websocket.remote_address}")
+        logger.info("New dashboard client connected: %s", websocket.remote_address)
         self.connected_clients.add(websocket)
 
         try:
@@ -81,13 +81,13 @@ class TelemetryStreamer:
                 if isinstance(message, str):
                     await self._handle_client_message(websocket, message)
                 else:
-                    # Handle binary messages if needed
                     logger.warning(
-                        f"Received binary message from client: {websocket.remote_address}"
+                        "Received binary message from client: %s",
+                        websocket.remote_address,
                     )
 
         except websockets.exceptions.ConnectionClosed:
-            logger.info(f"Dashboard client disconnected: {websocket.remote_address}")
+            logger.info("Dashboard client disconnected: %s", websocket.remote_address)
         finally:
             self.connected_clients.discard(websocket)
 
@@ -111,7 +111,7 @@ class TelemetryStreamer:
                 )
 
         except json.JSONDecodeError:
-            logger.warning(f"Invalid JSON message from client: {message}")
+            logger.warning("Invalid JSON message from client: %s", message)
 
     async def _send_active_runs(self, websocket: WebSocketType):
         """Send information about currently active runs to a client."""

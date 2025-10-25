@@ -5,6 +5,7 @@ Analyzes historical telemetry data to suggest optimal parameters for future runs
 """
 
 import logging
+import sqlite3
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -97,7 +98,13 @@ def suggest_parameters(db_manager, flow_name: str | None = None) -> dict[str, An
         )
         return {"alpha": 0.05}  # More conservative than the default 0.1
 
-    except Exception as e:  # type: ignore
+    except (
+        sqlite3.OperationalError,
+        sqlite3.DatabaseError,
+        ValueError,
+        KeyError,
+        TypeError,
+    ) as e:
         logger.warning(
             "Error analyzing historical data: %s, falling back to defaults", e
         )

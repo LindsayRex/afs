@@ -94,7 +94,7 @@ class TestTikhonovAtomContract:
 
     def test_certificate_contributions(self, tikhonov_atom, simple_problem):
         """RED: Should provide improved Lipschitz constant and regularization benefits."""
-        A, b, x = simple_problem
+        A, b, _ = simple_problem
         params = {"A": A, "b": b, "variable": "x", "lambda": 0.1}
 
         certs = tikhonov_atom.certificate_contributions(params)
@@ -113,7 +113,7 @@ class TestTikhonovAtomContract:
 
     def test_regularization_reduces_conditioning(self, tikhonov_atom, simple_problem):
         """RED: Regularization should improve conditioning for solving but affect certificates differently."""
-        A, b, x = simple_problem
+        A, b, _ = simple_problem
         params_regularized = {"A": A, "b": b, "variable": "x", "lambda": 0.1}
         params_unregularized = {"A": A, "b": b, "variable": "x"}
 

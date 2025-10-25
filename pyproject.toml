@@ -130,6 +130,7 @@ ignore = [
     "FBT002", # boolean default positional argument (too strict)
     "FBT003", # boolean positional value in function call (too strict)
     "N999", # invalid module name (too strict for some cases)
+    "E402", # module level import not at top of file (needed for JAX configuration)
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
@@ -157,7 +158,7 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 # Keep existing ignores
 "__init__.py" = ["F401"]
 "tests/**/*" = ["T201", "T10"]
-"scripts/**/*" = ["T201", "T10"]
+"scripts/**/*" = ["T201", "T10", "E402"]
 "setup.py" = ["INP001"]
 "conftest.py" = ["INP001"]
 
