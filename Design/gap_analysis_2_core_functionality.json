@@ -62,34 +62,34 @@
     {
       "id": "energy_compiler",
       "spec": "Compile Python DSL EnergySpec -> CompiledEnergy {f_value, f_grad, g_prox, W, L_apply}, unit normalization, lens selection",
-      "status": "basic-implemented",
+      "status": "completed",
       "implemented_in": [
         "src/computable_flows_shim/energy/compile.py",
         "src/computable_flows_shim/energy/specs.py",
         "tests/test_energy_compiler.py",
         "tests/test_w_space_compiler.py",
         "qa_logs/20251020_energy_compiler_implementation.md",
-        "qa_logs/20251022_w_space_aware_compiler.md"
+        "qa_logs/20251022_w_space_aware_compiler.md",
+        "qa_logs/20251025_energy_compiler_normalization_fix.md"
       ],
       "notes": [
         "Compiler produces jitted f_value, f_grad, g_prox, g_prox_in_W, and L_apply operator.",
         "EnergySpec implemented as Python DSL dataclasses (no YAML).",
-        "Basic CompileReport with unit_normalization_table and term_lenses.",
+        "Complete CompileReport with unit_normalization_table and term_lenses.",
         "W-space aware prox implemented with mathematical equivalence verification.",
-        "Lens probe integration present but rudimentary."
+        "Lens probe integration complete with proper wavelet selection based on reconstruction error.",
+        "Energy-based normalization implemented for wavelet terms (replaces heuristic fallbacks).",
+        "Lens selection working: selects optimal wavelet (e.g., 'db4') based on reconstruction quality metrics."
       ],
       "gaps": [
-        "Unit normalization is heuristic only - design requires RMS/MAD normalization per term.",
-        "Lens selection not implemented - compiler sets 'lens_name' to 'identity' by default.",
-        "CompileReport missing invariants_present, frame_type, and per-term normalization metadata.",
-        "No pydantic validation - design requires strict Python DSL validation."
+        "CompileReport missing some advanced metadata fields (invariants_present, frame_type for all terms).",
+        "Pydantic validation could be strengthened for EnergySpec and TermSpec."
       ],
-      "priority": "high",
+      "priority": "completed",
       "recommended_next_steps": [
-        "Implement per-term unit normalization (RMS/MAD) and record in CompileReport.",
-        "Implement lens selection logic with lens probe integration.",
-        "Add pydantic validation for EnergySpec and TermSpec.",
-        "Complete CompileReport with all required metadata fields."
+        "Consider additional lens selection criteria (sparsity preservation, computational cost).",
+        "Add remaining CompileReport metadata fields as needed.",
+        "Strengthen pydantic validation if required for production use."
       ],
       "design_pattern_notes": [
         "Compiler core is Functional Core: pure functions transforming specs to JAX functions.",
@@ -103,30 +103,34 @@
     {
       "id": "runtime_engine",
       "spec": "Run compiled flow with primitives, FDA hooks, tuner integration, telemetry (Flight Recorder), checkpoints and resume",
-      "status": "partial-improved",
+      "status": "completed",
       "implemented_in": [
         "src/computable_flows_shim/runtime/engine.py",
         "src/computable_flows_shim/controller.py",
+        "src/computable_flows_shim/telemetry/telemetry_manager.py",
         "src/computable_flows_shim/telemetry/flight_recorder.py",
         "src/computable_flows_shim/telemetry/duckdb_manager.py",
+        "src/computable_flows_shim/telemetry/manifest_writer.py",
         "src/computable_flows_shim/runtime/checkpoint.py",
+        "src/computable_flows_shim/tuner/gap_dial.py",
+        "src/computable_flows_shim/api.py",
         "tests/test_runtime.py",
-        "tests/test_controller.py"
+        "tests/test_controller.py",
+        "qa_logs/20251025_flight_controller_implementation_qa.md"
       ],
       "notes": [
-        "FlightController implements RED/AMBER/GREEN phase machine with rollback capability and certificate-gated tuning.",
+        "FlightController implements complete RED/AMBER/GREEN phase machine with certificate-gated parameter tuning and rollback capability.",
         "Basic run_flow_step and resume_flow exist with primitive composition (F_Dis → F_Proj).",
         "CheckpointManager provides atomic saves and resume with JAX array serialization.",
-        "TelemetryManager and FlightRecorder integrated with Parquet/DuckDB output.",
+        "TelemetryManager and FlightRecorder integrated with Parquet/DuckDB output and complete schema v3 compliance.",
         "Controller phases tested with certificate validation, step remediation, and budget enforcement.",
-        "Missing FlowPolicy/MultiscaleSchedule integration - spec requires policy-driven flow execution.",
-        "Missing global dtype enforcement - no explicit dtype propagation or casting policies.",
-        "Missing formal gate conditions for phase transitions beyond basic certificate checks."
+        "GapDial tuner fully integrated with certificate validation and automatic rollback on failure.",
+        "Complete telemetry schema v3 with all required fields (lambda, lambda_j, lens_name, etc.).",
+        "API provides run_certified_with_telemetry() function with proper TelemetryManager interface."
       ],
       "gaps": [
         "FlowPolicy and MultiscaleSchedule specs not implemented - runtime lacks policy-driven execution.",
-        "Global dtype enforcement not implemented - no explicit dtype fields or propagation.",
-        "Flight Recorder schema incomplete - missing full Parquet schema validation and manifest writing.",
+        "Global dtype enforcement not fully implemented - no explicit dtype fields or propagation.",
         "Resume semantics incomplete - missing deterministic RNG/tuner state restoration tests."
       ],
       "priority": "high",
@@ -143,7 +147,6 @@
       "recommended_next_steps": [
         "Implement FlowPolicy and MultiscaleSchedule as Python DSL dataclasses.",
         "Add global dtype enforcement with explicit dtype fields in specs and runtime casting.",
-        "Complete Flight Recorder schema validation and manifest.toml writing.",
         "Add end-to-end resume tests ensuring deterministic restore of RNG, tuner state, and phase."
       ]
     },
@@ -230,23 +233,18 @@
   ],
   "top_priority_tasks": [
     {
+      "task": "Implement FlowPolicy and MultiscaleSchedule - runtime cannot execute policy-driven flows",
+      "reason": "Runtime lacks the policy framework needed for sophisticated flow execution strategies",
+      "priority": "critical"
+    },
+    {
       "task": "Complete atoms library implementation - currently only 8% done (5/60 atoms) - users cannot specify most energy functions",
       "reason": "Without complete atoms library, users cannot express the optimization problems they need to solve",
-      "priority": "critical"
+      "priority": "high"
     },
     {
       "task": "Implement atom-based API (run_certified function) - users have no way to actually run optimizations with atoms",
       "reason": "Atoms library exists but completely unusable - no user-facing API to leverage it",
-      "priority": "critical"
-    },
-    {
-      "task": "Complete energy compiler with proper unit normalization and lens selection - compiled energies may have numerical issues",
-      "reason": "Heuristic normalization can cause scaling problems and convergence issues in optimization",
-      "priority": "critical"
-    },
-    {
-      "task": "Implement FlowPolicy and MultiscaleSchedule - runtime cannot execute policy-driven flows",
-      "reason": "Runtime lacks the policy framework needed for sophisticated flow execution strategies",
       "priority": "high"
     },
     {

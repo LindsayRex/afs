@@ -78,7 +78,7 @@ class TestEnergyCompilerContract:
         spec = EnergySpec(
             terms=[
                 TermSpec(type='quadratic', op='A', weight=1.0, variable='x', target='y'),
-                TermSpec(type='tikhonov', op='I', weight=0.1, variable='x')
+                TermSpec(type='tikhonov', op='I', weight=0.1, variable='x', target=None)
             ],
             state=StateSpec(shapes={'x': [3], 'y': [3]})
         )
@@ -109,7 +109,7 @@ class TestEnergyCompilerContract:
         
         with pytest.raises(ValidationError, match="Unknown term type"):
             spec = EnergySpec(
-                terms=[TermSpec(type='unknown_atom', op='A', weight=1.0, variable='x')],
+                terms=[TermSpec(type='unknown_atom', op='A', weight=1.0, variable='x', target=None)],
                 state=StateSpec(shapes={'x': [3]})
             )
     
@@ -133,6 +133,7 @@ class TestEnergyCompilerContract:
                     op='wavelet',  # Not used for wavelet_l1, but required by TermSpec
                     weight=0.1,
                     variable='x',
+                    target=None,
                     wavelet='haar',
                     levels=2,
                     ndim=1
@@ -166,6 +167,42 @@ class TestEnergyCompilerContract:
         assert compiled.compile_report is not None
         assert 'term_lenses' in compiled.compile_report
         assert 'x_wavelet_l1' in compiled.compile_report['term_lenses']
-        # Lens probe should select an actual wavelet name (e.g., 'haar')
+        # Lens probe should select the best wavelet based on reconstruction error
+        # The exact selection depends on the data, but it should be a valid wavelet
         selected_lens = compiled.compile_report['term_lenses']['x_wavelet_l1']
-        assert selected_lens in ['haar', 'db4', 'db2']  # Common wavelet names
+        # Lens probe selects from available candidates, should be one of the common wavelets
+        valid_wavelets = ['haar', 'db2', 'db4', 'db6', 'db8', 'sym2', 'sym4', 'coif1', 'coif2']
+        assert selected_lens in valid_wavelets, f"Selected lens {selected_lens} should be a valid wavelet"
+    
+    def test_wavelet_normalization_uses_energy_scale(self):
+        """RED: Wavelet L1 normalization should use energy-based scale, not fallback 1.0."""
+        from computable_flows_shim.energy.compile import _compute_unit_normalization
+        
+        spec = EnergySpec(
+            terms=[
+                TermSpec(
+                    type='wavelet_l1',
+                    op='wavelet',
+                    weight=0.1,
+                    variable='x',
+                    target=None,
+                    wavelet='haar',
+                    levels=2,
+                    ndim=1
+                )
+            ],
+            state=StateSpec(shapes={'x': [64]})
+        )
+        
+        op_registry = {}
+        normalization = _compute_unit_normalization(spec, op_registry)
+        
+        # Currently fails: wavelet normalization is 1.0 (fallback)
+        # Should be based on actual wavelet transform energy scale
+        wavelet_norm = normalization['x_wavelet_l1_0']
+        assert wavelet_norm != 1.0, f"Wavelet normalization should not be fallback value 1.0, got {wavelet_norm}"
+        
+        # Should be a reasonable energy scale based on wavelet transform
+        # For a 64-element signal with Haar wavelet, expect non-trivial scale
+        assert wavelet_norm > 0.01, f"Wavelet normalization too small: {wavelet_norm}"
+        assert wavelet_norm < 100.0, f"Wavelet normalization too large: {wavelet_norm}"

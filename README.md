@@ -86,6 +86,7 @@ This project is built with a strict, verifiable methodology designed for correct
 2.  **Understand the Architecture:** The Shim's architecture and naming conventions are in `Design/shim_build/`.
 3.  **Follow the Rules:** Read and adhere to the `copilot-instructions.md`.
 4.  **New Components:** Use `Design/shim_build/24_new_component_quick_start.md` for standardized templates and checklists.
+5.  **API Reference:** See `docs/api_reference.md` for comprehensive API documentation and integration patterns.
 
 To set up the environment:
 ```powershell

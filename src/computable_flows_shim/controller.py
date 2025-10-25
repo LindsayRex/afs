@@ -371,6 +371,10 @@ class FlightController:
                     current_gap = gap_dial_tuner.estimate_spectral_gap(compiled, state)
                     gap_dial_status = gap_dial_tuner.adapt_parameters(current_gap, compiled)
 
+                    # Update tuner state
+                    gap_dial_tuner.iteration_count = i + 1
+                    gap_dial_tuner.last_gap_check = i
+
                     if gap_dial_status['adaptation_applied']:
                         self.tuner_move_count += 1
                         self.logger.debug("Gap Dial adaptation applied", extra={
@@ -419,15 +423,25 @@ class FlightController:
                         flow_name=flow_name,
                         phase=self.phase.value,
                         iter=i,
+                        trial_id="",  # Placeholder for tuner trials
                         t_wall_ms=t_wall_ms,
+                        alpha=float(current_alpha),
+                        **{"lambda": float(gap_dial_tuner.current_lambda if gap_dial_tuner else 1.0)},  # Use dict unpacking for reserved keyword
+                        lambda_j="{}",  # Placeholder for per-scale lambdas
                         E=float(energy),
                         grad_norm=grad_norm,
                         eta_dd=float(eta),
                         gamma=float(gamma),
-                        alpha=float(current_alpha),
-                        phi_residual=float(jnp.nan),  # Placeholder
+                        sparsity_wx=sparsity_wx,
+                        metric_ber=0.0,  # Placeholder metric
+                        warnings="",  # Placeholder for warnings
+                        notes="",  # Placeholder for notes
                         invariant_drift_max=float(jnp.nan),  # Placeholder
-                        sparsity_wx=sparsity_wx
+                        phi_residual=float(jnp.nan),  # Placeholder
+                        lens_name="identity",  # Placeholder for lens selection
+                        level_active_max=0,  # Placeholder for multiscale levels
+                        sparsity_mode="l1",  # Default sparsity mode
+                        flow_family="gradient"  # Default flow family
                     )
 
                 # Try step with current alpha, with remediation if energy increases

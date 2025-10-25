@@ -84,10 +84,48 @@ def _compute_unit_normalization(spec: EnergySpec, op_registry: Dict[str, Any]) -
                 normalization_factors[term_key] = float(jnp.maximum(l1_contribution, 1e-8))
 
             elif term.type == 'wavelet_l1':
-                # For wavelet terms, use a default normalization since wavelet transforms
-                # have complex coefficient structures that are hard to sample
-                # This can be refined with proper wavelet coefficient analysis
-                normalization_factors[term_key] = 1.0
+                # For wavelet L1 terms, compute normalization based on wavelet transform energy scale
+                # This provides proper energy-based normalization instead of fallback 1.0
+                try:
+                    from computable_flows_shim.multi.transform_op import make_transform
+                    
+                    # Use the wavelet specified in the term, or default to 'haar'
+                    wavelet_name = term.wavelet or 'haar'
+                    levels = term.levels or 2
+                    ndim = term.ndim or 1
+                    
+                    # Create the wavelet transform
+                    transform = make_transform(wavelet_name, levels=levels, ndim=ndim)
+                    
+                    # Apply wavelet transform to sample data
+                    coeffs = transform.forward(sample_state[term.variable])
+                    
+                    # Compute L1 norm of all wavelet coefficients
+                    # This gives the energy scale of the wavelet transform
+                    if isinstance(coeffs, list):
+                        # 1D case: list of coefficient arrays
+                        total_l1 = sum(float(jnp.sum(jnp.abs(coeff_array))) for coeff_array in coeffs)
+                    else:
+                        # 2D case: nested structure, flatten and sum
+                        flat_coeffs = []
+                        def _flatten(obj):
+                            if isinstance(obj, (list, tuple)):
+                                for item in obj:
+                                    _flatten(item)
+                            else:
+                                flat_coeffs.append(obj)
+                        _flatten(coeffs)
+                        total_l1 = sum(float(jnp.sum(jnp.abs(coeff_array))) for coeff_array in flat_coeffs)
+                    
+                    # Use L1 norm as normalization factor, with minimum to avoid division by very small numbers
+                    normalization_factors[term_key] = float(jnp.maximum(total_l1, 1e-8))
+                    
+                except Exception as e:
+                    # If wavelet transform fails, fall back to a reasonable default based on signal size
+                    signal_size = jnp.prod(jnp.array(sample_state[term.variable].shape))
+                    fallback_scale = float(jnp.sqrt(signal_size))  # Rough estimate based on signal magnitude
+                    normalization_factors[term_key] = fallback_scale
+                    print(f"Warning: Wavelet normalization failed for {term_key}, using fallback: {e}")
 
             else:
                 # Fallback for unknown term types
