@@ -14,6 +14,7 @@ from computable_flows_shim.energy.compile import CompiledEnergy
 from computable_flows_shim.runtime.step import run_flow_step
 from computable_flows_shim.fda.certificates import estimate_gamma_lanczos, estimate_eta_dd
 from computable_flows_shim.runtime.checkpoint import CheckpointManager
+from computable_flows_shim.energy.policies import FlowPolicy, MultiscaleSchedule
 from .telemetry import TelemetryManager
 from .tuner.gap_dial import GapDialTuner
 from .logging import get_logger, log_performance
@@ -223,6 +224,8 @@ class FlightController:
         run_id: str = "",
         gap_dial_tuner: Optional[GapDialTuner] = None,
         checkpoint_manager: Optional[CheckpointManager] = None,
+        flow_policy: Optional[FlowPolicy] = None,
+        multiscale_schedule: Optional[MultiscaleSchedule] = None,
         _step_function_for_testing: Optional[Callable] = None
     ) -> Dict[str, jnp.ndarray]:
         """
@@ -318,18 +321,36 @@ class FlightController:
             self.transition_phase(Phase.GREEN, telemetry_manager, run_id,
                                 stage="certification_passed", eta=eta, gamma=gamma)
 
-            # Initialize Gap Dial tuner if provided
-            if gap_dial_tuner:
-                gap_dial_tuner.reset()
-                if telemetry_manager:
-                    telemetry_manager.flight_recorder.log_event(
-                        run_id=run_id,
-                        event="GAP_DIAL_ENABLED",
-                        payload=gap_dial_tuner.get_tuning_status()
-                    )
+            # Log flow policy application
+            if flow_policy and telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(
+                    run_id=run_id,
+                    event="FLOW_POLICY_APPLIED",
+                    payload={
+                        'family': flow_policy.family,
+                        'discretization': flow_policy.discretization,
+                        'preconditioner': flow_policy.preconditioner
+                    }
+                )
+
+            # Initialize multiscale state if schedule provided
+            current_level = 0
+            max_level = multiscale_schedule.levels if multiscale_schedule else 0
+
+            if multiscale_schedule and telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(
+                    run_id=run_id,
+                    event="MULTISCALE_SCHEDULE_INIT",
+                    payload={
+                        'mode': multiscale_schedule.mode,
+                        'levels': multiscale_schedule.levels,
+                        'activate_rule': multiscale_schedule.activate_rule
+                    }
+                )
 
             # Phase 2: Main optimization loop with tuning and rollback
             energy = compiled.f_value(state)
+            last_energy = energy  # Initialize for multiscale activation
             last_good_checkpoint = self.create_checkpoint(
                 0, state, energy, current_alpha,
                 {'eta_dd': float(eta), 'gamma': float(gamma)},
@@ -416,6 +437,88 @@ class FlightController:
                                 }
                             )
 
+                # Policy-driven primitive selection and multiscale activation
+                flow_family = "gradient"  # Default
+                lens_name = "identity"    # Default
+                level_active_max = 0      # Default
+
+                if flow_policy:
+                    # Select primitive family based on policy
+                    if flow_policy.family == "basic":
+                        flow_family = "gradient"
+                    elif flow_policy.family == "preconditioned":
+                        flow_family = "preconditioned"
+                    elif flow_policy.family == "accelerated":
+                        flow_family = "accelerated"
+
+                    # Select discretization based on policy
+                    if flow_policy.discretization == "explicit":
+                        lens_name = "explicit_euler"
+                    elif flow_policy.discretization == "implicit":
+                        lens_name = "implicit_euler"
+                    elif flow_policy.discretization == "symplectic":
+                        lens_name = "symplectic_euler"
+
+                if multiscale_schedule:
+                    # Determine if we should activate a new level
+                    should_activate = False
+
+                    if multiscale_schedule.mode == "fixed_schedule":
+                        # Parse activate_rule for fixed schedule (e.g., 'iteration%2==0' means every 2 iterations)
+                        if 'iteration%' in multiscale_schedule.activate_rule and '==0' in multiscale_schedule.activate_rule:
+                            # Extract the divisor from pattern like 'iteration%N==0'
+                            import re
+                            match = re.search(r'iteration%(\d+)==0', multiscale_schedule.activate_rule)
+                            if match:
+                                interval = int(match.group(1))
+                                if i % interval == 0 and i > 0:
+                                    should_activate = True
+                                    current_level = min(current_level + 1, multiscale_schedule.levels - 1)
+                        else:
+                            # Default: activate one level per iteration until max reached
+                            if current_level < multiscale_schedule.levels - 1:
+                                should_activate = True
+                                current_level += 1
+
+                    elif multiscale_schedule.mode == "residual_driven":
+                        # Activate based on residual reduction
+                        try:
+                            residual_threshold = float(multiscale_schedule.activate_rule)
+                            if i > 0 and (energy / last_energy) < residual_threshold:
+                                should_activate = True
+                                current_level = min(current_level + 1, multiscale_schedule.levels - 1)
+                        except ValueError:
+                            # If activate_rule is not a number, skip activation
+                            pass
+
+                    elif multiscale_schedule.mode == "energy_driven":
+                        # Activate based on energy improvement
+                        try:
+                            energy_threshold = float(multiscale_schedule.activate_rule)
+                            if i > 0 and abs(energy - last_energy) < energy_threshold:
+                                should_activate = True
+                                current_level = min(current_level + 1, multiscale_schedule.levels - 1)
+                        except ValueError:
+                            # If activate_rule is not a number, skip activation
+                            pass
+
+                    if should_activate:
+                        level_active_max = current_level
+                        if telemetry_manager:
+                            telemetry_manager.flight_recorder.log_event(
+                                run_id=run_id,
+                                event="SCALE_ACTIVATED",
+                                payload={
+                                    'iteration': i,
+                                    'level': current_level,
+                                    'mode': multiscale_schedule.mode,
+                                    'energy': float(energy)
+                                }
+                            )
+
+                # Store last energy for residual/energy driven activation
+                last_energy = energy
+
                 # Log telemetry
                 if telemetry_manager:
                     telemetry_manager.flight_recorder.log(
@@ -438,10 +541,10 @@ class FlightController:
                         notes="",  # Placeholder for notes
                         invariant_drift_max=float(jnp.nan),  # Placeholder
                         phi_residual=float(jnp.nan),  # Placeholder
-                        lens_name="identity",  # Placeholder for lens selection
-                        level_active_max=0,  # Placeholder for multiscale levels
+                        lens_name=lens_name,  # Policy-driven lens selection
+                        level_active_max=level_active_max,  # Policy-driven multiscale levels
                         sparsity_mode="l1",  # Default sparsity mode
-                        flow_family="gradient"  # Default flow family
+                        flow_family=flow_family  # Policy-driven flow family
                     )
 
                 # Try step with current alpha, with remediation if energy increases

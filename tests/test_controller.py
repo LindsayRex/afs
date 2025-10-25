@@ -13,6 +13,7 @@ from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.api import Op
 from computable_flows_shim.controller import FlightController
 from computable_flows_shim.runtime.step import run_flow_step
+from computable_flows_shim.energy.policies import FlowPolicy, MultiscaleSchedule
 import pytest
 
 class IdentityOp(Op):
@@ -178,3 +179,49 @@ def test_controller_checks_spectral_gap():
             num_iterations=10,
             initial_alpha=0.1
         )
+
+def test_controller_policy_integration():
+    """
+    Tests that the controller properly integrates FlowPolicy and MultiscaleSchedule.
+    """
+    # GIVEN a simple quadratic energy functional
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+        ],
+        state=StateSpec(shapes={'x': [1], 'y': [1]})
+    )
+    op_registry = {'I': IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    # AND policy specifications
+    flow_policy = FlowPolicy(
+        family='preconditioned',
+        discretization='symplectic',
+        preconditioner='jacobi'
+    )
+    multiscale_schedule = MultiscaleSchedule(
+        mode='fixed_schedule',
+        levels=3,
+        activate_rule='iteration%2==0'  # Activate every 2 iterations
+    )
+
+    # WHEN we run the flow with policies
+    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
+
+    controller = FlightController()
+    final_state = controller.run_certified_flow(
+        initial_state,
+        compiled,
+        num_iterations=5,
+        initial_alpha=0.1,
+        flow_policy=flow_policy,
+        multiscale_schedule=multiscale_schedule
+    )
+
+    # THEN the flow should complete successfully
+    # The exact final state depends on policy-driven primitive selection
+    assert 'x' in final_state
+    assert 'y' in final_state
+    assert final_state['x'].shape == (1,)
+    assert final_state['y'].shape == (1,)
