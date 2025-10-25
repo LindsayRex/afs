@@ -97,7 +97,7 @@ def suggest_parameters(db_manager, flow_name: str | None = None) -> dict[str, An
         )
         return {"alpha": 0.05}  # More conservative than the default 0.1
 
-    except Exception as e:
+    except (ValueError, KeyError, AttributeError) as e:
         logger.warning(
             "Error analyzing historical data: %s, falling back to defaults", e
         )

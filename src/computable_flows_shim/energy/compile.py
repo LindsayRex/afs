@@ -139,7 +139,7 @@ def _compute_unit_normalization(
                     # Use L1 norm as normalization factor, with minimum to avoid division by very small numbers
                     normalization_factors[term_key] = float(jnp.maximum(total_l1, 1e-8))
 
-                except Exception as e:
+                except (ValueError, RuntimeError, TypeError) as e:
                     # If wavelet transform fails, fall back to a reasonable default based on signal size
                     signal_size = jnp.prod(jnp.array(sample_state[term.variable].shape))
                     fallback_scale = float(
@@ -154,7 +154,7 @@ def _compute_unit_normalization(
                 # Fallback for unknown term types
                 normalization_factors[term_key] = 1.0
 
-        except Exception as e:
+        except (ValueError, RuntimeError, KeyError) as e:
             # If evaluation fails, use fallback normalization
             print(f"Warning: Could not compute normalization for term {term_key}: {e}")
             normalization_factors[term_key] = 1.0
@@ -193,7 +193,7 @@ def _run_lens_probe_if_needed(spec: EnergySpec) -> dict[str, Any] | None:
                 ndim=term.ndim or 1,
             )
             candidates.append(transform)
-        except Exception:
+        except (ValueError, ImportError, AttributeError):
             # Skip invalid transforms
             continue
 
@@ -204,7 +204,7 @@ def _run_lens_probe_if_needed(spec: EnergySpec) -> dict[str, Any] | None:
         try:
             candidates.append(make_transform("haar", levels=3, ndim=1))
             candidates.append(make_transform("db4", levels=3, ndim=1))
-        except Exception:
+        except (ValueError, ImportError, AttributeError):
             pass
 
     if not candidates:
@@ -221,7 +221,7 @@ def _run_lens_probe_if_needed(spec: EnergySpec) -> dict[str, Any] | None:
             selection_rule="min_reconstruction_error",
         )
         return probe_results
-    except Exception:
+    except (ValueError, RuntimeError, ImportError):
         # Lens probe failed, return None
         return None
 
@@ -237,7 +237,7 @@ def _generate_sample_data_for_lens_probe(state_spec) -> jnp.ndarray:
     # For now, assume we probe on the first variable
     # In practice, this could be more sophisticated
     if state_spec.shapes:
-        first_var = list(state_spec.shapes.keys())[0]
+        first_var = next(iter(state_spec.shapes.keys()))
         shape = state_spec.shapes[first_var]
 
         # Generate random data with some structure (not just noise)

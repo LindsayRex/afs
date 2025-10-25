@@ -24,7 +24,7 @@ class TelemetryManager:
 
     def _generate_run_id(self) -> str:
         """Generates a run ID in the format YYYYMMDD_HHMMSS."""
-        return datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        return datetime.datetime.now(datetime.UTC).strftime("%Y%m%d_%H%M%S")
 
     def _setup_run_directory(self):
         """Creates the directory for the run if it doesn't exist."""
@@ -82,7 +82,7 @@ class TelemetryManager:
         update = TelemetryUpdate(
             run_id=self.run_id,
             iteration=iteration,
-            timestamp=datetime.datetime.now().timestamp(),
+            timestamp=datetime.datetime.now(datetime.UTC).timestamp(),
             energy=energy,
             grad_norm=grad_norm,
             sparsity=sparsity,

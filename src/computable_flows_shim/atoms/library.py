@@ -436,11 +436,9 @@ class TVAtom(Atom):
             for axis in range(x.ndim):
                 slices = [slice(None)] * x.ndim
                 slices[axis] = slice(1, None)
-                diff = (
-                    diff
-                    + (x[tuple(slices)] - x[tuple(slices[:-1] + [slice(None, -1)])])
-                    ** 2
-                )
+                slices_bwd = slices.copy()
+                slices_bwd[axis] = slice(None, -1)
+                diff = diff + (x[tuple(slices)] - x[tuple(slices_bwd)]) ** 2
             diff = jnp.sqrt(diff)
 
         return lam * float(jnp.sum(jnp.abs(diff)))
@@ -511,33 +509,20 @@ class TVAtom(Atom):
                 for _ in range(3):  # Few iterations
                     slices = [slice(None)] * x.ndim
                     slices[axis] = slice(1, None)
-                    diff = (
-                        x[tuple(slices)]
-                        - x[
-                            tuple(
-                                [
-                                    slice(None) if i != axis else slice(None, -1)
-                                    for i in range(x.ndim)
-                                ]
-                            )
-                        ]
-                    )
+                    slices_bwd = [slice(None)] * x.ndim
+                    slices_bwd[axis] = slice(None, -1)
+                    diff = x[tuple(slices)] - x[tuple(slices_bwd)]
                     thresholded_diff = jnp.sign(diff) * jnp.maximum(
                         jnp.abs(diff) - lam * tau, 0
                     )
 
                     # Reconstruct along this axis (simplified)
+                    slices_start = [slice(None)] * x.ndim
+                    slices_start[axis] = slice(1)
                     cumsum_axis = jnp.cumsum(
                         jnp.concatenate(
                             [
-                                x[
-                                    tuple(
-                                        [
-                                            slice(None) if i != axis else slice(1)
-                                            for i in range(x.ndim)
-                                        ]
-                                    )
-                                ],
+                                x[tuple(slices_start)],
                                 thresholded_diff,
                             ]
                         ),

@@ -170,7 +170,7 @@ def run_lens_probe(
                 "frame_constant": transform.c,
             }
 
-        except Exception as e:
+        except (ValueError, RuntimeError, TypeError) as e:
             # Log failed transform but continue with others
             candidate_results[transform.name] = {
                 "error": str(e),
@@ -258,7 +258,7 @@ def _select_best_lens(candidate_results: dict[str, Any], selection_rule: str) ->
 
     if not valid_candidates:
         # If all failed, return the first one
-        return list(candidate_results.keys())[0]
+        return next(iter(candidate_results.keys()))
 
     if selection_rule == "min_reconstruction_error":
         # Select lens with minimum relative reconstruction error

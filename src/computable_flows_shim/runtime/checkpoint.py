@@ -5,7 +5,7 @@ Provides atomic saves, resume, and rollback capabilities for long-running optimi
 
 import json
 import pickle
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +60,7 @@ class CheckpointManager:
         Returns:
             Checkpoint filename
         """
-        timestamp = datetime.now().isoformat()
+        timestamp = datetime.now(UTC).isoformat()
         # Sanitize timestamp for filename (replace colons and dots)
         safe_timestamp = timestamp.replace(":", "").replace(".", "_")
         checkpoint_id = f"{run_id}_iter_{iteration}_{safe_timestamp}"
@@ -241,7 +241,7 @@ class CheckpointManager:
         # Create new checkpoint with updated metadata
         new_metadata = source_checkpoint.get("metadata", {}).copy()
         new_metadata["rollback_from"] = checkpoint_id
-        new_metadata["rollback_timestamp"] = datetime.now().isoformat()
+        new_metadata["rollback_timestamp"] = datetime.now(UTC).isoformat()
 
         new_checkpoint_id = self.create_checkpoint(
             run_id=target_run_id,

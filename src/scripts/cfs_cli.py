@@ -126,7 +126,7 @@ def run_flow(
             },
         )
 
-    except Exception as e:
+    except (ValueError, FileNotFoundError, ImportError) as e:
         logger.error(
             "Failed to load specification",
             extra={"spec_file": spec_file, "error": str(e)},
@@ -258,7 +258,7 @@ def cert_flow(spec_file: str) -> bool:
         initial_state = flow_data["initial_state"]
         # step_alpha = flow_data['step_alpha']  # Unused in cert function
         flow_name = flow_data["flow_name"]
-    except Exception as e:
+    except (ValueError, FileNotFoundError, ImportError) as e:
         print(f"Error loading spec: {e}")
         return False
 
@@ -300,7 +300,7 @@ def cert_flow(spec_file: str) -> bool:
             print(f"   Issue: γ = {gamma:.6f} <= 0 (no gap)")
         return False
 
-    except Exception as e:
+    except (ValueError, RuntimeError, AttributeError) as e:
         print(f"Certificate check failed: {e}")
         return False
 
@@ -324,7 +324,7 @@ def tune_flow(
         initial_state = flow_data["initial_state"]
         step_alpha = flow_data["step_alpha"]
         flow_name = flow_data["flow_name"]
-    except Exception as e:
+    except (ValueError, FileNotFoundError, ImportError) as e:
         print(f"Error loading spec: {e}")
         return
 
@@ -398,7 +398,7 @@ def tune_flow(
         telemetry_manager.flush()
         print(f"Tuning results saved to: {telemetry_manager.run_path}")
 
-    except Exception as e:
+    except (ValueError, RuntimeError, AttributeError) as e:
         print(f"Tuning failed: {e}")
         telemetry_manager.flight_recorder.log_event(
             run_id=telemetry_manager.run_id,

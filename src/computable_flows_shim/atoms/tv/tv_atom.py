@@ -50,11 +50,9 @@ class TVAtom(Atom):
             for axis in range(x.ndim):
                 slices = [slice(None)] * x.ndim
                 slices[axis] = slice(1, None)
-                diff = (
-                    diff
-                    + (x[tuple(slices)] - x[tuple(slices[:-1] + [slice(None, -1)])])
-                    ** 2
-                )
+                slices_bwd = slices.copy()
+                slices_bwd[axis] = slice(None, -1)
+                diff = diff + (x[tuple(slices)] - x[tuple(slices_bwd)]) ** 2
             diff = jnp.sqrt(diff)
 
         return lam * float(jnp.sum(jnp.abs(diff)))
