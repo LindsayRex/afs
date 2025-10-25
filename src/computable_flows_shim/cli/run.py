@@ -3,7 +3,6 @@ A simple CLI to run a computable flow.
 """
 import sys
 from pathlib import Path
-import jax
 import jax.numpy as jnp
 
 # Add the project root to the Python path
@@ -27,7 +26,7 @@ def main():
     spec = EnergySpec(
         terms=[
             TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y'),
-            TermSpec(type='l1', op='I', weight=0.5, variable='x')
+            TermSpec(type='l1', op='I', weight=0.5, variable='x', target=None)
         ],
         state=StateSpec(shapes={'x': [1], 'y': [1]})
     )

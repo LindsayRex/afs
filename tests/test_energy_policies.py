@@ -28,7 +28,8 @@ class TestFlowPolicyContract:
         """Test that preconditioner is optional."""
         policy = FlowPolicy(
             family='basic',
-            discretization='explicit'
+            discretization='explicit',
+            preconditioner=None
         )
         assert policy.family == 'basic'
         assert policy.discretization == 'explicit'
@@ -38,8 +39,9 @@ class TestFlowPolicyContract:
         """Test that invalid family values are rejected."""
         with pytest.raises(ValidationError):
             FlowPolicy(
-                family='invalid_family',
-                discretization='explicit'
+                family='invalid_family',  # type: ignore
+                discretization='explicit',
+                preconditioner=None
             )
 
     def test_flow_policy_invalid_discretization(self):
@@ -47,7 +49,8 @@ class TestFlowPolicyContract:
         with pytest.raises(ValidationError):
             FlowPolicy(
                 family='basic',
-                discretization='invalid_discretization'
+                discretization='invalid_discretization',  # type: ignore
+                preconditioner=None
             )
 
     def test_flow_policy_preconditioner_validation(self):
@@ -87,7 +90,8 @@ class TestMultiscaleScheduleContract:
         """Test that activate_rule has a default value."""
         schedule = MultiscaleSchedule(
             mode='fixed_schedule',
-            levels=3
+            levels=3,
+            activate_rule='level_complete'
         )
         assert schedule.mode == 'fixed_schedule'
         assert schedule.levels == 3
@@ -97,19 +101,20 @@ class TestMultiscaleScheduleContract:
         """Test that invalid mode values are rejected."""
         with pytest.raises(ValidationError):
             MultiscaleSchedule(
-                mode='invalid_mode',
-                levels=3
+                mode='invalid_mode',  # type: ignore
+                levels=3,
+                activate_rule='level_complete'
             )
 
     def test_multiscale_schedule_invalid_levels(self):
         """Test that invalid levels values are rejected."""
         # Too low
         with pytest.raises(ValidationError):
-            MultiscaleSchedule(mode='residual_driven', levels=0)
+            MultiscaleSchedule(mode='residual_driven', levels=0, activate_rule='level_complete')
 
         # Too high
         with pytest.raises(ValidationError):
-            MultiscaleSchedule(mode='residual_driven', levels=21)
+            MultiscaleSchedule(mode='residual_driven', levels=21, activate_rule='level_complete')
 
     def test_multiscale_schedule_activate_rule_validation(self):
         """Test that activate_rule is validated."""
@@ -159,16 +164,18 @@ class TestPolicyIntegrationContract:
         """Test that policy objects are immutable (frozen models)."""
         policy = FlowPolicy(
             family='basic',
-            discretization='explicit'
+            discretization='explicit',
+            preconditioner=None
         )
 
         # Should not be able to modify attributes
         with pytest.raises(ValidationError):
-            policy.family = 'modified'
+            policy.family = 'modified'  # type: ignore
 
         schedule = MultiscaleSchedule(
             mode='fixed_schedule',
-            levels=3
+            levels=3,
+            activate_rule='level_complete'
         )
 
         with pytest.raises(ValidationError):

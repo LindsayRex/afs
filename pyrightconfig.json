@@ -1,9 +1,16 @@
 {
   "venvPath": ".",
   "venv": ".venv",
-  "pythonVersion": "3.11",
+  "pythonVersion": "3.12",
   "typeCheckingMode": "basic",
   "reportMissingImports": "warning",
+  "reportMissingTypeStubs": "none",
+  "reportImportCycles": "error",
+  "reportUnusedImport": "warning",
+  "reportUnusedClass": "warning",
+  "reportUnusedFunction": "warning",
+  "reportUnusedVariable": "warning",
+  "reportDuplicateImport": "warning",
   "exclude": [
     "**/archive/**",
     "**/background/**",
@@ -17,29 +24,25 @@
     "**/dist/**",
     "**/.venv/**",
     "**/venv/**",
-    "archive",
-    "background",
-    "Design", 
-    "outputs",
-    "logs",
-    "qa_logs",
-    "build",
-    "dist",
-    ".venv",
-    "venv"
+    "**/*.pyc",
+    "**/.git/**"
   ],
   "ignore": [
     "**/archive/**",
     "**/background/**",
-    "**/outputs/**",
     "**/Design/**",
+    "**/outputs/**",
     "**/logs/**",
     "**/qa_logs/**"
+  ],
+  "include": [
+    "src/**",
+    "tests/**"
   ],
   "executionEnvironments": [
     {
       "root": "./",
-      "extraPaths": ["./src", "./src/afs_v2"]
+      "extraPaths": ["./src"]
     }
   ],
   "stubPath": "typings"

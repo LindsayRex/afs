@@ -14,7 +14,7 @@ class TermSpec(BaseModel):
     op: str = Field(..., min_length=1, max_length=50, description="Operator name")
     weight: float = Field(..., gt=0, le=1e6, description="Positive weight coefficient")
     variable: str = Field(..., min_length=1, max_length=50, description="Variable name")
-    target: Optional[str] = Field(None, min_length=1, max_length=50, description="Target variable name")
+    target: Optional[str] = Field(None, description="Target variable name (optional)")
 
     # Wavelet-specific parameters
     wavelet: Optional[str] = None

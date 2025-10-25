@@ -15,20 +15,12 @@
         ],
         "pylint.path": ["${interpreter}"],
         "pylint.cwd": "${workspaceFolder}",
+        "pylint.args": [
+            "--rcfile=${workspaceFolder}/pyproject.toml"
+        ],
 
         // ---- Pyright/Pylance ----
-        "python.analysis.typeCheckingMode": "basic",
-        "python.analysis.diagnosticMode": "workspace",
-        "python.analysis.exclude": [
-            "**/archive/**",
-            "**/background/**",
-            "**/Design/**",
-            "**/outputs/**",
-            "**/__pycache__/**",
-            "**/.pytest_cache/**",
-            "**/archive/**/*.py",
-            "**/archive/**/*.md"
-        ],
+        // Moved to user settings for proper precedence
 
         // ---- Pytest ----
         "python.testing.pytestEnabled": true,

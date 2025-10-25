@@ -3,7 +3,6 @@ Tests for the energy compiler.
 """
 import sys
 from pathlib import Path
-import jax
 import jax.numpy as jnp
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
@@ -76,7 +75,7 @@ def test_compile_tikhonov_term():
     # The energy is E(x) = w * 0.5 * ||Op(x)||^2
     spec = EnergySpec(
         terms=[
-            TermSpec(type='tikhonov', op='D', weight=0.5, variable='x')
+            TermSpec(type='tikhonov', op='D', weight=0.5, variable='x', target=None)
         ],
         state=StateSpec(shapes={'x': [3]})
     )

@@ -3,10 +3,57 @@
   "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
 
   // ---- Pyright/Pylance ----
-  // Configuration moved to pyrightconfig.json for centralized management
+  // Moved to pyrightconfig.json for centralized management
+  "python.analysis.typeCheckingMode": "basic",
   "python.analysis.diagnosticMode": "workspace",
-  "python.analysis.indexing": false,
-  "python.analysis.autoImportCompletions": false,
+  "python.analysis.includeFileSpecs": [
+    "src/**/*.py",
+    "tests/**/*.py"
+  ],
+  "python.analysis.exclude": [
+    "**/archive/**",
+    "**/background/**",
+    "**/Design/**",
+    "**/outputs/**",
+    "**/logs/**",
+    "**/qa_logs/**",
+    "**/__pycache__/**",
+    "**/.pytest_cache/**",
+    "**/build/**",
+    "**/dist/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/*.pyc",
+    "**/.git/**"
+  ],
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "warning",
+    "reportMissingTypeStubs": "none",
+    "reportImportCycles": "error",
+    "reportUnusedImport": "warning",
+    "reportUnusedClass": "warning",
+    "reportUnusedFunction": "warning",
+    "reportUnusedVariable": "warning",
+    "reportDuplicateImport": "warning",
+    "reportUnnecessaryIsInstance": "warning",
+    "reportUnnecessaryCast": "warning",
+    "reportUnnecessaryComparison": "warning",
+    "reportAssertAlwaysTrue": "warning",
+    "reportSelfClsParameterName": "warning",
+    "reportImplicitStringConcatenation": "warning",
+    "reportUndefinedVariable": "error",
+    "reportUnboundVariable": "error",
+    "reportInvalidStubStatement": "warning",
+    "reportIncompleteStub": "warning",
+    "reportUnsupportedDunderAll": "warning",
+    "reportUnusedCoroutine": "warning"
+  },
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/src"
+  ],
+
+  // ---- Show all problems ----
+  "problems.showCurrentInStatus": true,
 
   // ---- Pytest ----
   "python.testing.pytestEnabled": true,
