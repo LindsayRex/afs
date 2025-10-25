@@ -3,7 +3,7 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import wraps
 
 
@@ -117,9 +117,7 @@ class SDKLogger:
         elif output == "file":
             # Generate timestamped log file in logs directory if no specific file given
             if not log_file:
-                timestamp = datetime.now(tz=datetime.timezone.utc).strftime(
-                    "%Y%m%d_%H%M%S"
-                )
+                timestamp = datetime.now(tz=UTC).strftime("%Y%m%d_%H%M%S")
                 log_file = f"logs/afs_{timestamp}.log"
             handler = logging.FileHandler(log_file)
         elif output == "null":
@@ -209,7 +207,7 @@ def _configure_from_env():
     if os.getenv("AFS_LOG_LEVEL"):
         configure_logging(
             level=os.getenv("AFS_LOG_LEVEL", "WARNING"),
-            format=os.getenv("AFS_LOG_FORMAT", "json"),
+            log_format=os.getenv("AFS_LOG_FORMAT", "json"),
             output=os.getenv("AFS_LOG_OUTPUT", "stderr"),
             log_file=os.getenv("AFS_LOG_FILE"),
             enable_performance_logging=os.getenv("AFS_LOG_PERFORMANCE", "").lower()

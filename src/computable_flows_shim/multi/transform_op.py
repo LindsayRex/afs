@@ -5,6 +5,7 @@ Provides differentiable wavelet forward/inverse transforms with proper frame met
 Integrates jaxwt for JAX-compatible wavelet transforms.
 """
 
+import importlib.util
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
@@ -14,19 +15,15 @@ import jax.numpy as jnp
 # Import jaxwt functions - these will be available when jaxwt is installed
 if TYPE_CHECKING:
     # For type checking, import the real functions
-    import jaxwt
-    import pywt
     from jaxwt import wavedec, wavedec2, waverec, waverec2
 
     JAXWT_AVAILABLE = True
 else:
-    try:
-        import jaxwt
-        import pywt
+    if importlib.util.find_spec("jaxwt") is not None:
         from jaxwt import wavedec, wavedec2, waverec, waverec2
 
         JAXWT_AVAILABLE = True
-    except ImportError:
+    else:
         JAXWT_AVAILABLE = False
 
         # Stub functions for when jaxwt is not available
@@ -41,8 +38,6 @@ else:
 
         def waverec2(*args, **kwargs):
             raise ImportError("jaxwt not available")
-
-        pywt = None
 
 
 @dataclass

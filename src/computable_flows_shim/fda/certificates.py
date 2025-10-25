@@ -58,7 +58,7 @@ def estimate_gamma(
             betas = []
             v_prev = jnp.zeros_like(v)
             beta_prev = 0.0
-            for i in range(k):
+            for _ in range(k):
                 w = L_apply(v)
                 alpha = jnp.dot(v, w)
                 w = w - alpha * v - beta_prev * v_prev

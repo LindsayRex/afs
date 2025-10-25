@@ -98,9 +98,9 @@ def test_wavelet_l1_prox_in_W_space():
     compiled = compile_energy(spec, op_registry)
 
     # THEN compiled should have prox_in_W method
-    assert hasattr(
-        compiled, "g_prox_in_W"
-    ), "CompiledEnergy should have g_prox_in_W method"
+    assert hasattr(compiled, "g_prox_in_w"), (
+        "CompiledEnergy should have g_prox_in_w method"
+    )
 
     # AND prox_in_W should work on coefficient arrays
     # Haar wavelet transform of [1, -2, 3, -4] gives coefficients
@@ -110,7 +110,7 @@ def test_wavelet_l1_prox_in_W_space():
 
     # prox_in_W should accept coefficient structure and return same structure
     step_alpha = 0.1
-    result_coeffs = compiled.g_prox_in_W(coeffs, step_alpha)
+    result_coeffs = compiled.g_prox_in_w(coeffs, step_alpha)
 
     # Verify structure is preserved
     assert isinstance(result_coeffs, list)
@@ -157,7 +157,7 @@ def test_prox_equivalence_physical_vs_W_space():
     # W-space prox path
     transform = make_transform("haar", 1, 1)
     coeffs = transform.forward(x)
-    w_space_result_coeffs = compiled.g_prox_in_W(coeffs, step_alpha)
+    w_space_result_coeffs = compiled.g_prox_in_w(coeffs, step_alpha)
     w_space_result = transform.inverse(w_space_result_coeffs)
 
     # THEN results should be equivalent
@@ -201,8 +201,8 @@ def test_W_space_prox_mathematical_properties():
     coeffs1 = transform.forward(x1)
     coeffs2 = transform.forward(x2)
 
-    prox1 = compiled.g_prox_in_W(coeffs1, step_alpha)
-    prox2 = compiled.g_prox_in_W(coeffs2, step_alpha)
+    prox1 = compiled.g_prox_in_w(coeffs1, step_alpha)
+    prox2 = compiled.g_prox_in_w(coeffs2, step_alpha)
 
     # Property 1: Non-expansiveness (coefficient-wise for simplicity)
     for i, (p1, p2, c1, c2) in enumerate(
@@ -210,9 +210,9 @@ def test_W_space_prox_mathematical_properties():
     ):
         diff_prox = jnp.linalg.norm(p1 - p2)
         diff_coeffs = jnp.linalg.norm(c1 - c2)
-        assert (
-            diff_prox <= diff_coeffs + 1e-6
-        ), f"Non-expansiveness failed for coeff array {i}"
+        assert diff_prox <= diff_coeffs + 1e-6, (
+            f"Non-expansiveness failed for coeff array {i}"
+        )
 
     # Property 2: Monotonicity (coefficient-wise)
     for i, (p1, p2, c1, c2) in enumerate(
@@ -223,11 +223,11 @@ def test_W_space_prox_mathematical_properties():
 
     # Property 3: Fixed point for zero coefficients (should be unchanged)
     zero_coeffs = [jnp.zeros_like(c) for c in coeffs1]
-    prox_zero = compiled.g_prox_in_W(zero_coeffs, step_alpha)
+    prox_zero = compiled.g_prox_in_w(zero_coeffs, step_alpha)
     for i, (pz, cz) in enumerate(zip(prox_zero, zero_coeffs, strict=False)):
-        assert jnp.allclose(
-            pz, cz, atol=1e-6
-        ), f"Fixed point failed for coeff array {i}"
+        assert jnp.allclose(pz, cz, atol=1e-6), (
+            f"Fixed point failed for coeff array {i}"
+        )
 
 
 def test_W_space_aware_compilation_flag():
@@ -257,11 +257,11 @@ def test_W_space_aware_compilation_flag():
     compiled = compile_energy(spec, op_registry)
 
     # THEN it should have W-space capabilities
-    assert hasattr(
-        compiled, "g_prox_in_W"
-    ), "Should have prox_in_W when wavelet terms present"
+    assert hasattr(compiled, "g_prox_in_w"), (
+        "Should have prox_in_W when wavelet terms present"
+    )
 
     # AND compile report should indicate W-space awareness
     assert compiled.compile_report is not None, "Compile report should exist"
     assert "w_space_aware" in compiled.compile_report
-    assert compiled.compile_report["w_space_aware"] == True
+    assert compiled.compile_report["w_space_aware"]

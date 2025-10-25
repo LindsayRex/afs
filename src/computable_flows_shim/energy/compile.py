@@ -18,7 +18,7 @@ class CompiledEnergy(NamedTuple):
     f_value: Callable
     f_grad: Callable
     g_prox: Callable
-    g_prox_in_W: Callable  # W-space proximal operator
+    g_prox_in_w: Callable  # W-space proximal operator
     L_apply: Callable
     # Optional compile-time metadata
     compile_report: dict[str, Any] | None = None
@@ -123,14 +123,14 @@ def _compute_unit_normalization(
                         # 2D case: nested structure, flatten and sum
                         flat_coeffs = []
 
-                        def _flatten(obj):
+                        def _flatten(obj, flat_coeffs):
                             if isinstance(obj, (list, tuple)):
                                 for item in obj:
-                                    _flatten(item)
+                                    _flatten(item, flat_coeffs)
                             else:
                                 flat_coeffs.append(obj)
 
-                        _flatten(coeffs)
+                        _flatten(coeffs, flat_coeffs)
                         total_l1 = sum(
                             float(jnp.sum(jnp.abs(coeff_array)))
                             for coeff_array in flat_coeffs
@@ -395,7 +395,7 @@ def compile_energy(spec: EnergySpec, op_registry: dict[str, Any]) -> CompiledEne
 
     # --- Compile the non-smooth part (g) in W-space ---
     @numerical_stability_check
-    def g_prox_in_W(coeffs: list[jnp.ndarray], step_alpha: float) -> list[jnp.ndarray]:
+    def g_prox_in_w(coeffs: list[jnp.ndarray], step_alpha: float) -> list[jnp.ndarray]:
         """
         Apply proximal operators directly in W-space (wavelet coefficient space).
 
@@ -469,7 +469,7 @@ def compile_energy(spec: EnergySpec, op_registry: dict[str, Any]) -> CompiledEne
         f_value=jax.jit(f_value),
         f_grad=jax.jit(f_grad),
         g_prox=jax.jit(g_prox),
-        g_prox_in_W=jax.jit(g_prox_in_W),
+        g_prox_in_w=jax.jit(g_prox_in_w),
         L_apply=L_apply,
         compile_report=_create_compile_report(
             spec, lens_probe_results, unit_normalization_table

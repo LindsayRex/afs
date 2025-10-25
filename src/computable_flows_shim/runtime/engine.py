@@ -16,7 +16,7 @@ def run_flow_step(
     state: dict[str, jnp.ndarray],
     compiled: CompiledEnergy,
     step_alpha: float,
-    manifolds: dict[str, Any] = {},
+    manifolds: dict[str, Any] | None = None,
     W: Any | None = None,
 ) -> dict[str, jnp.ndarray]:
     """

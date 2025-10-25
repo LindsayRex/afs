@@ -38,12 +38,12 @@ def run_flow_step(
 
         # Check if compiled energy supports W-space prox
         if (
-            hasattr(compiled, "g_prox_in_W")
+            hasattr(compiled, "g_prox_in_w")
             and compiled.compile_report is not None
             and compiled.compile_report.get("w_space_aware", False)
         ):
             # Use W-space aware proximal operator
-            u_proj_coeffs = compiled.g_prox_in_W(u, step_alpha)
+            u_proj_coeffs = compiled.g_prox_in_w(u, step_alpha)
             u_proj = u_proj_coeffs  # Already in coefficient form
         else:
             # Fallback: apply prox in physical space (inefficient but compatible)

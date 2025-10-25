@@ -28,18 +28,17 @@ from .logging import configure_logging, get_logger, log_performance
 __all__ = [
     # Configuration and types
     "config",
-    "get_dtype",
-    "enforce_dtype",
-    "get_xla_flags_for_platform",
     "configure_jax_environment",
+    "configure_logging",
     "create_array",
-    "zeros",
+    "enforce_dtype",
+    "get_dtype",
+    "get_logger",
+    "get_xla_flags_for_platform",
+    "log_performance",
     "ones",
     "random_normal",
     "validate_dtype_consistency",
     "validate_xla_flags",
-    # Logging
-    "configure_logging",
-    "get_logger",
-    "log_performance",
+    "zeros",
 ]

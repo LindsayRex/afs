@@ -67,7 +67,7 @@ class TestSDKLogger:
 
     def test_configure_valid_parameters(self):
         """Test configuration with valid parameters."""
-        SDKLogger.configure(level="DEBUG", format="json", output="null")
+        SDKLogger.configure(level="DEBUG", log_format="json", output="null")
 
         logger = logging.getLogger("afs")
         assert logger.level == logging.DEBUG
@@ -81,7 +81,7 @@ class TestSDKLogger:
     def test_configure_invalid_format(self):
         """Test configuration with invalid format raises ValueError."""
         with pytest.raises(ValueError, match="Invalid log format"):
-            SDKLogger.configure(format="INVALID")
+            SDKLogger.configure(log_format="INVALID")
 
     def test_configure_invalid_output(self):
         """Test configuration with invalid output raises ValueError."""
@@ -228,10 +228,10 @@ class TestConfigureLogging:
         with patch(
             "computable_flows_shim.logging.SDKLogger.configure"
         ) as mock_configure:
-            configure_logging(level="INFO", format="text", output="stdout")
+            configure_logging(level="INFO", log_format="text", output="stdout")
             mock_configure.assert_called_once_with(
                 level="INFO",
-                format="text",
+                log_format="text",
                 output="stdout",
                 log_file=None,
                 enable_performance_logging=False,
@@ -256,7 +256,7 @@ class TestEnvironmentConfiguration:
             _configure_from_env()
             mock_configure.assert_called_once_with(
                 level="DEBUG",
-                format="text",
+                log_format="text",
                 output="stdout",
                 log_file=None,
                 enable_performance_logging=True,
@@ -276,7 +276,7 @@ class TestIntegration:
     def test_full_logging_workflow(self):
         """Test complete logging workflow from configuration to output."""
         # Configure logging
-        SDKLogger.configure(level="DEBUG", format="json", output="null")
+        SDKLogger.configure(level="DEBUG", log_format="json", output="null")
 
         # Get logger and log messages
         logger = get_logger("integration.test")

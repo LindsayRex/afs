@@ -204,6 +204,9 @@ class TelemetryStreamer:
 # Global streamer instance
 _streamer: TelemetryStreamer | None = None
 
+# Set to track background tasks and prevent garbage collection
+_background_tasks: set[asyncio.Task[Any]] = set()
+
 
 def get_streamer() -> TelemetryStreamer:
     """Get the global telemetry streamer instance."""
@@ -224,4 +227,7 @@ def broadcast_telemetry_update(update: TelemetryUpdate):
     """Broadcast a telemetry update (synchronous wrapper)."""
     streamer = get_streamer()
     # Create a task to broadcast asynchronously
-    asyncio.create_task(streamer.broadcast_telemetry_update(update))
+    task = asyncio.create_task(streamer.broadcast_telemetry_update(update))
+    # Track the task to prevent garbage collection
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)

@@ -67,25 +67,25 @@ class TestPipelineDtypeEnforcement:
 
         # Verify coefficients maintain dtype (coeffs is a list of arrays)
         for i, coeff_array in enumerate(coeffs):
-            assert (
-                coeff_array.dtype == self.float_dtype
-            ), f"Coefficient array {i} dtype {coeff_array.dtype} != expected {self.float_dtype}"
+            assert coeff_array.dtype == self.float_dtype, (
+                f"Coefficient array {i} dtype {coeff_array.dtype} != expected {self.float_dtype}"
+            )
 
         # Inverse transform
         reconstruction = transform.inverse(coeffs)
 
         # Verify reconstruction maintains dtype
-        assert (
-            reconstruction.dtype == self.float_dtype
-        ), f"Reconstruction dtype {reconstruction.dtype} != expected {self.float_dtype}"
+        assert reconstruction.dtype == self.float_dtype, (
+            f"Reconstruction dtype {reconstruction.dtype} != expected {self.float_dtype}"
+        )
 
         # Verify reconstruction accuracy
         relative_error = jnp.linalg.norm(
             reconstruction - sample_signal_1d
         ) / jnp.linalg.norm(sample_signal_1d)
-        assert (
-            relative_error < self.tolerance
-        ), f"Reconstruction error {relative_error} exceeds tolerance {self.tolerance}"
+        assert relative_error < self.tolerance, (
+            f"Reconstruction error {relative_error} exceeds tolerance {self.tolerance}"
+        )
 
     def test_lanczos_pipeline_dtype_consistency(self, sample_signal_1d):
         """Test that Lanczos operations maintain dtype in spectral analysis pipeline."""
@@ -137,12 +137,12 @@ class TestPipelineDtypeEnforcement:
         )
 
         # Both should be finite and maintain dtype consistency
-        assert jnp.isfinite(
-            gamma_wavelet
-        ), f"Wavelet space gamma {gamma_wavelet} should be finite"
-        assert jnp.isfinite(
-            gamma_physical
-        ), f"Physical space gamma {gamma_physical} should be finite"
+        assert jnp.isfinite(gamma_wavelet), (
+            f"Wavelet space gamma {gamma_wavelet} should be finite"
+        )
+        assert jnp.isfinite(gamma_physical), (
+            f"Physical space gamma {gamma_physical} should be finite"
+        )
         assert gamma_wavelet.dtype in [jnp.float32, jnp.float64]
         assert gamma_physical.dtype in [jnp.float32, jnp.float64]
 
@@ -162,9 +162,9 @@ class TestPipelineDtypeEnforcement:
                     check_coeffs_dtype(item)
             else:
                 # It's an array
-                assert (
-                    coeffs.dtype == self.float_dtype
-                ), f"2D coefficient dtype {coeffs.dtype} != expected {self.float_dtype}"
+                assert coeffs.dtype == self.float_dtype, (
+                    f"2D coefficient dtype {coeffs.dtype} != expected {self.float_dtype}"
+                )
 
         check_coeffs_dtype(coeffs)
 
@@ -172,17 +172,17 @@ class TestPipelineDtypeEnforcement:
         reconstruction = transform.inverse(coeffs)
 
         # Verify reconstruction maintains dtype
-        assert (
-            reconstruction.dtype == self.float_dtype
-        ), f"2D reconstruction dtype {reconstruction.dtype} != expected {self.float_dtype}"
+        assert reconstruction.dtype == self.float_dtype, (
+            f"2D reconstruction dtype {reconstruction.dtype} != expected {self.float_dtype}"
+        )
 
         # Verify reconstruction accuracy
         relative_error = jnp.linalg.norm(
             reconstruction - sample_signal_2d
         ) / jnp.linalg.norm(sample_signal_2d)
-        assert (
-            relative_error < self.tolerance
-        ), f"2D reconstruction error {relative_error} exceeds tolerance {self.tolerance}"
+        assert relative_error < self.tolerance, (
+            f"2D reconstruction error {relative_error} exceeds tolerance {self.tolerance}"
+        )
 
     def test_dtype_enforcement_across_jit_compilation(self):
         """Test that dtype consistency is maintained across JIT compilation boundaries."""
@@ -197,9 +197,9 @@ class TestPipelineDtypeEnforcement:
         result = jit_transform_operation(x_float)
 
         # Verify output dtype matches input
-        assert (
-            result.dtype == self.float_dtype
-        ), f"JIT output dtype {result.dtype} != input dtype {self.float_dtype}"
+        assert result.dtype == self.float_dtype, (
+            f"JIT output dtype {result.dtype} != input dtype {self.float_dtype}"
+        )
 
         # Verify numerical correctness
         expected = 2.0 * x_float + 1.0
@@ -214,7 +214,7 @@ class TestPipelineDtypeEnforcement:
         # Step 1: First transform
         coeffs1 = transform1.forward(sample_signal_1d)
         # Check dtype of all coefficient arrays
-        for i, coeff_array in enumerate(coeffs1):
+        for _, coeff_array in enumerate(coeffs1):
             assert coeff_array.dtype == self.float_dtype
 
         # Step 2: Apply operation in transform space
@@ -244,12 +244,12 @@ class TestPipelineDtypeEnforcement:
 
         # Verify final result is reasonable (should be attenuated then amplified)
         # The net effect should be some modification of the original signal
-        assert jnp.isfinite(
-            final_signal
-        ).all(), "Final pipeline result should be finite"
-        assert not jnp.allclose(
-            final_signal, sample_signal_1d, atol=self.tolerance
-        ), "Pipeline should modify signal"
+        assert jnp.isfinite(final_signal).all(), (
+            "Final pipeline result should be finite"
+        )
+        assert not jnp.allclose(final_signal, sample_signal_1d, atol=self.tolerance), (
+            "Pipeline should modify signal"
+        )
 
     def test_error_propagation_dtype_consistency(self):
         """Test that error calculations maintain dtype consistency."""
