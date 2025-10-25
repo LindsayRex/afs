@@ -17,7 +17,7 @@ from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.energy.policies import FlowPolicy
 from computable_flows_shim.energy.specs import EnergySpec, StateSpec, TermSpec
 from computable_flows_shim.runtime.checkpoint import CheckpointManager
-from computable_flows_shim.runtime.engine import resume_flow
+from computable_flows_shim.runtime.engine import resume_flow, run_flow_step
 from computable_flows_shim.telemetry import TelemetryManager
 
 
@@ -227,6 +227,116 @@ def test_checkpointing(float_dtype):
 
         # Energy should decrease with more iterations
         assert energy_resumed < energy_final < energy_initial
+
+
+@pytest.mark.dtype_parametrized
+def test_flow_policy_driven_execution_contracts(float_dtype):
+    """
+    DBC: Formal verification of FlowPolicy-driven execution contracts.
+
+    Pre: Valid FlowPolicy and state
+    Post: State updated according to policy with energy decrease
+    Invariant: Numerical stability and JAX compatibility maintained
+    """
+    # GIVEN a valid FlowPolicy for preconditioned execution
+    flow_policy = FlowPolicy(
+        family="preconditioned", discretization="explicit", preconditioner="jacobi"
+    )
+
+    # AND a compiled energy functional
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
+        ],
+        state=StateSpec(shapes={"x": [2], "y": [2]}),
+    )
+    op_registry = {"I": IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    initial_state = {
+        "x": jnp.array([2.0, 1.5], dtype=float_dtype),
+        "y": jnp.array([1.0, 0.5], dtype=float_dtype),
+    }
+
+    # WHEN we execute one flow step
+    result_state = run_flow_step(
+        state=initial_state,
+        compiled=compiled,
+        step_alpha=0.01,  # Small step for stability
+        flow_policy=flow_policy,
+    )
+
+    # THEN post-conditions hold:
+    # 1. Energy decreases monotonically
+    initial_energy = compiled.f_value(initial_state)
+    final_energy = compiled.f_value(result_state)
+    assert final_energy < initial_energy, (
+        f"Energy should decrease: {initial_energy} -> {final_energy}"
+    )
+
+    # 2. State is properly updated (gradient step applied)
+    grad = compiled.f_grad(initial_state)
+    expected_x = (
+        initial_state["x"] - 0.01 * grad["x"]
+    )  # Basic gradient step (jacobi identity)
+    assert jnp.allclose(result_state["x"], expected_x, rtol=1e-6)
+
+    # 3. Invariants maintained:
+    # - JAX arrays preserved
+    assert isinstance(result_state["x"], jnp.ndarray)
+    assert isinstance(result_state["y"], jnp.ndarray)
+    # - Dtypes preserved
+    assert result_state["x"].dtype == float_dtype
+    assert result_state["y"].dtype == float_dtype
+    # - Shapes preserved
+    assert result_state["x"].shape == initial_state["x"].shape
+    assert result_state["y"].shape == initial_state["y"].shape
+
+
+@pytest.mark.dtype_parametrized
+def test_flow_policy_basic_execution_contracts(float_dtype):
+    """
+    DBC: Formal verification of basic FlowPolicy execution contracts.
+
+    Pre: Valid basic FlowPolicy
+    Post: Standard gradient descent applied
+    Invariant: No preconditioning artifacts introduced
+    """
+    # GIVEN a basic flow policy
+    flow_policy = FlowPolicy(family="basic", discretization="explicit")
+
+    # AND a quadratic energy
+    spec = EnergySpec(
+        terms=[
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
+        ],
+        state=StateSpec(shapes={"x": [1], "y": [1]}),
+    )
+    op_registry = {"I": IdentityOp()}
+    compiled = compile_energy(spec, op_registry)
+
+    initial_state = {
+        "x": jnp.array([3.0], dtype=float_dtype),
+        "y": jnp.array([0.0], dtype=float_dtype),
+    }
+
+    # WHEN we execute with basic policy
+    result_state = run_flow_step(
+        state=initial_state,
+        compiled=compiled,
+        step_alpha=0.1,
+        flow_policy=flow_policy,
+    )
+
+    # THEN it behaves identically to standard F_Dis + F_Proj
+    # (This verifies the policy doesn't introduce artifacts)
+    expected_grad = compiled.f_grad(initial_state)
+    expected_x = initial_state["x"] - 0.1 * expected_grad["x"]
+    expected_y = initial_state["y"] - 0.1 * expected_grad["y"]  # y also has gradient
+    expected_proj = compiled.g_prox({"x": expected_x, "y": expected_y}, 0.1)
+
+    assert jnp.allclose(result_state["x"], expected_proj["x"], rtol=1e-5)
+    assert jnp.allclose(result_state["y"], expected_proj["y"], rtol=1e-5)
 
 
 @pytest.mark.dtype_parametrized
