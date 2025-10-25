@@ -1,0 +1,32 @@
+# Core compute & math
+jax
+jaxlib
+scipy
+
+# Optimizers / solvers (JAX-native)
+optax
+
+# Manifolds / Lie groups
+jaxlie
+
+# Multiscale / transforms
+jaxwt
+
+# Graphs
+networkx
+
+# Telemetry, storage, and artifacts
+duckdb
+pyarrow
+
+# Config / packaging / docs / QA
+toml>=0.10.0
+pytest>=8.0
+pylint>=2.17
+ruff
+mkdocs-material
+
+# Checkpointing
+orbax-checkpoint
+
+frozendict

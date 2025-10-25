@@ -344,8 +344,13 @@ def run_certified(
     telemetry_manager.flush()
 
     # Write manifest
+    # Infer dtype from initial state arrays
+    dtype_str = str(
+        atom_spec.initial_state[next(iter(atom_spec.initial_state.keys()))].dtype
+    )
     telemetry_manager.write_run_manifest(
         schema_version=atom_spec.schema_version,
+        dtype=dtype_str,
         residual_details={
             "method": "atom_based",
             "norm": "L2",
@@ -488,8 +493,11 @@ def run_certified_with_telemetry(
     if residual_details is None:
         residual_details = {"method": "unknown", "norm": "L2", "notes": "not provided"}
 
+    # Infer dtype from initial state arrays
+    dtype_str = str(initial_state[next(iter(initial_state.keys()))].dtype)
     telemetry_manager.write_run_manifest(
         schema_version=schema_version,
+        dtype=dtype_str,
         residual_details=residual_details,
         extra=extra_manifest or {},
     )

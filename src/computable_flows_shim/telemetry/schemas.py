@@ -93,7 +93,7 @@ class TelemetrySample(BaseModel):
         """Pydantic configuration."""
 
         allow_population_by_field_name = True
-        json_encoders = {datetime: lambda v: v.isoformat()}
+        json_encoders: ClassVar[dict] = {datetime: lambda v: v.isoformat()}
 
     @field_validator("lambda_j", mode="before")
     @classmethod
@@ -107,7 +107,7 @@ class TelemetrySample(BaseModel):
     @classmethod
     def validate_t_wall_ms(cls, v):
         """Ensure t_wall_ms is reasonable (not in the future, not too old)."""
-        now_ms = datetime.now().timestamp() * 1000
+        now_ms = datetime.now(UTC).timestamp() * 1000
         # Allow timestamps up to 1 hour in the future (for clock skew)
         # and up to 1 year in the past
         if v > now_ms + 3600000:  # 1 hour in milliseconds

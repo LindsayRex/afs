@@ -43,6 +43,7 @@ Jax-Wavelet-Toolbox/
 .coverage
 htmlcov/
 *.parquet
+runs/
 
 # backups
 backups/
