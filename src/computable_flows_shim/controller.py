@@ -656,7 +656,7 @@ class FlightController:
                 step_alpha_local = current_alpha
 
                 for step_attempt in range(self.config.max_step_attempts):
-                    candidate_state, invariant_drift_max = step_func(
+                    candidate_state, _invariant_drift_max = step_func(
                         state, compiled, step_alpha_local
                     )
                     new_energy = compiled.f_value(candidate_state)

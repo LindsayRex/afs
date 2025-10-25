@@ -172,7 +172,7 @@ class TestEnergySpecValidation:
             state=StateSpec(shapes={"x": [3], "y": [3]}),
         )
         assert len(spec.terms) == 1
-        assert "x" in spec.state.shapes
+        assert "x" in spec.state.shapes  # pylint: disable=no-member
 
     def test_empty_terms(self):
         """Test rejection of specs with no terms."""
