@@ -97,32 +97,27 @@
 			"group": "build"
 		},
 		{
-			"label": "ruff-format",
+			"label": "pylint-deep-check",
 			"type": "shell",
 			"command": "${config:python.defaultInterpreterPath}",
 			"args": [
 				"-m",
-				"ruff",
-				"format",
-				"src",
-				"tests"
+				"pylint",
+				"src/",
+				"--errors-only",
+				"--reports=n",
+				"--score=n"
 			],
 			"problemMatcher": [
-				{
-					"owner": "ruff",
-					"severity": "warning",
-					"fileLocation": ["relative", "${workspaceFolder}"],
-					"pattern": {
-						"regexp": "^(.*?):(\\d+):(\\d+):\\s([A-Z]+\\d+)\\s(.*)$",
-						"file": 1,
-						"line": 2,
-						"column": 3,
-						"code": 4,
-						"message": 5
-					}
-				}
+				"$python"
 			],
-			"group": "build"
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"showReuseMessage": false,
+				"clear": true
+			}
 		},
 	]
 }

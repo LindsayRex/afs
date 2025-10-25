@@ -3,7 +3,7 @@ name: "Policy: enforce agent branch rules"
 on:
   # Replace __POLICY_BRANCHES__ via init script if needed. Default: [ main, dev, test ]
   pull_request:
-    branches: __POLICY_BRANCHES__
+    branches: [main, dev, test]
 
 permissions:
   pull-requests: read

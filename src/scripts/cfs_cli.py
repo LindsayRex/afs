@@ -494,7 +494,7 @@ def main():
     # Configure logging
     configure_logging(
         level=args.log_level,
-        format=args.log_format,
+        log_format=args.log_format,
         output=args.log_output,
         log_file=getattr(args, "log_file", None),
     )

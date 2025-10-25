@@ -215,3 +215,21 @@ disable = [
     "R0915",  # too-many-statements
     "W0613",  # unused-argument
 ]
+
+# Allow mathematical naming conventions in scientific code
+good-names = [
+    # Mathematical variables (matrices, operators, coordinates)
+    "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M",
+    "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
+    # Mathematical compound expressions
+    "ATA", "ATb", "ATB", "BTB", "L_matrix", "L_op", "L_apply",
+    "effective_L_apply", "abs_L", "diag_abs_L",
+    # Mathematical functions
+    "L_apply", "L_w_space", "F_Dis", "F_Proj", "F_Multi", "F_Con",
+    "g_prox_in_W", "g_prox",
+    # Standard scientific abbreviations
+    "dtype", "ndim", "ndims", "dtypes"
+]
+
+[tool.pylint.format]
+max-line-length = 100

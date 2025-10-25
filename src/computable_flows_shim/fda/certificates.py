@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Optional
 
 import jax
 import jax.numpy as jnp
+from jax import lax
 
 from computable_flows_shim.core import numerical_stability_check
 
@@ -19,6 +20,7 @@ def estimate_gamma(
     L_apply: Callable,
     key: jnp.ndarray,
     input_shape: tuple,
+    *,
     num_iterations: int = 20,
     mode: str = "dense",
     lanczos_k: int = 20,
@@ -37,18 +39,17 @@ def estimate_gamma(
             eigvals = jnp.linalg.eigh(L_matrix)[0]
             eigvals_real = jnp.real(eigvals)
             return float(jnp.min(eigvals_real))
-        else:
-            # Gershgorin fallback for non-symmetric
-            diag = jnp.diag(L_matrix)
-            off_diag_sum = jnp.array(
-                [
-                    jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
-                    for i in range(dim)
-                ]
-            )
-            gershgorin_bounds = diag - off_diag_sum
-            return float(jnp.min(gershgorin_bounds))
-    elif mode == "lanczos":
+        # Gershgorin fallback for non-symmetric
+        diag = jnp.diag(L_matrix)
+        off_diag_sum = jnp.array(
+            [
+                jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
+                for i in range(dim)
+            ]
+        )
+        gershgorin_bounds = diag - off_diag_sum
+        return float(jnp.min(gershgorin_bounds))
+    if mode == "lanczos":
         # Lanczos matrix-free approximation for symmetric operators
         # Use L_apply directly with vector inputs
         def lanczos_min_eig(L_apply, dim, k, key):
@@ -133,7 +134,6 @@ def estimate_gamma_lanczos(
     Returns:
         Estimated minimum eigenvalue (spectral gap)
     """
-    from jax import lax
 
     # Extract dimension - make sure this is done before JIT tracing
     dim = input_shape[0]
@@ -170,8 +170,7 @@ def estimate_gamma_lanczos(
                     )
                     start_idx += size
                 return transform_op.inverse(result_coeffs)
-            else:
-                return transform_op.inverse(result_flat.reshape(coeffs.shape))
+            return transform_op.inverse(result_flat.reshape(coeffs.shape))
 
         effective_L_apply = L_w_space
     else:

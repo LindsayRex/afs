@@ -12,11 +12,11 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-# Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
 from computable_flows_shim.fda.certificates import estimate_gamma_lanczos
 from computable_flows_shim.multi.transform_op import make_transform
+
+# Add the project root to the Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 @pytest.mark.dtype_parametrized
@@ -26,9 +26,9 @@ class TestPipelineDtypeEnforcement:
     @pytest.fixture(autouse=True)
     def setup_method(self, float_dtype):
         """Set up test method with dtype fixture."""
-        self.float_dtype = float_dtype
+        self.float_dtype = float_dtype  # pylint: disable=attribute-defined-outside-init
         # Set tolerance based on precision
-        self.tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12
+        self.tolerance = 1e-5 if float_dtype == jnp.float32 else 1e-12  # pylint: disable=attribute-defined-outside-init
 
     @pytest.fixture
     def sample_signal_1d(self):
@@ -50,7 +50,7 @@ class TestPipelineDtypeEnforcement:
         key = jax.random.PRNGKey(42)
         x = jnp.linspace(-2, 2, 64, dtype=self.float_dtype)
         y = jnp.linspace(-2, 2, 64, dtype=self.float_dtype)
-        X, Y = jnp.meshgrid(x, y)
+        X, Y = jnp.meshgrid(x, y)  # pylint: disable=invalid-name
         # Create 2D pattern with some noise
         signal = jnp.exp(-(X**2 + Y**2)) * jnp.sin(3 * X) * jnp.cos(
             2 * Y
@@ -91,7 +91,7 @@ class TestPipelineDtypeEnforcement:
         """Test that Lanczos operations maintain dtype in spectral analysis pipeline."""
 
         # Create a simple linear operator for testing
-        def L_apply(v):
+        def L_apply(v):  # pylint: disable=invalid-name
             # Simple diagonal operator for testing
             return 2.0 * v
 
@@ -109,13 +109,12 @@ class TestPipelineDtypeEnforcement:
 
     def test_wavelet_lanczos_pipeline_integration(self, sample_signal_1d):
         """Test integrated wavelet-Lanczos pipeline maintains dtype consistency."""
-        from computable_flows_shim.multi.transform_op import make_transform
 
         # Create wavelet transform
         transform = make_transform("haar", levels=2, ndim=1)
 
         # Define operator in wavelet space
-        def L_wavelet(coeffs_flat):
+        def L_wavelet(coeffs_flat):  # pylint: disable=invalid-name
             # coeffs_flat is a flattened array of all coefficients
             # Apply simple scaling to all coefficients
             return 1.5 * coeffs_flat
@@ -128,7 +127,7 @@ class TestPipelineDtypeEnforcement:
         )
 
         # Test Lanczos in physical space for comparison
-        def L_physical(signal):
+        def L_physical(signal):  # pylint: disable=invalid-name
             # Apply same scaling operation in physical space
             return 1.5 * signal
 
