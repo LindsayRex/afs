@@ -45,16 +45,41 @@ class TelemetryManager:
         return self._flight_recorder
 
     def write_run_manifest(
-        self, schema_version: int, residual_details: dict, extra: dict | None = None
+        self,
+        schema_version: int,
+        dtype: str,
+        lens_name: str | None = None,
+        unit_normalization_table: dict | None = None,
+        invariants_present: bool = False,
+        redact_artifacts: bool = False,
+        versions: dict | None = None,
+        shapes: dict | None = None,
+        frame_type: str | None = None,
+        gates: dict | None = None,
+        budgets: dict | None = None,
+        seeds: dict | None = None,
+        residual_details: dict | None = None,
+        extra: dict | None = None,
     ):
         """
-        Writes the manifest.toml file for the current run.
+        Writes the manifest.toml file for the current run with complete metadata.
         """
         write_manifest(
             out_dir=self.run_path,
             schema_version=schema_version,
             flow_name=self.flow_name,
             run_id=self.run_id,
+            dtype=dtype,
+            lens_name=lens_name,
+            unit_normalization_table=unit_normalization_table,
+            invariants_present=invariants_present,
+            redact_artifacts=redact_artifacts,
+            versions=versions,
+            shapes=shapes,
+            frame_type=frame_type,
+            gates=gates,
+            budgets=budgets,
+            seeds=seeds,
             residual_details=residual_details,
             extra=extra,
         )
