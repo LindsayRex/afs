@@ -70,10 +70,10 @@
         "Manifest.toml and Parquet files generated with atomic operations.",
         "DuckDB manager exists for cross-run consolidation.",
         "Schema version 3 properly implemented with TelemetrySchemaValidator.get_schema_version().",
-        "Complete schema validation system enforces schema v3 compliance."
+        "Complete schema validation system enforces schema v3 compliance.",
+        "DuckDB consolidation implemented with cross-run query capabilities and deduplication logic."
       ],
       "gaps": [
-        "DuckDB consolidation not implemented - no actual cross-run data aggregation.",
         "Core fields phi_residual/invariant_drift_max not computed or stored.",
         "Missing telemetry columns: metric_ber, lens_name, level_active_max, sparsity_mode, flow_family.",
         "Append mode not fully tested with concurrent writes."
@@ -88,7 +88,6 @@
         "Schema versioning completed with TDD: comprehensive validation tests ensure v3 compliance."
       ],
       "recommended_next_steps": [
-        "Implement DuckDB consolidation with cross-run query capabilities.",
         "Add computation and storage of phi_residual and invariant_drift_max fields.",
         "Complete telemetry schema with all required columns.",
         "Test append mode with concurrent write scenarios."
@@ -198,7 +197,7 @@
     {
       "task": "Implement DuckDB consolidation for cross-run analysis - telemetry data cannot be analyzed across experiments",
       "reason": "Cross-run analysis is essential for understanding optimization patterns and performance trends",
-      "priority": "high"
+      "priority": "completed"
     },
     {
       "task": "Add last-good-GREEN checkpoint rollback - prevents system getting stuck in failed states",
