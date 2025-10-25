@@ -5,6 +5,7 @@ Provides type-safe policy specifications for controlling flow execution strategi
 and multiscale behavior in the Computable Flow Shim.
 """
 
+from dataclasses import dataclass
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -112,7 +113,6 @@ class MultiscaleSchedule(BaseModel):
 
 
 # Backward compatibility dataclasses (deprecated)
-from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

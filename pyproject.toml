@@ -1,5 +1,5 @@
 [tool.pytest.ini_options]
-pythonpath = [".", "src", "src/afs_v2"]
+pythonpath = [".", "src"]
 testpaths = ["tests"]
 addopts = [
     "--strict-markers",
@@ -47,12 +47,10 @@ norecursedirs = [
   ".*"
 ]
 
-# -----------------------------
-# Ruff Configuration (Fast Python Linter)
-# -----------------------------
 [tool.ruff]
-# Only scan Python files in src/ and tests/
+# Only scan src/ and tests/ directories
 include = ["src/**/*.py", "tests/**/*.py"]
+
 exclude = [
     # Standard Python excludes
     ".bzr",
@@ -101,7 +99,6 @@ select = [
     "FBT", # flake8-boolean-trap
     "C90", # McCabe complexity
     "COM", # flake8-commas
-    "C4",  # flake8-comprehensions
     "DTZ", # flake8-datetimez
     "EM",  # flake8-errmsg
     "EXE", # flake8-executable
@@ -112,9 +109,6 @@ select = [
     "INP", # flake8-no-pep420
     "PIE", # flake8-pie
     "T10", # flake8-debugger
-    "DJ",  # flake8-django
-    "N",   # pep8-naming
-    "AIR", # Airflow
     "PERF",# Perflint
     "FURB",# refurb
     "LOG", # flake8-logging
@@ -135,19 +129,35 @@ ignore = [
     "FBT001", # boolean positional arg in function definition (too strict)
     "FBT002", # boolean default positional argument (too strict)
     "FBT003", # boolean positional value in function call (too strict)
-    "AIR", # Airflow rules (not using Airflow)
-    "DJ", # Django rules (not using Django)
     "N999", # invalid module name (too strict for some cases)
 ]
 
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
 [tool.ruff.lint.per-file-ignores]
-# Allow unused imports in __init__.py files
+# Allow mathematical naming conventions in scientific code
+"src/**/*.py" = [
+    "N806",  # Mathematical variables: A, ATA, ATb, L_matrix, X, Y, T (matrices/operators)
+    "N802",  # Mathematical functions: F_Dis, F_Proj, F_Multi, F_Con, L_apply, g_prox_in_W
+    "N803",  # Mathematical arguments: L_apply, L_matrix
+    "RUF002",  # Greek sigma in docstrings (mathematical notation)
+    "RUF003",  # Greek sigma in comments (mathematical notation)
+]
+"tests/**/*.py" = [
+    "N806",  # Mathematical variables in tests
+    "N802",  # Mathematical functions in tests
+    "N803",  # Mathematical arguments in tests
+]
+
+# Keep existing ignores
 "__init__.py" = ["F401"]
-# Allow print statements and debugger statements in test files
 "tests/**/*" = ["T201", "T10"]
-# Allow print statements in example/demo scripts
 "scripts/**/*" = ["T201", "T10"]
-# Allow some rules in configuration files
 "setup.py" = ["INP001"]
 "conftest.py" = ["INP001"]
 
@@ -162,3 +172,45 @@ ban-relative-imports = "all"
 # Declare the conventions for import aliases.
 [tool.ruff.lint.flake8-import-conventions.aliases]
 "jax.numpy" = "jnp"
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = false
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
+
+[tool.pylint.main]
+init-hook = "import sys; sys.path.insert(0, 'src')"
+
+[tool.pylint.messages_control]
+disable = [
+    "C0114",  # missing-module-docstring
+    "C0115",  # missing-class-docstring
+    "C0116",  # missing-function-docstring
+    "R0903",  # too-few-public-methods
+    "R0913",  # too-many-arguments
+    "R0914",  # too-many-locals
+    "R0915",  # too-many-statements
+    "W0613",  # unused-argument
+]

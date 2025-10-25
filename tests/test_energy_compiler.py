@@ -33,8 +33,8 @@ class TestEnergyCompilerContract:
     @pytest.fixture
     def op_registry(self):
         """Simple operator registry for testing."""
-        A = jnp.array([[2.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.0]])
-        return {"A": lambda x: A @ x}
+        a = jnp.array([[2.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.0]])
+        return {"A": lambda x: a @ x}
 
     def test_compile_quadratic_term(self, simple_quadratic_spec, op_registry):
         """RED: Compiler should handle quadratic terms correctly."""
@@ -44,9 +44,9 @@ class TestEnergyCompilerContract:
         state = {"x": jnp.array([1.0, 2.0, 3.0]), "y": jnp.array([2.0, 3.0, 3.0])}
 
         # Energy should be (1/2)‖Ax - y‖²
-        A = jnp.array([[2.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.0]])
-        Ax = A @ state["x"]
-        residual = Ax - state["y"]
+        a = jnp.array([[2.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.0]])
+        ax = a @ state["x"]
+        residual = ax - state["y"]
         expected_energy = 0.5 * float(jnp.sum(residual**2))
 
         actual_energy = compiled.f_value(state)
@@ -61,10 +61,10 @@ class TestEnergyCompilerContract:
         grad = compiled.f_grad(state)
 
         # Manual gradient computation: A^T(Ax - y)
-        A = jnp.array([[2.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.0]])
-        Ax = A @ state["x"]
-        residual = Ax - state["y"]
-        expected_grad_x = A.T @ residual
+        a = jnp.array([[2.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.0]])
+        ax = a @ state["x"]
+        residual = ax - state["y"]
+        expected_grad_x = a.T @ residual
 
         assert jnp.allclose(grad["x"], expected_grad_x, atol=1e-10)
 
@@ -95,9 +95,9 @@ class TestEnergyCompilerContract:
         state = {"x": jnp.array([1.0, 2.0, 3.0]), "y": jnp.array([2.0, 3.0, 3.0])}
 
         # Energy should be (1/2)‖Ax - y‖² + 0.1 * (1/2)‖x‖²
-        A = jnp.array([[2.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.0]])
-        Ax = A @ state["x"]
-        residual = Ax - state["y"]
+        a = jnp.array([[2.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 1.0]])
+        ax = a @ state["x"]
+        residual = ax - state["y"]
         quad_energy = 0.5 * float(jnp.sum(residual**2))
         tikh_energy = 0.1 * 0.5 * float(jnp.sum(state["x"] ** 2))
         expected_energy = quad_energy + tikh_energy
@@ -110,7 +110,7 @@ class TestEnergyCompilerContract:
         from pydantic import ValidationError
 
         with pytest.raises(ValidationError, match="Unknown term type"):
-            spec = EnergySpec(
+            EnergySpec(
                 terms=[
                     TermSpec(
                         type="unknown_atom",
@@ -162,7 +162,7 @@ class TestEnergyCompilerContract:
 
         # Energy should be λ‖Wx‖₁ where W is Haar wavelet transform
         # For constant signal, Haar coefficients are mostly zero except approximation
-        expected_energy = 0.1 * 1.0  # Simplified expectation
+        # expected_energy = 0.1 * 1.0  # Simplified expectation
 
         actual_energy = compiled.f_value(state)
         # Just check that it runs without error and returns a finite value

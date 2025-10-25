@@ -115,7 +115,7 @@ def get_xla_flags_for_platform(platform: str = "auto") -> str:
                 platform = "gpu"
             else:
                 platform = "cpu"
-        except:
+        except (RuntimeError, ImportError):
             platform = "cpu"  # Fallback
 
     # Get platform-specific flags
@@ -193,10 +193,9 @@ def validate_xla_flags(flags_str: str) -> bool:
 
     # Check for conflicting fast math settings
     fast_math_flags = [f for f in flags if "fast_math" in f]
-    conflicting_fast_math = []
-    for flag in fast_math_flags:
-        if flag.endswith("=false"):
-            conflicting_fast_math.append(flag)
+    conflicting_fast_math = [
+        flag for flag in fast_math_flags if flag.endswith("=false")
+    ]
 
     if conflicting_fast_math:
         raise ValueError(f"Conflicting fast math settings: {conflicting_fast_math}")

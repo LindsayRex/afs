@@ -38,7 +38,7 @@ def available_platforms():
         devices = jax.devices("cpu")
         if devices:
             platforms.append("cpu")
-    except:
+    except (RuntimeError, ValueError):
         pass
 
     try:
@@ -46,7 +46,7 @@ def available_platforms():
         devices = jax.devices("gpu")
         if devices:
             platforms.append("gpu")
-    except:
+    except (RuntimeError, ValueError):
         pass
 
     try:
@@ -54,7 +54,7 @@ def available_platforms():
         devices = jax.devices("tpu")
         if devices:
             platforms.append("tpu")
-    except:
+    except (RuntimeError, ValueError):
         pass
 
     return platforms
@@ -95,12 +95,12 @@ class TestDtypeEnforcement:
         y = jnp.array([0.1, 0.2, 0.3, 0.4, 0.5], dtype=self.float_dtype)
 
         # Test matrix operations
-        A = jnp.outer(x, y)
-        assert A.dtype == self.float_dtype
+        a = jnp.outer(x, y)
+        assert a.dtype == self.float_dtype
 
         # Test eigenvalue computation (precision sensitive)
-        if A.shape[0] <= 10:  # Only for small matrices to avoid timeout
-            eigenvals = jnp.linalg.eigvals(A)
+        if a.shape[0] <= 10:  # Only for small matrices to avoid timeout
+            eigenvals = jnp.linalg.eigvals(a)
             assert eigenvals.dtype in [jnp.complex64, jnp.complex128]
             # Check that eigenvalues are finite
             assert jnp.all(jnp.isfinite(eigenvals))

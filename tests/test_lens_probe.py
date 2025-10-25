@@ -6,7 +6,6 @@ for multiscale transforms in builder mode.
 """
 
 import jax.numpy as jnp
-import jax.random as random
 import pytest
 
 from computable_flows_shim.multi.transform_op import make_transform
@@ -26,7 +25,7 @@ class TestLensProbeContract:
     @pytest.fixture
     def sample_data_1d(self):
         """Generate 1D test signal with known compressibility properties."""
-        key = random.PRNGKey(42)
+        # key = random.PRNGKey(42)
         # Create a signal with different frequency components
         x = jnp.linspace(0, 10, 256, dtype=self.float_dtype)
         signal = jnp.sin(x) + 0.5 * jnp.sin(4 * x) + 0.2 * jnp.sin(16 * x)
@@ -35,12 +34,14 @@ class TestLensProbeContract:
     @pytest.fixture
     def sample_data_2d(self):
         """Generate 2D test image with known compressibility properties."""
-        key = random.PRNGKey(42)
+        # key = random.PRNGKey(42)
         # Create a simple 2D pattern
         x = jnp.linspace(-1, 1, 64, dtype=self.float_dtype)
         y = jnp.linspace(-1, 1, 64, dtype=self.float_dtype)
-        X, Y = jnp.meshgrid(x, y)
-        image = jnp.exp(-(X**2 + Y**2)) + 0.3 * jnp.sin(10 * X) * jnp.sin(10 * Y)
+        x_mesh, y_mesh = jnp.meshgrid(x, y)
+        image = jnp.exp(-(x_mesh**2 + y_mesh**2)) + 0.3 * jnp.sin(
+            10 * x_mesh
+        ) * jnp.sin(10 * y_mesh)
         return image
 
     @pytest.fixture
@@ -107,7 +108,7 @@ class TestLensProbeContract:
         assert "max_error" in error_metrics
 
         # Errors should be non-negative
-        for key, value in error_metrics.items():
+        for value in error_metrics.values():
             assert value >= 0.0
 
         # For perfect reconstruction (haar on dyadic length), relative error should be very small
@@ -154,7 +155,7 @@ class TestLensProbeContract:
         assert len(probe_results["candidate_results"]) == len(candidate_transforms_1d)
 
         # Each candidate result should have compressibility and reconstruction metrics
-        for candidate_name, results in probe_results["candidate_results"].items():
+        for results in probe_results["candidate_results"].values():
             assert "compressibility" in results
             assert "reconstruction_error" in results
             assert "sparsity_at_target" in results

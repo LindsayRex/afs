@@ -5,58 +5,24 @@
         }
     ],
     "settings": {
-        // ---- Python interpreter (your venv) ----
         "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-
-        // ---- Ruff configuration ----
-        "ruff.enable": true,
-        "ruff.organizeImports": true,
-        "ruff.fixAll": true,
-
-        // ---- Pyright/Pylance ----
-        // Moved to user settings for proper precedence
-
-        // ---- Pytest ----
-        "python.testing.pytestEnabled": true,
-        "python.testing.unittestEnabled": false,
-        "python.testing.cwd": "${workspaceFolder}",
-        "python.testing.pytestArgs": [
-            "--tb=short",
-            "--strict-markers",
-            "--disable-warnings"
-        ],
-
-        // ---- Keep VS Code snappy ----
-        "files.exclude": {
-            "**/__pycache__/**": true,
-            "**/*.pyc": true,
-            "**/.venv/**": true,
-            "**/venv/**": true
-        },
-
-        "files.watcherExclude": {
-            "**/.git/**": true,
-            "**/__pycache__/**": true,
-            "**/.venv/**": true,
-            "**/venv/**": true,
-            "**/archive/**": true,
-            "**/background/**": true,
-            "**/Design/**": true,
-            "**/outputs/**": true
-        },
-
-        // ---- Terminal configuration ----
-        "terminal.integrated.shellArgs.windows": ["-Command", "& '${workspaceFolder}\\.venv\\Scripts\\Activate.ps1'"],
-
         "testExplorer.useNativeTesting": true
     },
     "extensions": {
         "recommendations": [
             "ms-python.python",
+            "ms-python.vscode-pylance",
             "charliermarsh.ruff",
+            "ms-python.debugpy",
+            "ms-python.vscode-python-envs",
+            "hbenl.vscode-test-explorer"
+        ],
+        "unwantedRecommendations": [
+            "ms-python.pylint",
+            "ms-python.flake8",
             "ms-python.black-formatter",
             "ms-python.isort",
-            "hbenl.vscode-test-explorer"
+            "littlefoxteam.vscode-python-test-adapter"
         ]
     }
 }

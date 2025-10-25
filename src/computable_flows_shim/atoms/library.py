@@ -57,7 +57,7 @@ class QuadraticAtom(Atom):
     This is the fundamental atom for least squares and Gaussian likelihoods.
     Mathematical properties:
     - Convex and differentiable
-    - Lipschitz gradient with constant σ_max(A^T A)
+    - Lipschitz gradient with constant o_max(A^T A)
     - Proximal operator has closed-form solution
     """
 
@@ -71,21 +71,21 @@ class QuadraticAtom(Atom):
 
     def energy(self, state: State, params: dict[str, Any]) -> float:
         """Compute quadratic energy: (1/2)‖Ax - b‖²"""
-        A = params["A"]
+        a = params["A"]
         b = params["b"]
         x = state[params["variable"]]
 
-        residual = A @ x - b
+        residual = a @ x - b
         return 0.5 * float(jnp.sum(residual**2))
 
     def gradient(self, state: State, params: dict[str, Any]) -> State:
         """Compute gradient: A^T(Ax - b)"""
-        A = params["A"]
+        a = params["A"]
         b = params["b"]
         x = state[params["variable"]]
 
-        residual = A @ x - b
-        grad_x = A.T @ residual
+        residual = a @ x - b
+        grad_x = a.T @ residual
 
         return {params["variable"]: grad_x}
 
@@ -96,17 +96,17 @@ class QuadraticAtom(Atom):
         Solves: argmin_x (1/2)‖Ax - b‖² + (1/(2τ))‖x - x₀‖²
         Solution: (A^T A + I/τ) x = A^T b + x₀/τ
         """
-        A = params["A"]
+        a = params["A"]
         b = params["b"]
         x = state[params["variable"]]
 
         # Form the regularized system: (A^T A + I/step_size)
-        ATA = A.T @ A
-        ATb = A.T @ b
+        ata = a.T @ a
+        atb = a.T @ b
 
         # Regularized system matrix and RHS
-        lhs = ATA + jnp.eye(ATA.shape[0]) / step_size
-        rhs = ATb + x / step_size
+        lhs = ata + jnp.eye(ata.shape[0]) / step_size
+        rhs = atb + x / step_size
 
         # Solve the linear system
         x_new = jnp.linalg.solve(lhs, rhs)
@@ -118,13 +118,13 @@ class QuadraticAtom(Atom):
         Certificate contributions for quadratic atom.
 
         Returns Lipschitz constant and diagonal dominance contributions.
-        For quadratic atoms, the Lipschitz constant is σ_max(A^T A).
+        For quadratic atoms, the Lipschitz constant is o_max(A^T A).
         """
-        A = params["A"]
+        a = params["A"]
 
         # Compute spectral norm of A^T A (Lipschitz constant of gradient)
-        ATA = A.T @ A
-        lipschitz = float(jnp.linalg.norm(ATA, ord=2))
+        ata = a.T @ a
+        lipschitz = float(jnp.linalg.norm(ata, ord=2))
 
         return {
             "lipschitz": lipschitz,
@@ -151,12 +151,12 @@ class TikhonovAtom(Atom):
 
     def energy(self, state: State, params: dict[str, Any]) -> float:
         """Compute Tikhonov energy: (1/2)‖Ax - b‖² + (λ/2)‖x‖²"""
-        A = params["A"]
+        a = params["A"]
         b = params["b"]
         lam = params.get("lambda", 1.0)  # Default regularization parameter
         x = state[params["variable"]]
 
-        residual = A @ x - b
+        residual = a @ x - b
         data_fidelity = 0.5 * float(jnp.sum(residual**2))
         regularization = 0.5 * lam * float(jnp.sum(x**2))
 
@@ -164,13 +164,13 @@ class TikhonovAtom(Atom):
 
     def gradient(self, state: State, params: dict[str, Any]) -> State:
         """Compute gradient: A^T(Ax - b) + λx"""
-        A = params["A"]
+        a = params["A"]
         b = params["b"]
         lam = params.get("lambda", 1.0)
         x = state[params["variable"]]
 
-        residual = A @ x - b
-        grad_x = A.T @ residual + lam * x
+        residual = a @ x - b
+        grad_x = a.T @ residual + lam * x
 
         return {params["variable"]: grad_x}
 
@@ -181,21 +181,21 @@ class TikhonovAtom(Atom):
         Solves: argmin_x (1/2)‖Ax - b‖² + (λ/2)‖x‖² + (1/(2τ))‖x - x₀‖²
         Solution: (A^T A + λI + I/τ) x = A^T b + x₀/τ
         """
-        A = params["A"]
+        a = params["A"]
         b = params["b"]
         lam = params.get("lambda", 1.0)
         x = state[params["variable"]]
 
         # Form the regularized system: (A^T A + λI + I/step_size)
-        ATA = A.T @ A
-        ATb = A.T @ b
+        ata = a.T @ a
+        atb = a.T @ b
 
         # Add regularization and proximal regularization
-        regularization_matrix = lam * jnp.eye(ATA.shape[0])
-        proximal_matrix = jnp.eye(ATA.shape[0]) / step_size
+        regularization_matrix = lam * jnp.eye(ata.shape[0])
+        proximal_matrix = jnp.eye(ata.shape[0]) / step_size
 
-        lhs = ATA + regularization_matrix + proximal_matrix
-        rhs = ATb + x / step_size
+        lhs = ata + regularization_matrix + proximal_matrix
+        rhs = atb + x / step_size
 
         x_new = jnp.linalg.solve(lhs, rhs)
 
@@ -207,13 +207,13 @@ class TikhonovAtom(Atom):
 
         The regularization improves conditioning and provides better certificates.
         """
-        A = params["A"]
+        a = params["A"]
         lam = params.get("lambda", 1.0)
 
-        # Effective Lipschitz constant: σ_max(A^T A + λI)
-        ATA = A.T @ A
-        regularization_matrix = lam * jnp.eye(ATA.shape[0])
-        effective_matrix = ATA + regularization_matrix
+        # Effective Lipschitz constant: o_max(A^T A + λI)
+        ata = a.T @ a
+        regularization_matrix = lam * jnp.eye(ata.shape[0])
+        effective_matrix = ata + regularization_matrix
         lipschitz = float(jnp.linalg.norm(effective_matrix, ord=2))
 
         return {
@@ -280,8 +280,6 @@ class L1Atom(Atom):
 
         L1 regularization doesn't contribute to Lipschitz constants but affects convergence.
         """
-        lam = params.get("lambda", 1.0)
-
         return {
             "lipschitz": 0.0,  # L1 doesn't contribute to gradient Lipschitz
             "eta_dd_contribution": 0.0,  # No diagonal dominance contribution
@@ -341,9 +339,7 @@ class WaveletL1Atom(Atom):
         coeffs = transform.forward(x)
 
         # Subgradient in wavelet space: λ * sign(Wx)
-        subgrad_coeffs = []
-        for coeff in coeffs:
-            subgrad_coeffs.append(lam * jnp.sign(coeff))
+        subgrad_coeffs = [lam * jnp.sign(coeff) for coeff in coeffs]
 
         # Transform back to original space
         subgrad_x = transform.inverse(subgrad_coeffs)
@@ -373,11 +369,10 @@ class WaveletL1Atom(Atom):
 
         # Soft-thresholding in wavelet space
         threshold = lam * step_size
-        thresholded_coeffs = []
-        for coeff in coeffs:
-            thresholded_coeffs.append(
-                jnp.sign(coeff) * jnp.maximum(jnp.abs(coeff) - threshold, 0)
-            )
+        thresholded_coeffs = [
+            jnp.sign(coeff) * jnp.maximum(jnp.abs(coeff) - threshold, 0)
+            for coeff in coeffs
+        ]
 
         # Synthesis: transform back to original space
         x_new = transform.inverse(thresholded_coeffs)
@@ -392,7 +387,6 @@ class WaveletL1Atom(Atom):
         """
         from computable_flows_shim.multi.transform_op import make_transform
 
-        lam = params.get("lambda", 1.0)
         transform = make_transform(
             params.get("wavelet", "haar"),
             params.get("levels", 2),

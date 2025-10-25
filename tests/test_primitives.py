@@ -31,7 +31,7 @@ class IdentityOp(Op):
 
 
 @pytest.mark.dtype_parametrized
-def test_F_Dis_quadratic(float_dtype):
+def test_f_dis_quadratic(float_dtype):
     """
     Tests that the dissipative step correctly descends the gradient of a quadratic energy function.
     This test computationally verifies Lemma 1: Monotonic Energy Decay.
@@ -63,7 +63,7 @@ def test_F_Dis_quadratic(float_dtype):
     assert jnp.isclose(final_state["x"], 1.9, atol=tolerance)
 
 
-def test_F_Proj_l1():
+def test_f_proj_l1():
     """
     Tests that the projective step correctly applies a soft-thresholding operator for an L1 term.
     This test computationally verifies Lemma 3: Constraint Enforcement via Proximal Operators.
@@ -92,7 +92,7 @@ def test_F_Proj_l1():
     assert jnp.allclose(final_state["x"], expected_x)
 
 
-def test_F_Proj_l1_contract():
+def test_f_proj_l1_contract():
     """
     Given: A state and a proximal operator for an L1 term.
     When: We apply the projective primitive F_Proj.
@@ -102,7 +102,7 @@ def test_F_Proj_l1_contract():
     initial_state = {"x": jnp.array([1.5, -0.2, 0.8])}
     weight = 0.5
     step_alpha = 0.1
-    threshold = step_alpha * weight
+    # threshold = step_alpha * weight
 
     def prox_g(state, alpha):
         x = state["x"]
@@ -117,7 +117,7 @@ def test_F_Proj_l1_contract():
 
 
 @pytest.mark.complex_operations
-def test_F_Multi(complex_dtype):
+def test_f_multi(complex_dtype):
     """
     Tests the multiscale transform primitive's forward and inverse operations.
     """
@@ -135,7 +135,7 @@ def test_F_Multi(complex_dtype):
         def inverse(self, x):
             return jaxwt.waverec(x, self.wavelet)
 
-    W = WaveletTransform()
+    w = WaveletTransform()
     # Use real input for wavelet transforms (they can produce complex coefficients internally)
     x = jnp.array(
         [1.0, 2.0, 3.0, 4.0],
@@ -143,8 +143,8 @@ def test_F_Multi(complex_dtype):
     )
 
     # WHEN we apply the forward and then the inverse transform
-    u = F_Multi(x, W, "forward")
-    x_reconstructed = cast(jnp.ndarray, F_Multi(u, W, "inverse"))
+    u = F_Multi(x, w, "forward")
+    x_reconstructed = cast(jnp.ndarray, F_Multi(u, w, "inverse"))
 
     # THEN the reconstructed vector should be identical to the original.
     tolerance = 1e-5 if complex_dtype == jnp.complex64 else 1e-12
@@ -152,7 +152,7 @@ def test_F_Multi(complex_dtype):
 
 
 @pytest.mark.complex_operations
-def test_F_Multi_contract_jaxwt(complex_dtype):
+def test_f_multi_contract_jaxwt(complex_dtype):
     """
     Given: A state and a jaxwt wavelet transform.
     When: We apply the forward and inverse multiscale transforms.
@@ -172,15 +172,15 @@ def test_F_Multi_contract_jaxwt(complex_dtype):
         def inverse(self, x):
             return jaxwt.waverec(x, self.wavelet)
 
-    W_op = JaxwtTransform()
+    w_op = JaxwtTransform()
     # Use real input for wavelet transforms
     x = jnp.ones(
         (4,), dtype=jnp.float64 if complex_dtype == jnp.complex128 else jnp.float32
     )
 
     # WHEN we apply the forward and then the inverse transform
-    coeffs = F_Multi(x, W_op, "forward")
-    x_reconstructed = cast(jnp.ndarray, F_Multi(coeffs, W_op, "inverse"))
+    coeffs = F_Multi(x, w_op, "forward")
+    x_reconstructed = cast(jnp.ndarray, F_Multi(coeffs, w_op, "inverse"))
 
     # THEN the reconstructed vector should be identical to the original.
     tolerance = 1e-5 if complex_dtype == jnp.complex64 else 1e-12
@@ -188,7 +188,7 @@ def test_F_Multi_contract_jaxwt(complex_dtype):
 
 
 @pytest.mark.complex_operations
-def test_F_Multi_wavelet_roundtrip(complex_dtype):
+def test_f_multi_wavelet_roundtrip(complex_dtype):
     """
     GREEN: Test for proper F_Multi primitive with wavelet roundtrip.
     Given: A 1D signal and wavelet transform object.
@@ -208,7 +208,7 @@ def test_F_Multi_wavelet_roundtrip(complex_dtype):
         def inverse(self, x):
             return jaxwt.waverec(x, "haar")
 
-    W = HaarTransform()
+    w = HaarTransform()
 
     # GIVEN a 1D signal
     x = jnp.array(
@@ -217,29 +217,29 @@ def test_F_Multi_wavelet_roundtrip(complex_dtype):
     )
 
     # WHEN we apply F_Multi forward and inverse
-    coeffs = F_Multi(x, W, "forward")
-    reconstructed = cast(jnp.ndarray, F_Multi(coeffs, W, "inverse"))
+    coeffs = F_Multi(x, w, "forward")
+    reconstructed = cast(jnp.ndarray, F_Multi(coeffs, w, "inverse"))
 
     # THEN the signal should be perfectly reconstructed
     tolerance = 1e-5 if complex_dtype == jnp.complex64 else 1e-12
     assert jnp.allclose(x, reconstructed, atol=tolerance)
 
 
-def test_F_Con():
+def test_f_con():
     """
     Tests the conservative (symplectic) step.
     This test computationally verifies Lemma 2: Energy Conservation in Conservative Flows.
     """
 
     # GIVEN a simple harmonic oscillator Hamiltonian
-    def H(state):
+    def h(state):
         return 0.5 * (state["p"] ** 2 + state["q"] ** 2)
 
     initial_state = {"q": jnp.array(1.0), "p": jnp.array(0.0)}
     dt = 0.1
 
     # WHEN we apply one step of the conservative flow
-    final_state = F_Con(initial_state, H, dt)
+    final_state = F_Con(initial_state, h, dt)
 
     # THEN the new state should approximate the exact analytical solution.
     # The Leapfrog integrator has a known error, so we use a tolerance.
@@ -250,13 +250,13 @@ def test_F_Con():
     assert jnp.allclose(final_state["p"], expected_p, atol=1e-3)
 
 
-def test_F_Con_energy_conservation():
+def test_f_con_energy_conservation():
     """
     Tests that the conservative step conserves energy over a short trajectory.
     """
 
     # GIVEN a simple harmonic oscillator Hamiltonian
-    def H(state):
+    def h(state):
         return 0.5 * (state["p"] ** 2 + state["q"] ** 2)
 
     initial_state = {"q": jnp.array(1.0), "p": jnp.array(0.0)}
@@ -265,16 +265,16 @@ def test_F_Con_energy_conservation():
 
     # WHEN we apply the conservative flow for multiple steps
     state = initial_state
-    initial_energy = H(state)
+    initial_energy = h(state)
     for _ in range(num_steps):
-        state = F_Con(state, H, dt)
-    final_energy = H(state)
+        state = F_Con(state, h, dt)
+    final_energy = h(state)
 
     # THEN the energy should be conserved within a small tolerance.
     assert jnp.allclose(initial_energy, final_energy, atol=1e-3)
 
 
-def test_F_Ann():
+def test_f_ann():
     """
     Tests the annealing/stochastic step.
     This test computationally verifies Lemma 5: Global Exploration via Stochastic Flows.

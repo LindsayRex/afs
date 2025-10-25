@@ -1,67 +1,105 @@
 {
-  // ---- Python interpreter (your venv) ----
+  // ---- Python Environment ----
   "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
 
-  // ---- Pyright/Pylance (Type checking only, no linting) ----
-  // Moved to pyrightconfig.json for centralized management
-  "python.analysis.typeCheckingMode": "basic",
-  "python.analysis.diagnosticMode": "workspace",
-  "python.analysis.includeFileSpecs": [
-    "src/**/*.py",
-    "tests/**/*.py"
-  ],
+  // ---- Ruff: ENABLED with workspace-wide diagnostics ----
+  "ruff.enable": true,
+  "ruff.nativeServer": true,
+  "ruff.lint.enable": true,
+  "ruff.configuration": "${workspaceFolder}/pyproject.toml",
+  "ruff.configurationPreference": "filesystemFirst",
+  "ruff.organizeImports": true,
+  "ruff.fixAll": true,
+  "ruff.lint.run": "onSave",
+  "ruff.showSyntaxErrors": true,
+
+  // ---- Editor Integration ----
+  "editor.defaultFormatter": "charliermarsh.ruff",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit"
+  },
+
+  // ---- Python Extension legacy linter disabled (setting removed; Ruff handles linting) ----
+
+  // ---- Pylance: MINIMAL LANGUAGE SERVER ONLY (IntelliSense + No Diagnostics) ----
+  "python.languageServer": "Pylance",
+  "python.analysis.typeCheckingMode": "off",  // FORCE OFF (user settings has "basic")
+  "python.analysis.diagnosticMode": "workspace",  // Allow full indexing; diagnostics still disabled via overrides
+  "python.analysis.indexing": true,  // Enable for better completions/go-to-def across workspace
+  "python.analysis.autoSearchPaths": false,
+  "python.analysis.useLibraryCodeForTypes": false,
+  // Explicitly exclude large or irrelevant folders from Pylance analysis
   "python.analysis.exclude": [
+    "**/.git/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/__pycache__/**",
     "**/archive/**",
     "**/background/**",
     "**/Design/**",
     "**/outputs/**",
     "**/logs/**",
     "**/qa_logs/**",
-    "**/__pycache__/**",
-    "**/.pytest_cache/**",
     "**/build/**",
-    "**/dist/**",
-    "**/.venv/**",
-    "**/venv/**",
-    "**/*.pyc",
-    "**/.git/**"
+    "**/dist/**"
   ],
-  // Disable Pylance's built-in linting (let ruff handle this)
   "python.analysis.diagnosticSeverityOverrides": {
-    "reportMissingImports": "none",
-    "reportMissingTypeStubs": "none",
-    "reportImportCycles": "none",
-    "reportUnusedImport": "none",
-    "reportUnusedClass": "none",
-    "reportUnusedFunction": "none",
-    "reportUnusedVariable": "none",
+    "reportAssertAlwaysTrue": "none",
+    "reportCallInDefaultInitializer": "none",
+    "reportConstantRedefinition": "none",
     "reportDuplicateImport": "none",
-    "reportUnnecessaryIsInstance": "none",
+    "reportFunctionMemberAccess": "none",
+    "reportGeneralTypeIssues": "none",
+    "reportImportCycles": "none",
+    "reportImplicitStringConcatenation": "none",
+    "reportIncompatibleMethodOverride": "none",
+    "reportIncompatibleVariableOverride": "none",
+    "reportInvalidStringEscapeSequence": "none",
+    "reportInvalidStubStatement": "none",
+    "reportInvalidTypeVarUse": "none",
+    "reportMissingImports": "none",
+    "reportMissingModuleSource": "none",
+    "reportMissingTypeArgument": "none",
+    "reportMissingTypeStubs": "none",
+    "reportOptionalCall": "none",
+    "reportOptionalContextManager": "none",
+    "reportOptionalIterable": "none",
+    "reportOptionalMemberAccess": "none",
+    "reportOptionalOperand": "none",
+    "reportOptionalSubscript": "none",
+    "reportPrivateImportUsage": "none",
+    "reportPrivateUsage": "none",
+    "reportPropertyTypeMismatch": "none",
+    "reportSelfClsParameterName": "none",
+    "reportTypedDictNotRequiredAccess": "none",
+    "reportUnboundVariable": "none",
+    "reportUndefinedVariable": "none",
+    "reportUninitializedInstanceVariable": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownLambdaType": "none",
+    "reportUnknownMemberType": "none",
+    "reportUnknownParameterType": "none",
+    "reportUnknownVariableType": "none",
     "reportUnnecessaryCast": "none",
     "reportUnnecessaryComparison": "none",
-    "reportAssertAlwaysTrue": "none",
-    "reportSelfClsParameterName": "none",
-    "reportImplicitStringConcatenation": "none",
-    "reportUndefinedVariable": "none",
-    "reportUnboundVariable": "none",
-    "reportInvalidStubStatement": "none",
-    "reportIncompleteStub": "none",
+    "reportUnnecessaryContains": "none",
+    "reportUnnecessaryIsInstance": "none",
+    "reportUnsupportedOperand": "none",
+    "reportUntypedBaseClass": "none",
+    "reportUntypedClassDecorator": "none",
+    "reportUntypedFunctionDecorator": "none",
+    "reportUntypedNamedTuple": "none",
+    "reportUnusedCallResult": "none",
+    "reportUnusedClass": "none",
+    "reportUnusedCoroutine": "none",
+    "reportUnusedFunction": "none",
+    "reportUnusedImport": "none",
+    "reportUnusedVariable": "none",
     "reportUnsupportedDunderAll": "none",
-    "reportUnusedCoroutine": "none"
+    "reportWildcardImportFromLibrary": "none"
   },
-  "python.analysis.extraPaths": [
-    "${workspaceFolder}/src"
-  ],
-
-  // ---- Ruff (Fast Python Linter) ----
-  "ruff.enable": true,
-  "ruff.lint.enable": true,
-  "ruff.format.enable": true,
-  // Use configuration from pyproject.toml
-  "ruff.configuration": "${workspaceFolder}/pyproject.toml",
-
-  // ---- Show all problems ----
-  "problems.showCurrentInStatus": true,
 
   // ---- Pytest ----
   "python.testing.pytestEnabled": true,
@@ -73,7 +111,7 @@
     "--disable-warnings"
   ],
 
-  // ---- Keep VS Code snappy ----
+  // ---- File Management ----
   "files.exclude": {
     "**/__pycache__/**": true,
     "**/*.pyc": true,
@@ -82,7 +120,6 @@
     "**/build/**": true,
     "**/dist/**": true
   },
-
   "files.watcherExclude": {
     "**/.git/**": true,
     "**/__pycache__/**": true,
@@ -98,6 +135,6 @@
     "**/dist/**": true
   },
 
-  // ---- Terminal configuration ----
+  // ---- Terminal ----
   "terminal.integrated.shellArgs.windows": ["-Command", "& '${workspaceFolder}\\.venv\\Scripts\\Activate.ps1'"]
 }

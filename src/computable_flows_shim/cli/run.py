@@ -7,13 +7,13 @@ from pathlib import Path
 
 import jax.numpy as jnp
 
-# Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
 from computable_flows_shim.api import Op
 from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.energy.specs import EnergySpec, StateSpec, TermSpec
 from computable_flows_shim.runtime.step import run_flow_step
+
+# Add the project root to the Python path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 
 class IdentityOp(Op):
@@ -55,7 +55,7 @@ def main():
     # 4. WHEN we run the flow loop
     for i in range(num_iterations):
         state = run_flow_step(state, compiled, step_alpha)
-        print(f"Iteration {i+1:02d}: x = {state['x'][0]:.4f}")
+        print(f"Iteration {i + 1:02d}: x = {state['x'][0]:.4f}")
 
     print("-" * 20)
     print(f"Final state: x = {state['x'][0]:.4f}")

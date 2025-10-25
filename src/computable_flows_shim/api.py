@@ -10,6 +10,9 @@ All functions follow the Functional Core/Imperative Shell pattern:
 import os
 from typing import Any, Protocol
 
+from computable_flows_shim.controller import FlightController
+from computable_flows_shim.telemetry import TelemetryManager
+
 
 class Op(Protocol):
     """Protocol for a linear operator used in energy specifications.
@@ -30,10 +33,6 @@ class Op(Protocol):
     """
 
     def __call__(self, x: Any) -> Any: ...
-
-
-from computable_flows_shim.controller import FlightController
-from computable_flows_shim.telemetry import TelemetryManager
 
 
 def run_certified_with_telemetry(

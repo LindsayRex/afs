@@ -18,6 +18,8 @@ from computable_flows_shim.api import Op
 from computable_flows_shim.controller import FlightController
 from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.energy.specs import EnergySpec, StateSpec, TermSpec
+from computable_flows_shim.runtime.checkpoint import CheckpointManager
+from computable_flows_shim.runtime.engine import resume_flow
 from computable_flows_shim.telemetry import TelemetryManager
 
 
@@ -96,7 +98,7 @@ def test_run_flow_with_telemetry(float_dtype):
 
         # WHEN we run the flow
         controller = FlightController()
-        final_state = controller.run_certified_flow(
+        controller.run_certified_flow(
             initial_state=initial_state,
             compiled=compiled,
             num_iterations=3,
@@ -128,10 +130,6 @@ def test_run_flow_with_telemetry(float_dtype):
         assert cert_event is not None
         assert "eta_dd" in cert_event["payload"]
         assert "gamma" in cert_event["payload"]
-
-
-from computable_flows_shim.runtime.checkpoint import CheckpointManager
-from computable_flows_shim.runtime.engine import resume_flow
 
 
 @pytest.mark.dtype_parametrized

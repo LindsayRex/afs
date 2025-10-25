@@ -402,7 +402,6 @@ class FlightController:
 
             # Initialize multiscale state if schedule provided
             current_level = 0
-            max_level = multiscale_schedule.levels if multiscale_schedule else 0
 
             if multiscale_schedule and telemetry_manager:
                 telemetry_manager.flight_recorder.log_event(

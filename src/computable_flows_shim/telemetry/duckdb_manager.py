@@ -75,7 +75,7 @@ class DuckDBManager:
         # Check if tables exist
         try:
             self.conn.execute("SELECT 1 FROM telemetry LIMIT 1")
-        except:
+        except (RuntimeError, ValueError):
             return []  # No data available
 
         query = """
@@ -100,17 +100,16 @@ class DuckDBManager:
 
         result = self.conn.execute(query).fetchall()
 
-        summaries = []
-        for row in result:
-            summaries.append(
-                {
-                    "run_id": row[0],
-                    "alpha": float(row[1]) if row[1] else 0.1,
-                    "num_remediations": int(row[2]) if row[2] else 0,
-                    "final_energy": 0.0,  # Placeholder
-                    "iterations": 0,  # Placeholder
-                }
-            )
+        summaries = [
+            {
+                "run_id": row[0],
+                "alpha": float(row[1]) if row[1] else 0.1,
+                "num_remediations": int(row[2]) if row[2] else 0,
+                "final_energy": 0.0,  # Placeholder
+                "iterations": 0,  # Placeholder
+            }
+            for row in result
+        ]
 
         return summaries
 

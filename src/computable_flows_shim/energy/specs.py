@@ -4,6 +4,8 @@ Energy specification models with Pydantic validation.
 Provides type-safe specifications for computable flow problems with automatic validation.
 """
 
+from dataclasses import dataclass
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -117,13 +119,13 @@ class EnergySpec(BaseModel):
             import warnings
 
             warnings.warn(
-                f"State variables defined but not used in terms: {unused_vars}"
+                f"State variables defined but not used in terms: {unused_vars}",
+                stacklevel=2,
             )
 
 
 # Backward compatibility: keep dataclass versions for existing code
 # These will be deprecated in favor of Pydantic models
-from dataclasses import dataclass
 
 
 @dataclass(frozen=True)

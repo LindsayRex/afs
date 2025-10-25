@@ -5,7 +5,7 @@ from typing import Any
 # simple manifest structure so runtime does not require an extra dependency.
 try:
     import toml  # type: ignore
-except Exception:
+except ImportError:
     toml = None
 
 
@@ -36,8 +36,8 @@ def write_manifest(
         # Minimal TOML serializer for our known manifest shape
         lines = []
         lines.append(f"schema_version = {int(manifest['schema_version'])}")
-        lines.append(f"flow_name = \"{manifest['flow_name']}\"")
-        lines.append(f"run_id = \"{manifest['run_id']}\"")
+        lines.append(f'flow_name = "{manifest["flow_name"]}"')
+        lines.append(f'run_id = "{manifest["run_id"]}"')
         lines.append("[residual]")
         residual = manifest.get("residual") or {}
         for k, v in residual.items():

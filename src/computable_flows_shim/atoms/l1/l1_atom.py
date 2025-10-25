@@ -77,8 +77,6 @@ class L1Atom(Atom):
 
         L1 regularization doesn't contribute to Lipschitz constants but affects convergence.
         """
-        lam = params.get("lambda", 1.0)
-
         return {
             "lipschitz": 0.0,  # L1 doesn't contribute to gradient Lipschitz
             "eta_dd_contribution": 0.0,  # No diagonal dominance contribution

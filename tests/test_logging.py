@@ -179,7 +179,8 @@ class TestLogPerformance:
             assert result == "result"
             mock_debug.assert_called_once()
             args, kwargs = mock_debug.call_args
-            assert "test_operation completed" in args[0]
+            assert args[0] == "%s completed"
+            assert args[1] == "test_operation"
             assert "duration_ms" in kwargs["extra"]
             assert kwargs["extra"]["success"] is True
 
@@ -199,7 +200,8 @@ class TestLogPerformance:
 
             mock_error.assert_called_once()
             args, kwargs = mock_error.call_args
-            assert "failing_operation failed" in args[0]
+            assert args[0] == "%s failed"
+            assert args[1] == "failing_operation"
             assert "duration_ms" in kwargs["extra"]
             assert kwargs["extra"]["success"] is False
             assert "Test error" in kwargs["extra"]["error"]

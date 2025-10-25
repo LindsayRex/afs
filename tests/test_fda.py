@@ -18,13 +18,13 @@ def test_estimate_gamma_gershgorin_lower_bound():
     key = jax.random.PRNGKey(0)
     gamma = estimate_gamma(op, key, (2,))
     basis = jnp.eye(2)
-    L_matrix = jnp.stack([op(basis[i]) for i in range(2)])
-    diag = jnp.diag(L_matrix)
+    l_matrix = jnp.stack([op(basis[i]) for i in range(2)])
+    diag = jnp.diag(l_matrix)
     off_diag_sum = jnp.array(
-        [jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i]) for i in range(2)]
+        [jnp.sum(jnp.abs(l_matrix[i, :])) - jnp.abs(l_matrix[i, i]) for i in range(2)]
     )
     gershgorin_bounds = diag - off_diag_sum
-    print(f"L_matrix: {L_matrix}")
+    print(f"l_matrix: {l_matrix}")
     print(f"Gershgorin bounds: {gershgorin_bounds}")
     print(f"gamma returned: {gamma}")
     # Eigenvalues are approx 1.382, 4.618; Gershgorin bounds: row 0: -1, row 1: 3
@@ -77,20 +77,21 @@ def test_estimate_gamma_detects_negative_eigenvalue():
     assert gamma == -2.0, f"Expected -2.0, got {gamma}"
 
 
-"""
-Tests for the Flow Dynamic Analysis (FDA) certificate estimators.
-"""
 import sys
 from pathlib import Path
 
 import jax
 import jax.numpy as jnp
 
+from computable_flows_shim.api import Op
+from computable_flows_shim.fda.certificates import estimate_eta_dd, estimate_gamma
+
 # Add the project root to the Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from computable_flows_shim.api import Op
-from computable_flows_shim.fda.certificates import estimate_eta_dd, estimate_gamma
+"""
+Tests for the Flow Dynamic Analysis (FDA) certificate estimators.
+"""
 
 
 class IdentityOp(Op):
@@ -106,14 +107,14 @@ def test_estimate_gamma():
     # GIVEN a simple, well-conditioned linear operator (a diagonal matrix)
     # L = [[3, 0], [0, 5]]. The eigenvalues are 3 and 5.
     # The spectral gap is the smallest eigenvalue, which is 3.
-    def L_apply(v):
+    def l_apply(v):
         return jnp.array([3.0 * v[0], 5.0 * v[1]])
 
     input_shape = (2,)
     key = jax.random.PRNGKey(0)
 
     # WHEN we estimate the spectral gap (smallest eigenvalue)
-    gamma = estimate_gamma(L_apply, key, input_shape)
+    gamma = estimate_gamma(l_apply, key, input_shape)
 
     # THEN the estimated gamma should be close to the true smallest eigenvalue.
     assert jnp.isclose(gamma, 3.0, atol=1e-3)
@@ -125,14 +126,14 @@ def test_estimate_eta_dd():
     """
 
     # GIVEN a simple, diagonally dominant linear operator (a diagonal matrix)
-    def L_apply(v):
+    def l_apply(v):
         return jnp.array([3.0 * v[0], 5.0 * v[1]])
 
     input_shape = (2,)
 
     # WHEN we estimate the diagonal dominance
     # This will fail because the function doesn't exist yet
-    eta = estimate_eta_dd(L_apply, input_shape)
+    eta = estimate_eta_dd(l_apply, input_shape)
 
     # THEN the estimated eta should be 0 for a diagonal matrix.
     assert jnp.isclose(eta, 0.0)

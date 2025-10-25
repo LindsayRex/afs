@@ -71,9 +71,7 @@ class WaveletL1Atom(Atom):
         coeffs = transform.forward(x)
 
         # Subgradient in wavelet space: λ * sign(Wx)
-        subgrad_coeffs = []
-        for coeff in coeffs:
-            subgrad_coeffs.append(lam * jnp.sign(coeff))
+        subgrad_coeffs = [lam * jnp.sign(coeff) for coeff in coeffs]
 
         # Transform back to original space
         subgrad_x = transform.inverse(subgrad_coeffs)
@@ -104,11 +102,10 @@ class WaveletL1Atom(Atom):
 
         # Soft-thresholding in wavelet space
         threshold = lam * step_size
-        thresholded_coeffs = []
-        for coeff in coeffs:
-            thresholded_coeffs.append(
-                jnp.sign(coeff) * jnp.maximum(jnp.abs(coeff) - threshold, 0)
-            )
+        thresholded_coeffs = [
+            jnp.sign(coeff) * jnp.maximum(jnp.abs(coeff) - threshold, 0)
+            for coeff in coeffs
+        ]
 
         # Synthesis: transform back to original space
         x_new = transform.inverse(thresholded_coeffs)
@@ -123,7 +120,6 @@ class WaveletL1Atom(Atom):
         """
         from computable_flows_shim.multi.transform_op import make_transform
 
-        lam = params.get("lambda", 1.0)
         transform = make_transform(
             params.get("wavelet", "haar"),
             params.get("levels", 2),

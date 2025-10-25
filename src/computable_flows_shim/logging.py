@@ -45,10 +45,11 @@ class JSONFormatter(logging.Formatter):
             "asctime",
         }
 
-        extra_fields = {}
-        for key, value in record.__dict__.items():
-            if key not in standard_fields:
-                extra_fields[key] = value
+        extra_fields = {
+            key: value
+            for key, value in record.__dict__.items()
+            if key not in standard_fields
+        }
 
         if extra_fields:
             log_entry["extra"] = extra_fields  # type: ignore
@@ -64,7 +65,7 @@ class SDKLogger:
     @staticmethod
     def configure(
         level: str = "WARNING",
-        format: str = "json",
+        log_format: str = "json",
         output: str = "stderr",
         log_file: str | None = None,
         enable_performance_logging: bool = False,
@@ -78,9 +79,9 @@ class SDKLogger:
             )
 
         valid_formats = ["json", "text"]
-        if format not in valid_formats:
+        if log_format not in valid_formats:
             raise ValueError(
-                f"Invalid log format: {format}. Must be one of {valid_formats}"
+                f"Invalid log format: {log_format}. Must be one of {valid_formats}"
             )
 
         valid_outputs = ["stderr", "stdout", "file", "null"]
@@ -116,7 +117,9 @@ class SDKLogger:
         elif output == "file":
             # Generate timestamped log file in logs directory if no specific file given
             if not log_file:
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                timestamp = datetime.now(tz=datetime.timezone.utc).strftime(
+                    "%Y%m%d_%H%M%S"
+                )
                 log_file = f"logs/afs_{timestamp}.log"
             handler = logging.FileHandler(log_file)
         elif output == "null":
@@ -125,7 +128,7 @@ class SDKLogger:
             handler = logging.NullHandler()
 
         # Set formatter
-        if format == "json":
+        if log_format == "json":
             handler.setFormatter(JSONFormatter())
         else:
             handler.setFormatter(
@@ -160,14 +163,16 @@ def log_performance(logger: logging.Logger, operation: str):
                 result = func(*args, **kwargs)
                 duration = time.perf_counter() - start_time
                 logger.debug(
-                    f"{operation} completed",
+                    "%s completed",
+                    operation,
                     extra={"duration_ms": duration * 1000, "success": True},
                 )
                 return result
             except Exception as e:
                 duration = time.perf_counter() - start_time
                 logger.error(
-                    f"{operation} failed",
+                    "%s failed",
+                    operation,
                     extra={
                         "duration_ms": duration * 1000,
                         "error": str(e),
@@ -183,7 +188,7 @@ def log_performance(logger: logging.Logger, operation: str):
 
 def configure_logging(
     level: str = "WARNING",
-    format: str = "json",
+    log_format: str = "json",
     output: str = "stderr",
     log_file: str | None = None,
     enable_performance_logging: bool = False,
@@ -191,7 +196,7 @@ def configure_logging(
     """Public API for configuring SDK logging."""
     SDKLogger.configure(
         level=level,
-        format=format,
+        log_format=log_format,
         output=output,
         log_file=log_file,
         enable_performance_logging=enable_performance_logging,

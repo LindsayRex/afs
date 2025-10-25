@@ -31,7 +31,7 @@
 			]
 		},
 		{
-			"label": "ruff-check",
+			"label": "ruff-check-all",
 			"type": "shell",
 			"command": "${config:python.defaultInterpreterPath}",
 			"args": [
@@ -42,9 +42,30 @@
 				"tests"
 			],
 			"problemMatcher": [
-				"$python"
+				{
+					"owner": "ruff",
+					"severity": "warning",
+					"fileLocation": ["relative", "${workspaceFolder}"],
+					"pattern": {
+						"regexp": "^(.*?):(\\d+):(\\d+):\\s([A-Z]+\\d+)\\s(.*)$",
+						"file": 1,
+						"line": 2,
+						"column": 3,
+						"code": 4,
+						"message": 5
+					}
+				}
 			],
-			"group": "build"
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"showReuseMessage": false,
+				"clear": true
+			}
 		},
 		{
 			"label": "ruff-fix",
@@ -59,7 +80,19 @@
 				"tests"
 			],
 			"problemMatcher": [
-				"$python"
+				{
+					"owner": "ruff",
+					"severity": "warning",
+					"fileLocation": ["relative", "${workspaceFolder}"],
+					"pattern": {
+						"regexp": "^(.*?):(\\d+):(\\d+):\\s([A-Z]+\\d+)\\s(.*)$",
+						"file": 1,
+						"line": 2,
+						"column": 3,
+						"code": 4,
+						"message": 5
+					}
+				}
 			],
 			"group": "build"
 		},
@@ -75,7 +108,19 @@
 				"tests"
 			],
 			"problemMatcher": [
-				"$python"
+				{
+					"owner": "ruff",
+					"severity": "warning",
+					"fileLocation": ["relative", "${workspaceFolder}"],
+					"pattern": {
+						"regexp": "^(.*?):(\\d+):(\\d+):\\s([A-Z]+\\d+)\\s(.*)$",
+						"file": 1,
+						"line": 2,
+						"column": 3,
+						"code": 4,
+						"message": 5
+					}
+				}
 			],
 			"group": "build"
 		},
