@@ -48,76 +48,117 @@ norecursedirs = [
 ]
 
 # -----------------------------
-# Pylint config (for Pylint 3.x)
+# Ruff Configuration (Fast Python Linter)
 # -----------------------------
-[tool.pylint.main]
-# Set this to your actual interpreter version (match your venv). Replace placeholder if needed.
-py-version = "3.12"
-init-hook = "import sys, pathlib; src_path = pathlib.Path.cwd() / 'src'; sys.path.insert(0, str(src_path))"
-
-# Files or directories to be skipped by basename
-ignore = [".venv", "venv", "__pycache__", ".git", "outputs", "archive", "background", "Design", "logs", "pm", "qa_logs"]
-
-# Regex patterns for paths to ignore (full paths) - use forward slashes for cross-platform
-ignore-paths = [
-  ".*/\\.venv/.*",
-  ".*/venv/.*", 
-  ".*/__pycache__/.*",
-  ".*/archive/.*",
-  ".*/background/.*",
-  ".*/Design/.*",
-  ".*/outputs/.*",
-  ".*/logs/.*",
-  ".*/qa_logs/.*"
+[tool.ruff]
+# Only scan Python files in src/ and tests/
+include = ["src/**/*.py", "tests/**/*.py"]
+exclude = [
+    # Standard Python excludes
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
 ]
 
-# File name patterns (regex) to skip - matches against base names
-ignore-patterns = [
-  "^test_.*\\.py$",
-  ".*_test\\.py$",
-  "^conftest\\.py$",
-  ".*_old\\.py$",
-  ".*_backup\\.py$",
-  "^find_python_envs\\.ps1$",
-  "^temp_settings\\.json$"
+# Same line length as black
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.12
+target-version = "py312"
+
+[tool.ruff.lint]
+# Enable comprehensive rule set for maximum error detection
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "A",   # flake8-builtins
+    "BLE", # flake8-blind-except
+    "FBT", # flake8-boolean-trap
+    "C90", # McCabe complexity
+    "COM", # flake8-commas
+    "C4",  # flake8-comprehensions
+    "DTZ", # flake8-datetimez
+    "EM",  # flake8-errmsg
+    "EXE", # flake8-executable
+    "FA",  # flake8-future-annotations
+    "ISC", # flake8-implicit-str-concat
+    "ICN", # flake8-import-conventions
+    "G",   # flake8-logging-format
+    "INP", # flake8-no-pep420
+    "PIE", # flake8-pie
+    "T10", # flake8-debugger
+    "DJ",  # flake8-django
+    "N",   # pep8-naming
+    "AIR", # Airflow
+    "PERF",# Perflint
+    "FURB",# refurb
+    "LOG", # flake8-logging
+    "RUF", # Ruff-specific rules
 ]
 
-[tool.pylint.messages_control]
-disable = [
-  # Style / docstrings
-  "C0103","C0114","C0115","C0116",
-  # Refactoring
-  "R0903","R0912","R0915",
-  # Conventions that are noisy in this codebase
-  "W0613","W0718","W0719",
-  # Import/location rules that don't fit this project
-  "C0413","C0415","W0611",
-  # Size/shape knobs for scientific-style code
-  "R0801","R0917","R0914"
+# Ignore some rules that don't apply to your project
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex (McCabe)
+    "COM812", # trailing comma missing (conflicts with formatter)
+    "ISC001", # implicit string concatenation (conflicts with formatter)
+    "A003", # class attribute shadows builtin (too strict for some cases)
+    "EM101", # exception message should not use f-string (too opinionated)
+    "EM102", # exception message should not use .format() (too opinionated)
+    "TRY003", # avoid specifying long messages outside exception class (too opinionated)
+    "FBT001", # boolean positional arg in function definition (too strict)
+    "FBT002", # boolean default positional argument (too strict)
+    "FBT003", # boolean positional value in function call (too strict)
+    "AIR", # Airflow rules (not using Airflow)
+    "DJ", # Django rules (not using Django)
+    "N999", # invalid module name (too strict for some cases)
 ]
 
-[tool.pylint.format]
-max-line-length = 120
-max-module-lines = 1000
+[tool.ruff.lint.per-file-ignores]
+# Allow unused imports in __init__.py files
+"__init__.py" = ["F401"]
+# Allow print statements and debugger statements in test files
+"tests/**/*" = ["T201", "T10"]
+# Allow print statements in example/demo scripts
+"scripts/**/*" = ["T201", "T10"]
+# Allow some rules in configuration files
+"setup.py" = ["INP001"]
+"conftest.py" = ["INP001"]
 
-[tool.pylint.reports]
-output-format = "text"
-reports = false
+[tool.ruff.lint.isort]
+known-first-party = ["computable_flows_shim"]
 
-[tool.pylint.similarities]
-min-similarity-lines = 20
-ignore-comments = true
-ignore-docstrings = true
-ignore-imports = true
+[tool.ruff.lint.flake8-tidy-imports]
+# Disallow all relative imports.
+ban-relative-imports = "all"
 
-[tool.pylint.design]
-max-args = 12
-max-locals = 25
-max-returns = 8
-max-branches = 20
-max-statements = 80
-max-parents = 8
-
-[tool.pylint.variables]
-additional-builtins = ["_"]
-dummy-variables-rgx = "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_"
+[tool.ruff.lint.flake8-import-conventions]
+# Declare the conventions for import aliases.
+[tool.ruff.lint.flake8-import-conventions.aliases]
+"jax.numpy" = "jnp"

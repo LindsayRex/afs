@@ -207,4 +207,3 @@ t5:          ◎  Metamorphic computing (program template + hw descriptor;
 * **Black-box models:** moderate–high **adaptability**, variable **generality**, **opaque** (●).
 * **Cflow v1 (Intent-Preserving Flows):** pushes up/right **without** losing transparency (aim for ◎).
 * **Metamorphic computing (your post-compiler):** the top-right *white-box* corner — **general + adaptive + certified**.
-

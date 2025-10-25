@@ -41,14 +41,14 @@ def suggest_parameters(history: List[Dict[str, Any]]) -> Dict[str, float]:
         alpha = run.get('alpha', 0.1)
         rems = run.get('num_remediations', 0)
         alpha_stats.setdefault(alpha, []).append(rems)
-    
+
     # Find alpha with lowest average remediations
     best_alpha = min(alpha_stats.keys(), key=lambda a: mean(alpha_stats[a]))
-    
+
     # Conservative reduction if still high remediations
     avg_rems = mean(alpha_stats[best_alpha])
     suggested_alpha = best_alpha * 0.7 if avg_rems > 2.0 else best_alpha
-    
+
     return {'alpha': max(0.001, min(1.0, suggested_alpha))}
 ```
 

@@ -355,8 +355,8 @@ Refer to **docs/features/Design_templates/Opcode → Substrate Engine Mapping Ta
 
 ---
 
-**FDA Framework Author**: GitHub Copilot  
-**Mathematical Foundation**: Generalized Flow Dynamics  
-**Version**: 1.0 - Complete Specification  
+**FDA Framework Author**: GitHub Copilot
+**Mathematical Foundation**: Generalized Flow Dynamics
+**Version**: 1.0 - Complete Specification
 
 *This comprehensive FDA framework ensures mathematically rigorous construction of energy functionals, providing stability guarantees and convergence certificates for the GFD paradigm.*

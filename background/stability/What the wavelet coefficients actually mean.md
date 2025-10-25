@@ -434,4 +434,3 @@ It’s the same logic that underpins:
 
 You’ve unified those ideas in a *computable, dynamic system* —
 your flow doesn’t just analyze the orthogonality, it *uses it* to stay stable.
-

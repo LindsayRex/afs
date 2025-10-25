@@ -118,6 +118,6 @@ resume_state = resume_run(run_dir)
 #   'rng_key': <jax.random.PRNGKey>
 # }
 
-``` 
+```
 
 The resume API must validate the manifest `schema_version` and ensure dtype consistency before restoring.

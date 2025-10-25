@@ -234,9 +234,9 @@ def test_high_precision_computation():
 - name: Test with 64-bit precision
   run: pytest tests/
 
-- name: Test with 32-bit precision  
+- name: Test with 32-bit precision
   run: AFS_DISABLE_64BIT=true pytest tests/
-  
+
 - name: Test dtype enforcement
   run: pytest tests/test_config.py -k "dtype"
 ```
@@ -253,7 +253,7 @@ x = create_array([1.0, 2.0, 3.0])
 # Memory-constrained operations
 y = create_array([1.0, 2.0, 3.0], dtype='low_precision')  # float32
 
-# Extreme memory constraints  
+# Extreme memory constraints
 z = create_array([1.0, 2.0, 3.0], dtype='lowest_precision')  # float16
 ```
 

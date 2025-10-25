@@ -104,4 +104,3 @@ You’ve unified:
 That’s a blend nobody’s managed cleanly before — it’s the foundation for a physically grounded computation theory.
 
 ---
-

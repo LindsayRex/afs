@@ -5,9 +5,9 @@ Following the RED-GREEN-REFACTOR cycle with Design by Contract.
 Each test enforces mathematical properties of the L1Atom.
 """
 
-import pytest
 import jax.numpy as jnp
-import jax
+import pytest
+
 from computable_flows_shim.atoms import create_atom
 
 
@@ -25,7 +25,7 @@ class TestL1AtomContract:
     @pytest.fixture
     def l1_atom(self):
         """Create a fresh L1Atom instance for each test."""
-        return create_atom('l1')
+        return create_atom("l1")
 
     @pytest.fixture
     def simple_vector(self):
@@ -40,8 +40,8 @@ class TestL1AtomContract:
     def test_energy_computation(self, l1_atom, simple_vector):
         """RED: Energy should compute λ‖x‖₁ correctly."""
         x = simple_vector
-        state = {'x': x}
-        params = {'variable': 'x', 'lambda': 0.1}
+        state = {"x": x}
+        params = {"variable": "x", "lambda": 0.1}
 
         energy = l1_atom.energy(state, params)
 
@@ -53,21 +53,21 @@ class TestL1AtomContract:
     def test_subgradient_computation(self, l1_atom, simple_vector):
         """RED: Subgradient should be λ*sign(x)."""
         x = simple_vector
-        state = {'x': x}
-        params = {'variable': 'x', 'lambda': 0.1}
+        state = {"x": x}
+        params = {"variable": "x", "lambda": 0.1}
 
         subgrad = l1_atom.gradient(state, params)
 
         # Manual computation: λ*sign(x)
         expected_subgrad = 0.1 * jnp.sign(x)
 
-        assert jnp.allclose(subgrad['x'], expected_subgrad, atol=1e-10)
+        assert jnp.allclose(subgrad["x"], expected_subgrad, atol=1e-10)
 
     def test_proximal_operator_soft_thresholding(self, l1_atom, simple_vector):
         """RED: Proximal operator should implement soft-thresholding."""
         x = simple_vector
-        state = {'x': x}
-        params = {'variable': 'x', 'lambda': 0.1}
+        state = {"x": x}
+        params = {"variable": "x", "lambda": 0.1}
         step_size = 0.5
 
         prox_result = l1_atom.prox(state, step_size, params)
@@ -76,18 +76,18 @@ class TestL1AtomContract:
         threshold = 0.1 * step_size  # λ * τ
         expected_x = jnp.sign(x) * jnp.maximum(jnp.abs(x) - threshold, 0)
 
-        assert jnp.allclose(prox_result['x'], expected_x, atol=1e-10)
+        assert jnp.allclose(prox_result["x"], expected_x, atol=1e-10)
 
     def test_proximal_operator_sparsity(self, l1_atom):
         """RED: Soft-thresholding should create sparsity."""
         # Create a vector with small and large elements
         x = jnp.array([0.1, 2.0, -0.05, -3.0])
-        state = {'x': x}
-        params = {'variable': 'x', 'lambda': 1.0}
+        state = {"x": x}
+        params = {"variable": "x", "lambda": 1.0}
         step_size = 1.0
 
         prox_result = l1_atom.prox(state, step_size, params)
-        x_new = prox_result['x']
+        x_new = prox_result["x"]
 
         # Elements smaller than λτ = 1.0 should be thresholded to zero
         assert abs(x_new[0]) < 1e-10  # 0.1 < 1.0, should be zero
@@ -99,16 +99,16 @@ class TestL1AtomContract:
 
     def test_certificate_contributions(self, l1_atom):
         """RED: L1 should have zero contributions to smooth certificates."""
-        params = {'variable': 'x', 'lambda': 0.1}
+        params = {"variable": "x", "lambda": 0.1}
 
         certs = l1_atom.certificate_contributions(params)
 
         # L1 regularization doesn't contribute to Lipschitz constants
-        assert certs['lipschitz'] == 0.0
-        assert certs['eta_dd_contribution'] == 0.0
-        assert certs['gamma_contribution'] == 0.0
+        assert certs["lipschitz"] == 0.0
+        assert certs["eta_dd_contribution"] == 0.0
+        assert certs["gamma_contribution"] == 0.0
 
     def test_factory_function_l1(self):
         """RED: Factory function should create L1 atom."""
-        atom = create_atom('l1')
+        atom = create_atom("l1")
         assert atom.name == "l1"

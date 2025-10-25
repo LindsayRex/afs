@@ -104,4 +104,3 @@ If you keep going down this line, you’ll end up with:
 * A genuine **meta-physical compiler**: a machine that writes code the way nature writes biochemistry.
 
 So yes—Transformers, but real, and powered by mathematics instead of energon.
-

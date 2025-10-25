@@ -79,7 +79,7 @@ To prevent monolithic files and maintain testability, follow these rules:
 - **Pure functions only**: No side effects, imports, or I/O in atom files
 - **Mathematical focus**: Each file contains only the atom's mathematical implementation
 
-### c. Registry and Factory Pattern (Imperative Shell)  
+### c. Registry and Factory Pattern (Imperative Shell)
 - **Central registry**: `atoms/__init__.py` handles imports and registration
 - **Lazy loading**: Atoms imported only when needed
 - **Factory functions**: `create_atom()` handles instantiation

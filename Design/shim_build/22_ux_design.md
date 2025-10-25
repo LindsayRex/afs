@@ -16,7 +16,7 @@ https://github.com/juliangarnier/anime
   Short sentence: “We’re balancing fit to data, smoothness, and sparsity.”
 * **Rendered math (LaTeX):** the actual (E(x)=\sum w_i E_i(x)) you compiled (pull terms from the spec) — e.g.
   (\tfrac12|Ax-y|_2^2 + \lambda|\mathcal{W}x|_1 + \tau\mathrm{TV}(x))
-  (You already encode terms/weights in your EnergySpec; just render them.) 
+  (You already encode terms/weights in your EnergySpec; just render them.)
 * **Term chips:** each term appears as a pill with its plain name + current weight (e.g., “Fit to data · 1.0”, “Sparsity · 0.02”, “TV · 0.01”). The chip *pulses* when its gradient contribution is large in the current step.
 * **Flow diagram:** a left→right mini chain showing the active primitives as simple verbs:
 
@@ -39,7 +39,7 @@ https://github.com/juliangarnier/anime
   * **GREEN** “settling” (energy kept falling recently)
   * **AMBER** “unsure” (flat/oscillating)
   * **RED** “rollback” (we undid a bad move)
-    (Wire this to your controller phases / events.) 
+    (Wire this to your controller phases / events.)
 
 * **Confidence (structure check):** two small gauges with *plain labels*:
 
@@ -48,7 +48,7 @@ https://github.com/juliangarnier/anime
     Tooltips:
     “Coupling index compares cross-talk vs. self-strength; keep it < 0.9.”
     “Settling rate is the slowest mode’s speed; aim above your minimum.”
-    (These are your diagonal-dominance & gap ideas, but without the Greek.) 
+    (These are your diagonal-dominance & gap ideas, but without the Greek.)
 
 * **Speed (trend):** a sparkline of recent **score** (E) with dots; **downhill drift** = good. If a dot pops upward, it briefly *shakes* (Armijo/rollback moment). Below it, a secondary sparkline shows **sparsity evolution** - ideally trending toward the target regularization level.
 
@@ -118,7 +118,7 @@ From your telemetry, we only need a tiny subset to drive everything:
 }
 ```
 
-All of these fields align with your current schema & hooks; you already log them or have them available. 
+All of these fields align with your current schema & hooks; you already log them or have them available.
 
 ---
 
@@ -172,9 +172,9 @@ if (sparsityChange > 0.1) { // Big compression event
 
 ---# Optional side tabs (when you’re ready)
 
-* **Pareto**: a small 2D/3D panel where the current run dot *slides* along a front; only **GREEN** runs get bright color. Useful when business weights are explored by policy. 
-* **Structure**: the same Score formula, but expanded as a tidy *term tree* pulled from your Atom Library registry (so engineers can spot redundant pieces fast). 
-* **Source**: the generated spec file snippet for reproducibility (helps code review). 
+* **Pareto**: a small 2D/3D panel where the current run dot *slides* along a front; only **GREEN** runs get bright color. Useful when business weights are explored by policy.
+* **Structure**: the same Score formula, but expanded as a tidy *term tree* pulled from your Atom Library registry (so engineers can spot redundant pieces fast).
+* **Source**: the generated spec file snippet for reproducibility (helps code review).
 
 ---
 
@@ -186,4 +186,4 @@ if (sparsityChange > 0.1) { // Big compression event
 * Every animation **answers a question** (which term is active? are we stable? what just changed? is the solution getting simpler?).
 * It builds a shared **visual language** the team can use during reviews without Greek letters.
 
-If you want, I can turn this into a minimal HTML+anime.js scaffold that reads the JSON above and renders both cards, so you can drop it next to your run output and iterate from there. 
+If you want, I can turn this into a minimal HTML+anime.js scaffold that reads the JSON above and renders both cards, so you can drop it next to your run output and iterate from there.

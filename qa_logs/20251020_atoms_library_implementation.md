@@ -13,7 +13,7 @@ To implement the fundamental **Atoms Library** as the mathematical foundation fo
 #### Cycle 1: Create Atom Base Class and Registry
 1. **(RED):** Created comprehensive test suite `tests/test_atoms.py` with `TestQuadraticAtomContract` class. Tests defined mathematical contracts for energy computation, gradient, proximal operator, and certificate contributions. All tests failed as expected with `ModuleNotFoundError` for non-existent atoms module.
 
-2. **(GREEN):** 
+2. **(GREEN):**
    - Created `src/computable_flows_shim/atoms/library.py` with abstract `Atom` base class
    - Implemented `QuadraticAtom` with all four required methods
    - Created `ATOM_REGISTRY` and `create_atom()` factory function
@@ -28,13 +28,13 @@ To implement the fundamental **Atoms Library** as the mathematical foundation fo
 
 2. **(GREEN):**
    - Implemented `TikhonovAtom` class with λ‖x‖₂² regularization
-   - Added to `ATOM_REGISTRY` 
+   - Added to `ATOM_REGISTRY`
    - Updated exports in `__init__.py`
    - All 7 TikhonovAtom tests passed, including verification of improved conditioning
 
 3. **(REFACTOR):** Refined certificate contribution logic to properly reflect regularization benefits vs. increased Lipschitz constants.
 
-#### Cycle 3: L1Atom Implementation  
+#### Cycle 3: L1Atom Implementation
 1. **(RED):** Added `TestL1AtomContract` class with 7 tests for sparse regularization. Tests covered L1 energy computation, subgradient (sign function), soft-thresholding proximal operator, sparsity promotion, and nonsmooth certificate contributions. Tests failed due to missing L1Atom implementation.
 
 2. **(GREEN):**
@@ -71,7 +71,7 @@ To implement the fundamental **Atoms Library** as the mathematical foundation fo
 
 ### TikhonovAtom: `(1/2)‖Ax - b‖² + (λ/2)‖x‖²`
 - **Energy:** Combined data fidelity + regularization
-- **Gradient:** `A^T(Ax - b) + λx` 
+- **Gradient:** `A^T(Ax - b) + λx`
 - **Prox:** Regularized system `(A^T A + λI + I/τ) x = A^T b + x/τ`
 - **Certificates:** Improved conditioning with regularization benefits
 

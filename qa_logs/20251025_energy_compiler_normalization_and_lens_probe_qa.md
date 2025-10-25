@@ -2,8 +2,8 @@
 
 ## QA Log: Energy Compiler Unit Normalization & Lens Probe Integration
 
-**Date**: October 25, 2025  
-**Component**: Energy Compiler (`src/computable_flows_shim/energy/compile.py`)  
+**Date**: October 25, 2025
+**Component**: Energy Compiler (`src/computable_flows_shim/energy/compile.py`)
 **Status**: ✅ COMPLETED - All tests passing, functionality validated
 
 ---
@@ -17,7 +17,7 @@ Implemented energy-based unit normalization and integrated lens probe functional
 #### 1. **Energy-Based Normalization (Replaced Statistical RMS/MAD)**
 - **Problem**: Original implementation used statistical measures (RMS/MAD) that introduced branching logic and broke the energy-based paradigm
 - **Solution**: Replaced with pure energy evaluation on sample data
-- **Implementation**: 
+- **Implementation**:
   - Quadratic terms: Use `0.5 * ||residual||²` as normalization factor
   - L1 terms: Use `||transformed_x||₁` as normalization factor
   - Wavelet terms: Default normalization (1.0) for future analysis
@@ -25,7 +25,7 @@ Implemented energy-based unit normalization and integrated lens probe functional
 #### 2. **Lens Probe Integration**
 - **Problem**: Lens probe function existed but wasn't being called in compilation
 - **Solution**: Integrated `_run_lens_probe_if_needed()` into `compile_energy()` function
-- **Implementation**: 
+- **Implementation**:
   - Added lens probe call for multiscale terms
   - Lens selection based on compressibility analysis
   - Compile report includes selected lens per term
@@ -92,7 +92,7 @@ lens_probe_results = _run_lens_probe_if_needed(spec)
 ## 📋 **Files Modified**
 
 ### **Core Implementation**
-- `src/computable_flows_shim/energy/compile.py`: 
+- `src/computable_flows_shim/energy/compile.py`:
   - Replaced `_compute_unit_normalization()` with energy-based approach
   - Integrated lens probe functionality
   - Fixed function definition issues
@@ -130,8 +130,8 @@ With energy compiler normalization and lens probe integration complete, the next
 
 ---
 
-**QA Engineer**: GitHub Copilot  
-**Validation**: All functionality tested and working  
-**Architecture Compliance**: ✅ Energy-based paradigm maintained  
+**QA Engineer**: GitHub Copilot
+**Validation**: All functionality tested and working
+**Architecture Compliance**: ✅ Energy-based paradigm maintained
 **Integration Points**: Lens probe hooks ready for future AFS</content>
 <parameter name="filePath">j:\Google Drive\Software\afs\qa_logs\20251025_energy_compiler_normalization_and_lens_probe_qa.md

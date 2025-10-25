@@ -5,17 +5,19 @@ Provides builder mode functionality to analyze wavelet compressibility and selec
 optimal transforms based on sparsity and reconstruction quality metrics.
 """
 
-from typing import Dict, List, Any, Union, Tuple
+from typing import Any
+
 import jax.numpy as jnp
+
 from computable_flows_shim.multi.transform_op import TransformOp
+
 from ..core import numerical_stability_check
 
 
 @numerical_stability_check
 def calculate_compressibility(
-    coeffs: Union[List[jnp.ndarray], Any],
-    threshold: float = 1e-8
-) -> Dict[str, Any]:
+    coeffs: list[jnp.ndarray] | Any, threshold: float = 1e-8
+) -> dict[str, Any]:
     """
     Calculate compressibility metrics for wavelet coefficients.
 
@@ -68,24 +70,22 @@ def calculate_compressibility(
     # Energy distribution (fraction of total energy in each band)
     total_energy = sum(band_energy)
     energy_distribution = [
-        energy / total_energy if total_energy > 0 else 0.0
-        for energy in band_energy
+        energy / total_energy if total_energy > 0 else 0.0 for energy in band_energy
     ]
 
     return {
-        'overall_sparsity': overall_sparsity,
-        'band_sparsity': band_sparsity,
-        'energy_distribution': energy_distribution,
-        'total_coefficients': total_coeffs,
-        'nonzero_coefficients': int(total_nonzero)
+        "overall_sparsity": overall_sparsity,
+        "band_sparsity": band_sparsity,
+        "energy_distribution": energy_distribution,
+        "total_coefficients": total_coeffs,
+        "nonzero_coefficients": int(total_nonzero),
     }
 
 
 @numerical_stability_check
 def calculate_reconstruction_error(
-    original: jnp.ndarray,
-    reconstruction: jnp.ndarray
-) -> Dict[str, float]:
+    original: jnp.ndarray, reconstruction: jnp.ndarray
+) -> dict[str, float]:
     """
     Calculate reconstruction error metrics.
 
@@ -108,19 +108,19 @@ def calculate_reconstruction_error(
     max_error = float(jnp.max(jnp.abs(error)))
 
     return {
-        'mse': mse,
-        'rmse': rmse,
-        'relative_error': relative_error,
-        'max_error': max_error
+        "mse": mse,
+        "rmse": rmse,
+        "relative_error": relative_error,
+        "max_error": max_error,
     }
 
 
 def run_lens_probe(
     data: jnp.ndarray,
-    candidates: List[TransformOp],
+    candidates: list[TransformOp],
     target_sparsity: float = 0.8,
-    selection_rule: str = 'min_reconstruction_error'
-) -> Dict[str, Any]:
+    selection_rule: str = "min_reconstruction_error",
+) -> dict[str, Any]:
     """
     Run lens probe to evaluate transform candidates and select optimal lens.
 
@@ -162,37 +162,37 @@ def run_lens_probe(
             sparsity_at_target = _calculate_sparsity_at_target(coeffs, target_sparsity)
 
             candidate_results[transform.name] = {
-                'compressibility': compressibility,
-                'reconstruction_error': reconstruction_error,
-                'sparsity_at_target': sparsity_at_target,
-                'transform_levels': transform.levels,
-                'frame_type': transform.frame,
-                'frame_constant': transform.c
+                "compressibility": compressibility,
+                "reconstruction_error": reconstruction_error,
+                "sparsity_at_target": sparsity_at_target,
+                "transform_levels": transform.levels,
+                "frame_type": transform.frame,
+                "frame_constant": transform.c,
             }
 
         except Exception as e:
             # Log failed transform but continue with others
             candidate_results[transform.name] = {
-                'error': str(e),
-                'compressibility': None,
-                'reconstruction_error': None,
-                'sparsity_at_target': 0.0
+                "error": str(e),
+                "compressibility": None,
+                "reconstruction_error": None,
+                "sparsity_at_target": 0.0,
             }
 
     # Select best lens based on selection rule
     selected_lens = _select_best_lens(candidate_results, selection_rule)
 
     return {
-        'selected_lens': selected_lens,
-        'candidate_results': candidate_results,
-        'selection_criteria': selection_rule,
-        'target_sparsity': target_sparsity,
-        'data_shape': data.shape,
-        'data_dtype': str(data.dtype)
+        "selected_lens": selected_lens,
+        "candidate_results": candidate_results,
+        "selection_criteria": selection_rule,
+        "target_sparsity": target_sparsity,
+        "data_shape": data.shape,
+        "data_dtype": str(data.dtype),
     }
 
 
-def _flatten_coeff_structure(coeffs: Any) -> List[jnp.ndarray]:
+def _flatten_coeff_structure(coeffs: Any) -> list[jnp.ndarray]:
     """
     Flatten 2D wavelet coefficient structure into list of arrays.
 
@@ -214,8 +214,7 @@ def _flatten_coeff_structure(coeffs: Any) -> List[jnp.ndarray]:
 
 @numerical_stability_check
 def _calculate_sparsity_at_target(
-    coeffs: Union[List[jnp.ndarray], Any],
-    target_sparsity: float
+    coeffs: list[jnp.ndarray] | Any, target_sparsity: float
 ) -> float:
     """
     Calculate what sparsity level is achieved at the target threshold.
@@ -246,39 +245,41 @@ def _calculate_sparsity_at_target(
     return actual_sparsity
 
 
-def _select_best_lens(
-    candidate_results: Dict[str, Any],
-    selection_rule: str
-) -> str:
+def _select_best_lens(candidate_results: dict[str, Any], selection_rule: str) -> str:
     """
     Select the best lens based on the given selection rule.
     """
     # Filter out failed candidates
     valid_candidates = {
-        name: results for name, results in candidate_results.items()
-        if results.get('reconstruction_error') is not None
+        name: results
+        for name, results in candidate_results.items()
+        if results.get("reconstruction_error") is not None
     }
 
     if not valid_candidates:
         # If all failed, return the first one
         return list(candidate_results.keys())[0]
 
-    if selection_rule == 'min_reconstruction_error':
+    if selection_rule == "min_reconstruction_error":
         # Select lens with minimum relative reconstruction error
         return min(
             valid_candidates.keys(),
-            key=lambda name: valid_candidates[name]['reconstruction_error']['relative_error']
+            key=lambda name: valid_candidates[name]["reconstruction_error"][
+                "relative_error"
+            ],
         )
 
-    elif selection_rule == 'max_sparsity_at_target':
+    elif selection_rule == "max_sparsity_at_target":
         # Select lens with maximum sparsity at target level
         return max(
             valid_candidates.keys(),
-            key=lambda name: valid_candidates[name]['sparsity_at_target']
+            key=lambda name: valid_candidates[name]["sparsity_at_target"],
         )
 
     # Default to min reconstruction error
     return min(
         valid_candidates.keys(),
-        key=lambda name: valid_candidates[name]['reconstruction_error']['relative_error']
+        key=lambda name: valid_candidates[name]["reconstruction_error"][
+            "relative_error"
+        ],
     )

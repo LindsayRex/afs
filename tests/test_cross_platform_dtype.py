@@ -5,17 +5,16 @@ Tests dtype enforcement across precision levels on the current JAX platform.
 Note: JAX 0.6.2 does not support runtime platform switching via jax.platform().
 Platform selection must be done via environment variables before JAX import.
 """
+
 import sys
 from pathlib import Path
-import pytest
+
 import jax
 import jax.numpy as jnp
-import jax.random as random
+import pytest
 
 # Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
-
-from computable_flows_shim import configure_jax_environment
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 @pytest.fixture(scope="session")
@@ -36,25 +35,25 @@ def available_platforms():
     platforms = []
     try:
         # Test CPU (always available in JAX 0.6.2)
-        devices = jax.devices('cpu')
+        devices = jax.devices("cpu")
         if devices:
-            platforms.append('cpu')
+            platforms.append("cpu")
     except:
         pass
 
     try:
         # Test GPU
-        devices = jax.devices('gpu')
+        devices = jax.devices("gpu")
         if devices:
-            platforms.append('gpu')
+            platforms.append("gpu")
     except:
         pass
 
     try:
         # Test TPU
-        devices = jax.devices('tpu')
+        devices = jax.devices("tpu")
         if devices:
-            platforms.append('tpu')
+            platforms.append("tpu")
     except:
         pass
 
@@ -125,6 +124,7 @@ class TestDtypeEnforcement:
 
     def test_jit_compilation(self):
         """Test JIT compilation."""
+
         @jax.jit
         def test_function(x, y):
             return x * y + jnp.sin(x)
@@ -139,6 +139,7 @@ class TestDtypeEnforcement:
 
     def test_gradient_computation(self):
         """Test automatic differentiation."""
+
         def test_function(x):
             return jnp.sum(x**2 + jnp.sin(x))
 
@@ -152,7 +153,7 @@ class TestDtypeEnforcement:
         assert jnp.all(jnp.isfinite(gradient))
 
         # Verify gradient is approximately correct (2*x + cos(x))
-        expected = 2*x + jnp.cos(x)
+        expected = 2 * x + jnp.cos(x)
         assert jnp.allclose(gradient, expected, atol=self.tolerance)
 
     def test_random_generation(self):
@@ -206,7 +207,7 @@ class TestPlatformDetection:
         """Test that current platform detection works correctly."""
         # Should be a string representing the platform
         assert isinstance(current_platform, str)
-        assert current_platform in ['cpu', 'gpu', 'tpu']
+        assert current_platform in ["cpu", "gpu", "tpu"]
 
     def test_available_devices(self, available_devices):
         """Test that device detection works correctly."""
@@ -214,8 +215,8 @@ class TestPlatformDetection:
         assert len(available_devices) > 0
         # All devices should be JAX Device objects
         for device in available_devices:
-            assert hasattr(device, 'id')
-            assert hasattr(device, 'platform')
+            assert hasattr(device, "id")
+            assert hasattr(device, "platform")
 
     def test_platform_backend_consistency(self, current_platform, available_devices):
         """Test that platform and device information is consistent."""
@@ -232,12 +233,12 @@ class TestPlatformDetection:
         assert len(flags) > 0
 
         # Check platform-specific flags are present
-        if current_platform == 'cpu':
-            assert '--xla_cpu_multi_thread_eigen=true' in flags
-        elif current_platform == 'gpu':
+        if current_platform == "cpu":
+            assert "--xla_cpu_multi_thread_eigen=true" in flags
+        elif current_platform == "gpu":
             # GPU-specific flags would be checked here
             pass
-        elif current_platform == 'tpu':
+        elif current_platform == "tpu":
             # TPU-specific flags would be checked here
             pass
 

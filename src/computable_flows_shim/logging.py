@@ -1,11 +1,10 @@
-import logging
 import json
+import logging
 import os
 import sys
-from datetime import datetime
-from typing import Optional, Dict, Any
-from functools import wraps
 import time
+from datetime import datetime
+from functools import wraps
 
 
 class JSONFormatter(logging.Formatter):
@@ -14,18 +13,36 @@ class JSONFormatter(logging.Formatter):
     def format(self, record) -> str:
         """Format log record as JSON with structured data."""
         log_entry = {
-            'timestamp': self.formatTime(record),
-            'level': record.levelname,
-            'module': record.name,
-            'message': record.getMessage(),
+            "timestamp": self.formatTime(record),
+            "level": record.levelname,
+            "module": record.name,
+            "message": record.getMessage(),
         }
 
         # Add extra fields if present (fields beyond standard LogRecord attributes)
         standard_fields = {
-            'name', 'msg', 'args', 'level', 'levelno', 'pathname', 'filename',
-            'module', 'exc_info', 'exc_text', 'stack_info', 'lineno', 'funcName',
-            'created', 'msecs', 'relativeCreated', 'thread', 'threadName',
-            'processName', 'process', 'message', 'asctime'
+            "name",
+            "msg",
+            "args",
+            "level",
+            "levelno",
+            "pathname",
+            "filename",
+            "module",
+            "exc_info",
+            "exc_text",
+            "stack_info",
+            "lineno",
+            "funcName",
+            "created",
+            "msecs",
+            "relativeCreated",
+            "thread",
+            "threadName",
+            "processName",
+            "process",
+            "message",
+            "asctime",
         }
 
         extra_fields = {}
@@ -34,7 +51,7 @@ class JSONFormatter(logging.Formatter):
                 extra_fields[key] = value
 
         if extra_fields:
-            log_entry['extra'] = extra_fields  # type: ignore
+            log_entry["extra"] = extra_fields  # type: ignore
 
         return json.dumps(log_entry)
 
@@ -49,29 +66,42 @@ class SDKLogger:
         level: str = "WARNING",
         format: str = "json",
         output: str = "stderr",
-        log_file: Optional[str] = None,
-        enable_performance_logging: bool = False
+        log_file: str | None = None,
+        enable_performance_logging: bool = False,
     ):
         """Configure SDK-wide logging with validation."""
         # Input validation (lightweight contracts)
         valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if level.upper() not in valid_levels:
-            raise ValueError(f"Invalid log level: {level}. Must be one of {valid_levels}")
+            raise ValueError(
+                f"Invalid log level: {level}. Must be one of {valid_levels}"
+            )
 
         valid_formats = ["json", "text"]
         if format not in valid_formats:
-            raise ValueError(f"Invalid log format: {format}. Must be one of {valid_formats}")
+            raise ValueError(
+                f"Invalid log format: {format}. Must be one of {valid_formats}"
+            )
 
         valid_outputs = ["stderr", "stdout", "file", "null"]
         if output not in valid_outputs:
-            raise ValueError(f"Invalid log output: {output}. Must be one of {valid_outputs}")
+            raise ValueError(
+                f"Invalid log output: {output}. Must be one of {valid_outputs}"
+            )
 
-        if output == "file" and log_file and not os.path.isabs(log_file) and not log_file.startswith("logs/"):
-            raise ValueError("log_file must be an absolute path or start with 'logs/' when output='file'")
+        if (
+            output == "file"
+            and log_file
+            and not os.path.isabs(log_file)
+            and not log_file.startswith("logs/")
+        ):
+            raise ValueError(
+                "log_file must be an absolute path or start with 'logs/' when output='file'"
+            )
 
         # Set root logger level
         numeric_level = getattr(logging, level.upper(), logging.WARNING)
-        logger = logging.getLogger('afs')
+        logger = logging.getLogger("afs")
         logger.setLevel(numeric_level)
 
         # Remove existing handlers
@@ -98,9 +128,11 @@ class SDKLogger:
         if format == "json":
             handler.setFormatter(JSONFormatter())
         else:
-            handler.setFormatter(logging.Formatter(
-                '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-            ))
+            handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+                )
+            )
 
         logger.addHandler(handler)
         logger.propagate = False  # Don't propagate to root logger
@@ -110,11 +142,12 @@ class SDKLogger:
 
 def get_logger(name: str) -> logging.Logger:
     """Get a configured logger for a specific module."""
-    return logging.getLogger(f'afs.{name}')
+    return logging.getLogger(f"afs.{name}")
 
 
 def log_performance(logger: logging.Logger, operation: str):
     """Decorator for timing critical operations with lazy evaluation."""
+
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -126,15 +159,25 @@ def log_performance(logger: logging.Logger, operation: str):
             try:
                 result = func(*args, **kwargs)
                 duration = time.perf_counter() - start_time
-                logger.debug(f"{operation} completed",
-                           extra={'duration_ms': duration * 1000, 'success': True})
+                logger.debug(
+                    f"{operation} completed",
+                    extra={"duration_ms": duration * 1000, "success": True},
+                )
                 return result
             except Exception as e:
                 duration = time.perf_counter() - start_time
-                logger.error(f"{operation} failed",
-                           extra={'duration_ms': duration * 1000, 'error': str(e), 'success': False})
+                logger.error(
+                    f"{operation} failed",
+                    extra={
+                        "duration_ms": duration * 1000,
+                        "error": str(e),
+                        "success": False,
+                    },
+                )
                 raise
+
         return wrapper
+
     return decorator
 
 
@@ -142,8 +185,8 @@ def configure_logging(
     level: str = "WARNING",
     format: str = "json",
     output: str = "stderr",
-    log_file: Optional[str] = None,
-    enable_performance_logging: bool = False
+    log_file: str | None = None,
+    enable_performance_logging: bool = False,
 ):
     """Public API for configuring SDK logging."""
     SDKLogger.configure(
@@ -151,20 +194,21 @@ def configure_logging(
         format=format,
         output=output,
         log_file=log_file,
-        enable_performance_logging=enable_performance_logging
+        enable_performance_logging=enable_performance_logging,
     )
 
 
 # Environment variable configuration
 def _configure_from_env():
     """Configure logging from environment variables if present."""
-    if os.getenv('AFS_LOG_LEVEL'):
+    if os.getenv("AFS_LOG_LEVEL"):
         configure_logging(
-            level=os.getenv('AFS_LOG_LEVEL', 'WARNING'),
-            format=os.getenv('AFS_LOG_FORMAT', 'json'),
-            output=os.getenv('AFS_LOG_OUTPUT', 'stderr'),
-            log_file=os.getenv('AFS_LOG_FILE'),
-            enable_performance_logging=os.getenv('AFS_LOG_PERFORMANCE', '').lower() == 'true'
+            level=os.getenv("AFS_LOG_LEVEL", "WARNING"),
+            format=os.getenv("AFS_LOG_FORMAT", "json"),
+            output=os.getenv("AFS_LOG_OUTPUT", "stderr"),
+            log_file=os.getenv("AFS_LOG_FILE"),
+            enable_performance_logging=os.getenv("AFS_LOG_PERFORMANCE", "").lower()
+            == "true",
         )
 
 

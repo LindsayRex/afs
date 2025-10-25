@@ -15,7 +15,7 @@ To integrate TransformOp into the W-space compiler for proper multiscale flow op
    - Subgradient computation with synthesis back to original space
    - Proximal operator using analysis (forward) → soft-thresholding → synthesis (inverse)
    - Certificate contributions including frame constants for W-space analysis
-   
+
    Updated compiler g_prox to handle wavelet_l1 atoms using TransformOp instead of assuming self-inverse operators. Extended CompileReport to track term lenses ('wavelet' vs 'identity').
 
 3. **(REFACTOR):** Cleaned up parameter passing to use TermSpec wavelet fields instead of getattr defaults. Added comprehensive test coverage for compile report term_lenses tracking.

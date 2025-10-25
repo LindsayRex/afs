@@ -5,20 +5,18 @@ This module provides the registration system for atoms, allowing dynamic
 discovery and instantiation of atom types.
 """
 
-from typing import Dict, Type
 from .base import Atom
 
-
 # Global registry of available atoms
-ATOM_REGISTRY: Dict[str, Type[Atom]] = {}
+ATOM_REGISTRY: dict[str, type[Atom]] = {}
 
 
-def register_atom(atom_type: str, atom_class: Type[Atom]):
+def register_atom(atom_type: str, atom_class: type[Atom]):
     """Register a new atom type."""
     ATOM_REGISTRY[atom_type] = atom_class
 
 
-def get_registered_atoms() -> Dict[str, Type[Atom]]:
+def get_registered_atoms() -> dict[str, type[Atom]]:
     """Get a copy of the current atom registry."""
     return ATOM_REGISTRY.copy()
 
@@ -28,7 +26,7 @@ def is_atom_registered(atom_type: str) -> bool:
     return atom_type in ATOM_REGISTRY
 
 
-def get_atom_class(atom_type: str) -> Type[Atom]:
+def get_atom_class(atom_type: str) -> type[Atom]:
     """Get the atom class for a given type."""
     if not is_atom_registered(atom_type):
         available = list(ATOM_REGISTRY.keys())

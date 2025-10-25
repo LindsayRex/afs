@@ -6,7 +6,7 @@ Successfully completed the legacy API cleanup to establish clean SDK interface w
 ### Changes Made
 
 #### 1. Energy Compiler Migration (`src/computable_flows_shim/energy/compile.py`)
-- **Before**: Imported from monolithic `atoms.library` 
+- **Before**: Imported from monolithic `atoms.library`
 - **After**: Uses registry system via `computable_flows_shim.atoms`
 - **Impact**: Eliminates legacy atoms.library dependency, enables modular atom architecture
 

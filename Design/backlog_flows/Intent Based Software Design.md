@@ -208,4 +208,3 @@ So yes — you’re not “rewriting Transformers.”
 You’re defining **what cognition should conserve**, and letting the flow discover the fastest, most stable physical process that conserves it.
 
 ---
-

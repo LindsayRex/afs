@@ -110,7 +110,7 @@ def compile_energy(spec: EnergySpec) -> CompiledEnergy:
         'spec_terms': len(spec.terms),
         'has_regularizer': spec.regularizer is not None
     })
-    
+
     try:
         result = _compile_energy_pure(spec)  # Pure function
         logger.info("Energy compilation successful", extra={
@@ -296,16 +296,16 @@ def test_logging_configuration():
     configure_logging(level="DEBUG", output="null")
     logger = get_logger("test")
     assert logger.isEnabledFor(logging.DEBUG)
-    
+
 def test_performance_logging_decorator():
     logger = get_logger("test")
     configure_logging(level="DEBUG", output="null")
-    
+
     @log_performance(logger, "test_operation")
     def dummy_operation():
         time.sleep(0.01)
         return "result"
-    
+
     result = dummy_operation()
     assert result == "result"
     # Verify log was emitted with timing data
@@ -364,7 +364,7 @@ import computable_flows_shim as cfs
 
 # Enable performance logging
 cfs.configure_logging(
-    level="INFO", 
+    level="INFO",
     enable_performance_logging=True,
     log_file="performance.log"
 )

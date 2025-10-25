@@ -161,4 +161,4 @@ Rationale: These values are required for the Certification step in the FDA recip
 Update note: Increase `schema_version` in `15_schema.md` if these core fields are added to the canonical schema. We will bump to schema_version: 3 when we update `15_schema.md` and implement writer updates.
 
 ---
-I will now mark the audit task completed and move to the next task (update schema contracts). 
+I will now mark the audit task completed and move to the next task (update schema contracts).

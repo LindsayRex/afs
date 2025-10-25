@@ -1,11 +1,13 @@
-import duckdb
 import os
-from typing import Optional
+
+import duckdb
+
 
 class DuckDBManager:
     """
     Manages the DuckDB database for querying telemetry data across runs.
     """
+
     def __init__(self, db_path: str):
         self.db_path = db_path
         self.conn = duckdb.connect(database=self.db_path, read_only=False)
@@ -54,16 +56,20 @@ class DuckDBManager:
         for root, _, files in os.walk(base_path):
             for file in files:
                 if file == "telemetry.parquet":
-                    path = os.path.join(root, file).replace('\\', '/')
-                    self.conn.execute(f"INSERT INTO telemetry SELECT * FROM read_parquet('{path}');")
+                    path = os.path.join(root, file).replace("\\", "/")
+                    self.conn.execute(
+                        f"INSERT INTO telemetry SELECT * FROM read_parquet('{path}');"
+                    )
                 elif file == "events.parquet":
-                    path = os.path.join(root, file).replace('\\', '/')
-                    self.conn.execute(f"INSERT INTO events SELECT * FROM read_parquet('{path}');")
+                    path = os.path.join(root, file).replace("\\", "/")
+                    self.conn.execute(
+                        f"INSERT INTO events SELECT * FROM read_parquet('{path}');"
+                    )
 
-    def get_run_summaries(self, flow_name: Optional[str] = None, limit: int = 100) -> list:
+    def get_run_summaries(self, flow_name: str | None = None, limit: int = 100) -> list:
         """
         Get summary statistics for historical runs.
-        
+
         Returns list of dicts with keys: run_id, alpha, avg_remediations, final_energy, iterations
         """
         # Check if tables exist
@@ -71,39 +77,41 @@ class DuckDBManager:
             self.conn.execute("SELECT 1 FROM telemetry LIMIT 1")
         except:
             return []  # No data available
-        
+
         query = """
-        SELECT 
+        SELECT
             t.run_id,
             AVG(t.alpha) as alpha,
             COUNT(CASE WHEN e.event = 'STEP_REMEDIATION' THEN 1 END) as num_remediations
         FROM telemetry t
         LEFT JOIN events e ON t.run_id = e.run_id
         """
-        
+
         if flow_name:
             query += f" WHERE t.flow_name = '{flow_name}'"
-        
+
         query += """
         GROUP BY t.run_id
         ORDER BY t.run_id DESC
         """
-        
+
         if limit:
             query += f" LIMIT {limit}"
-        
+
         result = self.conn.execute(query).fetchall()
-        
+
         summaries = []
         for row in result:
-            summaries.append({
-                'run_id': row[0],
-                'alpha': float(row[1]) if row[1] else 0.1,
-                'num_remediations': int(row[2]) if row[2] else 0,
-                'final_energy': 0.0,  # Placeholder
-                'iterations': 0  # Placeholder
-            })
-        
+            summaries.append(
+                {
+                    "run_id": row[0],
+                    "alpha": float(row[1]) if row[1] else 0.1,
+                    "num_remediations": int(row[2]) if row[2] else 0,
+                    "final_energy": 0.0,  # Placeholder
+                    "iterations": 0,  # Placeholder
+                }
+            )
+
         return summaries
 
     def close(self):

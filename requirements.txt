@@ -27,7 +27,6 @@ pytest>=8.0
 pytest-cov
 pytest-xdist
 pytest-mock
-pylint>=2.17
 ruff
 black
 isort
@@ -49,4 +48,3 @@ ipython
 orbax-checkpoint
 
 frozendict
-

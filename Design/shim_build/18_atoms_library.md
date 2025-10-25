@@ -195,4 +195,3 @@ Each atom in your registry should expose:
 2. Let the meta-layer toggle atoms and tune weights; **gate on certificates**.
 3. When something helps but hurts (\eta_{dd}), change **basis (W)** (graph-wavelets, DCT, etc.).
 4. Log the program: **explicit energy**, **chosen (W)**, **prox/grad/proj**, **certs**.
-

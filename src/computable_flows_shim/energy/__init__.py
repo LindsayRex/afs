@@ -5,14 +5,14 @@ This module provides the energy compiler that translates declarative
 energy specifications into fast JAX functions.
 """
 
-from .compile import compile_energy, CompiledEnergy, CompileReport
-from .specs import EnergySpec, TermSpec, StateSpec
+from .compile import CompiledEnergy, CompileReport, compile_energy
+from .specs import EnergySpec, StateSpec, TermSpec
 
 __all__ = [
-    'compile_energy',
-    'CompiledEnergy', 
-    'CompileReport',
-    'EnergySpec',
-    'TermSpec',
-    'StateSpec'
+    "CompileReport",
+    "CompiledEnergy",
+    "EnergySpec",
+    "StateSpec",
+    "TermSpec",
+    "compile_energy",
 ]

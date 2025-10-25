@@ -1,13 +1,18 @@
 """
 Compiles a declarative energy specification into JAX-jittable functions.
 """
-from typing import Callable, Dict, Any, NamedTuple, Optional, List
+
+from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any, NamedTuple
+
 import jax
 import jax.numpy as jnp
 from jax import random
-from computable_flows_shim.energy.specs import EnergySpec
+
 from computable_flows_shim.core import numerical_stability_check
+from computable_flows_shim.energy.specs import EnergySpec
+
 
 class CompiledEnergy(NamedTuple):
     f_value: Callable
@@ -16,18 +21,20 @@ class CompiledEnergy(NamedTuple):
     g_prox_in_W: Callable  # W-space proximal operator
     L_apply: Callable
     # Optional compile-time metadata
-    compile_report: Optional[Dict[str, Any]] = None
+    compile_report: dict[str, Any] | None = None
 
 
 @dataclass
 class CompileReport:
     lens_name: str
-    unit_normalization_table: Dict[str, float]
+    unit_normalization_table: dict[str, float]
     # Track lens selections per term for W-space analysis
-    term_lenses: Dict[str, str]
+    term_lenses: dict[str, str]
 
 
-def _compute_unit_normalization(spec: EnergySpec, op_registry: Dict[str, Any]) -> Dict[str, float]:
+def _compute_unit_normalization(
+    spec: EnergySpec, op_registry: dict[str, Any]
+) -> dict[str, float]:
     """
     Compute per-term unit normalization factors using energy evaluation.
 
@@ -58,7 +65,7 @@ def _compute_unit_normalization(spec: EnergySpec, op_registry: Dict[str, Any]) -
 
         # Evaluate term energy contribution using the energy functional approach
         try:
-            if term.type in ('quadratic', 'tikhonov'):
+            if term.type in ("quadratic", "tikhonov"):
                 op = op_registry[term.op]
                 x = sample_state[term.variable]
 
@@ -71,9 +78,11 @@ def _compute_unit_normalization(spec: EnergySpec, op_registry: Dict[str, Any]) -
                 # Energy contribution: 0.5 * ||residual||^2
                 # Use this as the normalization factor (energy scale)
                 energy_contribution = 0.5 * jnp.sum(residual**2)
-                normalization_factors[term_key] = float(jnp.maximum(energy_contribution, 1e-8))
+                normalization_factors[term_key] = float(
+                    jnp.maximum(energy_contribution, 1e-8)
+                )
 
-            elif term.type == 'l1':
+            elif term.type == "l1":
                 op = op_registry[term.op]
                 x = sample_state[term.variable]
                 transformed_x = op(x)
@@ -81,51 +90,65 @@ def _compute_unit_normalization(spec: EnergySpec, op_registry: Dict[str, Any]) -
                 # For L1 terms, use the L1 norm of the transformed variable
                 # This keeps it in the energy/functional domain
                 l1_contribution = jnp.sum(jnp.abs(transformed_x))
-                normalization_factors[term_key] = float(jnp.maximum(l1_contribution, 1e-8))
+                normalization_factors[term_key] = float(
+                    jnp.maximum(l1_contribution, 1e-8)
+                )
 
-            elif term.type == 'wavelet_l1':
+            elif term.type == "wavelet_l1":
                 # For wavelet L1 terms, compute normalization based on wavelet transform energy scale
                 # This provides proper energy-based normalization instead of fallback 1.0
                 try:
                     from computable_flows_shim.multi.transform_op import make_transform
-                    
+
                     # Use the wavelet specified in the term, or default to 'haar'
-                    wavelet_name = term.wavelet or 'haar'
+                    wavelet_name = term.wavelet or "haar"
                     levels = term.levels or 2
                     ndim = term.ndim or 1
-                    
+
                     # Create the wavelet transform
                     transform = make_transform(wavelet_name, levels=levels, ndim=ndim)
-                    
+
                     # Apply wavelet transform to sample data
                     coeffs = transform.forward(sample_state[term.variable])
-                    
+
                     # Compute L1 norm of all wavelet coefficients
                     # This gives the energy scale of the wavelet transform
                     if isinstance(coeffs, list):
                         # 1D case: list of coefficient arrays
-                        total_l1 = sum(float(jnp.sum(jnp.abs(coeff_array))) for coeff_array in coeffs)
+                        total_l1 = sum(
+                            float(jnp.sum(jnp.abs(coeff_array)))
+                            for coeff_array in coeffs
+                        )
                     else:
                         # 2D case: nested structure, flatten and sum
                         flat_coeffs = []
+
                         def _flatten(obj):
                             if isinstance(obj, (list, tuple)):
                                 for item in obj:
                                     _flatten(item)
                             else:
                                 flat_coeffs.append(obj)
+
                         _flatten(coeffs)
-                        total_l1 = sum(float(jnp.sum(jnp.abs(coeff_array))) for coeff_array in flat_coeffs)
-                    
+                        total_l1 = sum(
+                            float(jnp.sum(jnp.abs(coeff_array)))
+                            for coeff_array in flat_coeffs
+                        )
+
                     # Use L1 norm as normalization factor, with minimum to avoid division by very small numbers
                     normalization_factors[term_key] = float(jnp.maximum(total_l1, 1e-8))
-                    
+
                 except Exception as e:
                     # If wavelet transform fails, fall back to a reasonable default based on signal size
                     signal_size = jnp.prod(jnp.array(sample_state[term.variable].shape))
-                    fallback_scale = float(jnp.sqrt(signal_size))  # Rough estimate based on signal magnitude
+                    fallback_scale = float(
+                        jnp.sqrt(signal_size)
+                    )  # Rough estimate based on signal magnitude
                     normalization_factors[term_key] = fallback_scale
-                    print(f"Warning: Wavelet normalization failed for {term_key}, using fallback: {e}")
+                    print(
+                        f"Warning: Wavelet normalization failed for {term_key}, using fallback: {e}"
+                    )
 
             else:
                 # Fallback for unknown term types
@@ -139,7 +162,7 @@ def _compute_unit_normalization(spec: EnergySpec, op_registry: Dict[str, Any]) -
     return normalization_factors
 
 
-def _run_lens_probe_if_needed(spec: EnergySpec) -> Optional[Dict[str, Any]]:
+def _run_lens_probe_if_needed(spec: EnergySpec) -> dict[str, Any] | None:
     """
     Run lens probe in builder mode if the spec contains multiscale terms.
 
@@ -150,7 +173,7 @@ def _run_lens_probe_if_needed(spec: EnergySpec) -> Optional[Dict[str, Any]]:
         Lens probe results if multiscale terms are present, None otherwise
     """
     # Check if we have any wavelet-based terms that would benefit from lens selection
-    multiscale_terms = [term for term in spec.terms if term.type == 'wavelet_l1']
+    multiscale_terms = [term for term in spec.terms if term.type == "wavelet_l1"]
 
     if not multiscale_terms:
         return None
@@ -162,11 +185,12 @@ def _run_lens_probe_if_needed(spec: EnergySpec) -> Optional[Dict[str, Any]]:
     candidates = []
     for term in multiscale_terms:
         from computable_flows_shim.multi.transform_op import make_transform
+
         try:
             transform = make_transform(
-                wavelet=term.wavelet or 'haar',
+                wavelet=term.wavelet or "haar",
                 levels=term.levels or 2,
-                ndim=term.ndim or 1
+                ndim=term.ndim or 1,
             )
             candidates.append(transform)
         except Exception:
@@ -176,9 +200,10 @@ def _run_lens_probe_if_needed(spec: EnergySpec) -> Optional[Dict[str, Any]]:
     # Add some default candidates if we don't have many
     if len(candidates) < 2:
         from computable_flows_shim.multi.transform_op import make_transform
+
         try:
-            candidates.append(make_transform('haar', levels=3, ndim=1))
-            candidates.append(make_transform('db4', levels=3, ndim=1))
+            candidates.append(make_transform("haar", levels=3, ndim=1))
+            candidates.append(make_transform("db4", levels=3, ndim=1))
         except Exception:
             pass
 
@@ -188,11 +213,12 @@ def _run_lens_probe_if_needed(spec: EnergySpec) -> Optional[Dict[str, Any]]:
     # Run lens probe
     try:
         from computable_flows_shim.multi.lens_probe import run_lens_probe
+
         probe_results = run_lens_probe(
             data=sample_data,
             candidates=candidates,
             target_sparsity=0.8,
-            selection_rule='min_reconstruction_error'
+            selection_rule="min_reconstruction_error",
         )
         return probe_results
     except Exception:
@@ -238,7 +264,11 @@ def _generate_sample_data_for_lens_probe(state_spec) -> jnp.ndarray:
     return jnp.sin(2 * jnp.pi * x) + 0.5 * jnp.sin(4 * jnp.pi * x)
 
 
-def _create_compile_report(spec: EnergySpec, lens_probe_results: Optional[Dict[str, Any]], unit_normalization_table: Dict[str, float]) -> Dict[str, Any]:
+def _create_compile_report(
+    spec: EnergySpec,
+    lens_probe_results: dict[str, Any] | None,
+    unit_normalization_table: dict[str, float],
+) -> dict[str, Any]:
     """
     Create the compile report with lens probe results integrated.
 
@@ -250,41 +280,41 @@ def _create_compile_report(spec: EnergySpec, lens_probe_results: Optional[Dict[s
         Compile report dictionary
     """
     # Determine selected lens
-    selected_lens = 'identity'
+    selected_lens = "identity"
     if lens_probe_results:
-        selected_lens = lens_probe_results.get('selected_lens', 'identity')
+        selected_lens = lens_probe_results.get("selected_lens", "identity")
 
     # Create term lenses mapping
     term_lenses = {}
     for term in spec.terms:
-        if term.type == 'wavelet_l1':
+        if term.type == "wavelet_l1":
             # Use selected lens for wavelet terms
             term_lenses[f"{term.variable}_{term.type}"] = selected_lens
         else:
-            term_lenses[f"{term.variable}_{term.type}"] = 'identity'
+            term_lenses[f"{term.variable}_{term.type}"] = "identity"
 
     compile_report = {
-        'lens_name': selected_lens,
-        'unit_normalization_table': unit_normalization_table,
-        'term_lenses': term_lenses,
-        'w_space_aware': any(term.type in ['wavelet_l1'] for term in spec.terms)
+        "lens_name": selected_lens,
+        "unit_normalization_table": unit_normalization_table,
+        "term_lenses": term_lenses,
+        "w_space_aware": any(term.type in ["wavelet_l1"] for term in spec.terms),
     }
 
     # Add lens probe results if available
     if lens_probe_results:
-        compile_report['lens_probe'] = {
-            'selected_lens': lens_probe_results['selected_lens'],
-            'candidate_results': lens_probe_results['candidate_results'],
-            'selection_criteria': lens_probe_results['selection_criteria'],
-            'target_sparsity': lens_probe_results['target_sparsity'],
-            'probe_data_shape': lens_probe_results['data_shape'],
-            'probe_data_dtype': lens_probe_results['data_dtype']
+        compile_report["lens_probe"] = {
+            "selected_lens": lens_probe_results["selected_lens"],
+            "candidate_results": lens_probe_results["candidate_results"],
+            "selection_criteria": lens_probe_results["selection_criteria"],
+            "target_sparsity": lens_probe_results["target_sparsity"],
+            "probe_data_shape": lens_probe_results["data_shape"],
+            "probe_data_dtype": lens_probe_results["data_dtype"],
         }
 
     return compile_report
 
 
-def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEnergy:
+def compile_energy(spec: EnergySpec, op_registry: dict[str, Any]) -> CompiledEnergy:
     """
     Compiles an energy specification.
 
@@ -309,10 +339,10 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
 
     # --- Compile the smooth part (f) ---
     @numerical_stability_check
-    def f_value(state: Dict[str, jnp.ndarray]) -> Any:
+    def f_value(state: dict[str, jnp.ndarray]) -> Any:
         total_energy = 0.0
         for term in spec.terms:
-            if term.type in ('quadratic', 'tikhonov'):
+            if term.type in ("quadratic", "tikhonov"):
                 op = op_registry[term.op]
                 x = state[term.variable]
 
@@ -329,31 +359,35 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
 
     # --- Compile the non-smooth part (g) ---
     @numerical_stability_check
-    def g_prox(state: Dict[str, jnp.ndarray], step_alpha: float) -> Dict[str, jnp.ndarray]:
+    def g_prox(
+        state: dict[str, jnp.ndarray], step_alpha: float
+    ) -> dict[str, jnp.ndarray]:
         new_state = state.copy()
         for term in spec.terms:
-            if term.type == 'l1':
+            if term.type == "l1":
                 op = op_registry[term.op]
                 x = state[term.variable]
 
                 threshold = step_alpha * term.weight
                 transformed_x = op(x)
-                thresholded_x = jnp.sign(transformed_x) * jnp.maximum(jnp.abs(transformed_x) - threshold, 0)
+                thresholded_x = jnp.sign(transformed_x) * jnp.maximum(
+                    jnp.abs(transformed_x) - threshold, 0
+                )
 
                 # This assumes op is its own inverse for now.
                 new_state[term.variable] = thresholded_x
-            elif term.type == 'wavelet_l1':
+            elif term.type == "wavelet_l1":
                 # For wavelet L1, we need to use TransformOp for proper analysis/synthesis
                 from computable_flows_shim.atoms import create_atom
 
-                atom = create_atom('wavelet_l1')
+                atom = create_atom("wavelet_l1")
                 # Get wavelet parameters from term
                 wavelet_params = {
-                    'lambda': term.weight,
-                    'wavelet': term.wavelet or 'haar',
-                    'levels': term.levels or 2,
-                    'ndim': term.ndim or 1,
-                    'variable': term.variable
+                    "lambda": term.weight,
+                    "wavelet": term.wavelet or "haar",
+                    "levels": term.levels or 2,
+                    "ndim": term.ndim or 1,
+                    "variable": term.variable,
                 }
                 new_state = atom.prox(new_state, step_alpha, wavelet_params)
 
@@ -361,7 +395,7 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
 
     # --- Compile the non-smooth part (g) in W-space ---
     @numerical_stability_check
-    def g_prox_in_W(coeffs: List[jnp.ndarray], step_alpha: float) -> List[jnp.ndarray]:
+    def g_prox_in_W(coeffs: list[jnp.ndarray], step_alpha: float) -> list[jnp.ndarray]:
         """
         Apply proximal operators directly in W-space (wavelet coefficient space).
 
@@ -376,27 +410,33 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
         coeff_idx = 0  # Track which coefficient array we're processing
 
         for term in spec.terms:
-            if term.type == 'l1':
+            if term.type == "l1":
                 # For L1 in W-space, apply soft-thresholding directly to coefficients
                 # This assumes the coefficients correspond to the variable
                 if coeff_idx < len(coeffs):
                     coeff_array = coeffs[coeff_idx]
                     threshold = step_alpha * term.weight
-                    thresholded = jnp.sign(coeff_array) * jnp.maximum(jnp.abs(coeff_array) - threshold, 0)
+                    thresholded = jnp.sign(coeff_array) * jnp.maximum(
+                        jnp.abs(coeff_array) - threshold, 0
+                    )
                     new_coeffs.append(thresholded)
                     coeff_idx += 1
                 else:
                     # If we run out of coeffs, append unchanged
-                    new_coeffs.append(coeffs[coeff_idx] if coeff_idx < len(coeffs) else jnp.array([]))
+                    new_coeffs.append(
+                        coeffs[coeff_idx] if coeff_idx < len(coeffs) else jnp.array([])
+                    )
                     coeff_idx += 1
 
-            elif term.type == 'wavelet_l1':
+            elif term.type == "wavelet_l1":
                 # For wavelet L1, apply soft-thresholding to ALL coefficient arrays
                 # This is the natural W-space proximal operator
                 threshold = step_alpha * term.weight
                 for i, coeff_array in enumerate(coeffs):
                     if i >= len(new_coeffs):
-                        thresholded = jnp.sign(coeff_array) * jnp.maximum(jnp.abs(coeff_array) - threshold, 0)
+                        thresholded = jnp.sign(coeff_array) * jnp.maximum(
+                            jnp.abs(coeff_array) - threshold, 0
+                        )
                         new_coeffs.append(thresholded)
 
             else:
@@ -410,11 +450,12 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
             new_coeffs.append(coeffs[len(new_coeffs)])
 
         return new_coeffs
+
     # For now, we assume the dominant linear operator comes from the first quadratic/tikhonov term.
     # This is a simplification and will be improved later.
     L_op = None
     for term in spec.terms:
-        if term.type in ['quadratic', 'tikhonov']:
+        if term.type in ["quadratic", "tikhonov"]:
             L_op = op_registry[term.op]
             break
 
@@ -430,5 +471,7 @@ def compile_energy(spec: EnergySpec, op_registry: Dict[str, Any]) -> CompiledEne
         g_prox=jax.jit(g_prox),
         g_prox_in_W=jax.jit(g_prox_in_W),
         L_apply=L_apply,
-        compile_report=_create_compile_report(spec, lens_probe_results, unit_normalization_table)
+        compile_report=_create_compile_report(
+            spec, lens_probe_results, unit_normalization_table
+        ),
     )

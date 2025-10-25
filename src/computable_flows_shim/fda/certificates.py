@@ -1,16 +1,28 @@
 """
 Certificate estimators for Flow Dynamic Analysis (FDA).
 """
-from typing import Callable, Optional, TYPE_CHECKING
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Optional
+
 import jax
 import jax.numpy as jnp
+
 from computable_flows_shim.core import numerical_stability_check
 
 if TYPE_CHECKING:
     from computable_flows_shim.multi.transform_op import TransformOp
 
+
 @numerical_stability_check
-def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_iterations: int = 20, mode: str = "dense", lanczos_k: int = 20) -> float:
+def estimate_gamma(
+    L_apply: Callable,
+    key: jnp.ndarray,
+    input_shape: tuple,
+    num_iterations: int = 20,
+    mode: str = "dense",
+    lanczos_k: int = 20,
+) -> float:
     """
     Estimates the spectral gap (minimum eigenvalue for symmetric matrices, Gershgorin lower bound for non-symmetric).
     """
@@ -28,10 +40,12 @@ def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_
         else:
             # Gershgorin fallback for non-symmetric
             diag = jnp.diag(L_matrix)
-            off_diag_sum = jnp.array([
-                jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
-                for i in range(dim)
-            ])
+            off_diag_sum = jnp.array(
+                [
+                    jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
+                    for i in range(dim)
+                ]
+            )
             gershgorin_bounds = diag - off_diag_sum
             return float(jnp.min(gershgorin_bounds))
     elif mode == "lanczos":
@@ -69,10 +83,12 @@ def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_
         if not is_symmetric:
             # Lanczos requires symmetry; fall back to Gershgorin
             diag = jnp.diag(L_matrix)
-            off_diag_sum = jnp.array([
-                jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
-                for i in range(dim)
-            ])
+            off_diag_sum = jnp.array(
+                [
+                    jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
+                    for i in range(dim)
+                ]
+            )
             gershgorin_bounds = diag - off_diag_sum
             return float(jnp.min(gershgorin_bounds))
         # run lanczos
@@ -80,16 +96,25 @@ def estimate_gamma(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, num_
     else:
         # Unknown mode: default to Gershgorin safe fallback
         diag = jnp.diag(L_matrix)
-        off_diag_sum = jnp.array([
-            jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
-            for i in range(dim)
-        ])
+        off_diag_sum = jnp.array(
+            [
+                jnp.sum(jnp.abs(L_matrix[i, :])) - jnp.abs(L_matrix[i, i])
+                for i in range(dim)
+            ]
+        )
         gershgorin_bounds = diag - off_diag_sum
         return float(jnp.min(gershgorin_bounds))
     # End of function
 
+
 @numerical_stability_check
-def estimate_gamma_lanczos(L_apply: Callable, key: jnp.ndarray, input_shape: tuple, k: int = 20, transform_op: Optional['TransformOp'] = None):
+def estimate_gamma_lanczos(
+    L_apply: Callable,
+    key: jnp.ndarray,
+    input_shape: tuple,
+    k: int = 20,
+    transform_op: Optional["TransformOp"] = None,
+):
     """
     Estimates the spectral gap using matrix-free Lanczos method with JAX lax.scan.
 
@@ -119,32 +144,35 @@ def estimate_gamma_lanczos(L_apply: Callable, key: jnp.ndarray, input_shape: tup
 
     # Create W-space aware L_apply if transform provided
     if transform_op is not None:
+
         def L_w_space(v):
             # Transform to W-space, apply L, transform back
             coeffs = transform_op.forward(v)
-            
+
             # For simplicity, assume L_apply works on flattened coefficients
             # This is a common pattern for W-space operators
             if isinstance(coeffs, list):
                 coeffs_flat = jnp.concatenate([c.flatten() for c in coeffs])
             else:
                 coeffs_flat = coeffs.flatten()
-            
+
             # Apply the operator in coefficient space
             result_flat = L_apply(coeffs_flat)
-            
+
             # Reshape back to coefficient structure
             if isinstance(coeffs, list):
                 result_coeffs = []
                 start_idx = 0
                 for c in coeffs:
                     size = c.size
-                    result_coeffs.append(result_flat[start_idx:start_idx + size].reshape(c.shape))
+                    result_coeffs.append(
+                        result_flat[start_idx : start_idx + size].reshape(c.shape)
+                    )
                     start_idx += size
                 return transform_op.inverse(result_coeffs)
             else:
                 return transform_op.inverse(result_flat.reshape(coeffs.shape))
-        
+
         effective_L_apply = L_w_space
     else:
         effective_L_apply = L_apply
@@ -187,9 +215,9 @@ def estimate_gamma_lanczos(L_apply: Callable, key: jnp.ndarray, input_shape: tup
         # betas[0] is the first beta (between v0 and v1)
         # betas[1] is between v1 and v2, etc.
         # So we need betas[0:k-1] for the off-diagonals
-        off_diag = betas[:k-1]
-        T = T.at[(jnp.arange(1, k), jnp.arange(k-1))].set(off_diag)
-        T = T.at[(jnp.arange(k-1), jnp.arange(1, k))].set(off_diag)
+        off_diag = betas[: k - 1]
+        T = T.at[(jnp.arange(1, k), jnp.arange(k - 1))].set(off_diag)
+        T = T.at[(jnp.arange(k - 1), jnp.arange(1, k))].set(off_diag)
 
     # Compute eigenvalues of tridiagonal matrix
     eigenvals = jnp.linalg.eigh(T)[0]
@@ -198,17 +226,18 @@ def estimate_gamma_lanczos(L_apply: Callable, key: jnp.ndarray, input_shape: tup
     # Use JIT-compatible approach: mask small eigenvalues with large positive value
     threshold = 1e-6
     masked_eigenvals = jnp.where(jnp.abs(eigenvals) > threshold, eigenvals, 1e10)
-    
+
     # Find the minimum among significant eigenvalues
     # Convert to ensure type checker understands this is an array
     masked_array = jnp.asarray(masked_eigenvals)
     min_significant = jnp.min(masked_array)
-    
+
     # If all eigenvalues were masked (spurious), return the eigenvalue with smallest absolute value
     # Otherwise return the minimum significant eigenvalue
     abs_eigenvals = jnp.abs(eigenvals)
     min_abs = jnp.min(abs_eigenvals)
     return jnp.where(min_significant < 1e9, min_significant, min_abs)
+
 
 @numerical_stability_check
 def estimate_eta_dd(L_apply: Callable, input_shape: tuple, eps: float = 1e-9) -> float:
@@ -219,17 +248,17 @@ def estimate_eta_dd(L_apply: Callable, input_shape: tuple, eps: float = 1e-9) ->
     dim = input_shape[0]
     basis_vectors = jnp.eye(dim)
     L_matrix = jax.vmap(L_apply)(basis_vectors)
-    
+
     # Get the absolute values of the diagonal and the full matrix
     abs_L = jnp.abs(L_matrix)
     diag_abs_L = jnp.diag(abs_L)
-    
+
     # Calculate the sum of absolute values of off-diagonal elements for each row
     off_diag_row_sum = jnp.sum(abs_L, axis=1) - diag_abs_L
-    
+
     # Compute the ratio for each row
     # Add epsilon to avoid division by zero
     ratios = off_diag_row_sum / (diag_abs_L + eps)
-    
+
     # The diagonal dominance is the maximum of these ratios
     return float(jnp.max(ratios))

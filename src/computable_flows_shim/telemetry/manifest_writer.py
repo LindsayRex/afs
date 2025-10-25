@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Optional
+from typing import Any
 
 # Prefer 'toml' if available, otherwise fall back to a tiny serializer for our
 # simple manifest structure so runtime does not require an extra dependency.
@@ -8,13 +8,14 @@ try:
 except Exception:
     toml = None
 
+
 def write_manifest(
     out_dir: str,
     schema_version: int,
     flow_name: str,
     run_id: str,
-    residual_details: Optional[Dict[str, Any]],
-    extra: Optional[Dict[str, Any]] = None
+    residual_details: dict[str, Any] | None,
+    extra: dict[str, Any] | None = None,
 ):
     """
     Write manifest.toml with required metadata for a run.
@@ -41,7 +42,7 @@ def write_manifest(
         residual = manifest.get("residual") or {}
         for k, v in residual.items():
             if isinstance(v, str):
-                lines.append(f"{k} = \"{v}\"")
+                lines.append(f'{k} = "{v}"')
             elif isinstance(v, bool):
                 lines.append(f"{k} = {str(v).lower()}")
             else:
@@ -51,7 +52,7 @@ def write_manifest(
             lines.append("[extra]")
             for k, v in extra.items():
                 if isinstance(v, str):
-                    lines.append(f"{k} = \"{v}\"")
+                    lines.append(f'{k} = "{v}"')
                 elif isinstance(v, bool):
                     lines.append(f"{k} = {str(v).lower()}")
                 else:

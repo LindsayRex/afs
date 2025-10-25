@@ -10,8 +10,16 @@ __version__ = "0.1.0"
 # Core configuration and type system
 from . import config
 from .config import (
-    get_dtype, enforce_dtype, get_xla_flags_for_platform, configure_jax_environment,
-    create_array, zeros, ones, random_normal, validate_dtype_consistency, validate_xla_flags
+    configure_jax_environment,
+    create_array,
+    enforce_dtype,
+    get_dtype,
+    get_xla_flags_for_platform,
+    ones,
+    random_normal,
+    validate_dtype_consistency,
+    validate_xla_flags,
+    zeros,
 )
 
 # Logging infrastructure
@@ -19,9 +27,19 @@ from .logging import configure_logging, get_logger, log_performance
 
 __all__ = [
     # Configuration and types
-    'config',
-    'get_dtype', 'enforce_dtype', 'get_xla_flags_for_platform', 'configure_jax_environment',
-    'create_array', 'zeros', 'ones', 'random_normal', 'validate_dtype_consistency', 'validate_xla_flags',
+    "config",
+    "get_dtype",
+    "enforce_dtype",
+    "get_xla_flags_for_platform",
+    "configure_jax_environment",
+    "create_array",
+    "zeros",
+    "ones",
+    "random_normal",
+    "validate_dtype_consistency",
+    "validate_xla_flags",
     # Logging
-    'configure_logging', 'get_logger', 'log_performance'
+    "configure_logging",
+    "get_logger",
+    "log_performance",
 ]

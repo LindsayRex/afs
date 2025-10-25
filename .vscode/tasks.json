@@ -31,14 +31,48 @@
 			]
 		},
 		{
-			"label": "pylint-phase10",
+			"label": "ruff-check",
 			"type": "shell",
 			"command": "${config:python.defaultInterpreterPath}",
 			"args": [
 				"-m",
-				"pylint",
-				"--fail-under=9.0",
-				"src/scripts"
+				"ruff",
+				"check",
+				"src",
+				"tests"
+			],
+			"problemMatcher": [
+				"$python"
+			],
+			"group": "build"
+		},
+		{
+			"label": "ruff-fix",
+			"type": "shell",
+			"command": "${config:python.defaultInterpreterPath}",
+			"args": [
+				"-m",
+				"ruff",
+				"check",
+				"--fix",
+				"src",
+				"tests"
+			],
+			"problemMatcher": [
+				"$python"
+			],
+			"group": "build"
+		},
+		{
+			"label": "ruff-format",
+			"type": "shell",
+			"command": "${config:python.defaultInterpreterPath}",
+			"args": [
+				"-m",
+				"ruff",
+				"format",
+				"src",
+				"tests"
 			],
 			"problemMatcher": [
 				"$python"

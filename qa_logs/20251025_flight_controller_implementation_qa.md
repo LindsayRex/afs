@@ -2,8 +2,8 @@
 
 ## QA Log: Flight Controller RED/AMBER/GREEN Phase Machine & GapDial Integration
 
-**Date**: October 25, 2025  
-**Component**: Flight Controller (`src/computable_flows_shim/controller.py`)  
+**Date**: October 25, 2025
+**Component**: Flight Controller (`src/computable_flows_shim/controller.py`)
 **Status**: ✅ COMPLETED - All phases working, GapDial integrated, telemetry schema complete
 
 ---
@@ -17,7 +17,7 @@ Implemented complete Flight Controller with RED/AMBER/GREEN phase machine, certi
 #### 1. **Fixed Telemetry Interface Mismatch**
 - **Problem**: API was passing `FlightRecorder` directly to controller, but controller expected `TelemetryManager`
 - **Solution**: Updated API to use `TelemetryManager` with proper interface
-- **Implementation**: 
+- **Implementation**:
   - Modified `run_certified_with_telemetry()` to create and use `TelemetryManager`
   - Controller receives `TelemetryManager` and accesses `flight_recorder` property
 
@@ -25,7 +25,7 @@ Implemented complete Flight Controller with RED/AMBER/GREEN phase machine, certi
 - **RED Phase**: Initial certificate assessment with remediation (alpha reduction)
 - **AMBER Phase**: Certificate remediation attempts with configurable limits
 - **GREEN Phase**: Certified execution with tuner allowed and rollback capability
-- **Implementation**: 
+- **Implementation**:
   - Phase transitions with telemetry logging
   - Certificate validation at each phase boundary
   - Automatic remediation with alpha reduction
@@ -33,7 +33,7 @@ Implemented complete Flight Controller with RED/AMBER/GREEN phase machine, certi
 #### 3. **GapDial Tuner Integration**
 - **Problem**: Tuner state wasn't being updated properly (iteration_count, last_gap_check)
 - **Solution**: Added proper state management in controller
-- **Implementation**: 
+- **Implementation**:
   - Controller updates `tuner.iteration_count` and `tuner.last_gap_check` after gap checks
   - Tuner adapts parameters based on spectral gap measurements
   - Certificate validation after tuner moves with rollback on failure
@@ -47,7 +47,7 @@ Implemented complete Flight Controller with RED/AMBER/GREEN phase machine, certi
 #### 5. **Complete Telemetry Schema**
 - **Problem**: Controller was missing several required telemetry fields
 - **Solution**: Added all schema v3 fields to telemetry logging
-- **Implementation**: 
+- **Implementation**:
   - Added trial_id, lambda, lambda_j, metric_ber, warnings, notes
   - Added lens_name, level_active_max, sparsity_mode, flow_family
   - Proper handling of reserved keyword 'lambda' in logging
@@ -105,11 +105,11 @@ else:
 if gap_dial_tuner.should_check_gap(i):
     current_gap = gap_dial_tuner.estimate_spectral_gap(compiled, state)
     status = gap_dial_tuner.adapt_parameters(current_gap, compiled)
-    
+
     # Update tuner state
     gap_dial_tuner.iteration_count = i + 1
     gap_dial_tuner.last_gap_check = i
-    
+
     # Validate certificates after adaptation
     if not still_feasible and rollback_on_cert_failure:
         rollback_to_checkpoint(last_good_checkpoint)
@@ -127,7 +127,7 @@ All v3 fields implemented:
 ## 📋 **Files Modified**
 
 ### **Core Controller**
-- `src/computable_flows_shim/controller.py`: 
+- `src/computable_flows_shim/controller.py`:
   - Added complete RED/AMBER/GREEN phase machine
   - Integrated GapDial tuner with state management
   - Added rollback and remediation logic
@@ -135,7 +135,7 @@ All v3 fields implemented:
   - Added budget enforcement
 
 ### **API Interface**
-- `src/computable_flows_shim/api.py`: 
+- `src/computable_flows_shim/api.py`:
   - Fixed telemetry interface to use TelemetryManager
   - Proper manifest writing through TelemetryManager
 
@@ -170,8 +170,8 @@ With flight controller implementation complete, the next core functionality shou
 
 ---
 
-**QA Engineer**: GitHub Copilot  
-**Validation**: All functionality tested and working  
-**Architecture Compliance**: ✅ RED/AMBER/GREEN phase machine implemented  
+**QA Engineer**: GitHub Copilot
+**Validation**: All functionality tested and working
+**Architecture Compliance**: ✅ RED/AMBER/GREEN phase machine implemented
 **Integration Points**: GapDial tuner and telemetry fully integrated</content>
 <parameter name="filePath">j:\Google Drive\Software\afs\qa_logs\20251025_flight_controller_implementation_qa.md

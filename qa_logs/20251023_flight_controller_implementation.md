@@ -1,9 +1,9 @@
 # QA Log: Flight Controller Phase Machine Implementation
 
-**Date:** 2025-10-23  
-**Component:** Flight Controller  
-**Status:** ✅ COMPLETED  
-**Tests:** 110/110 passing  
+**Date:** 2025-10-23
+**Component:** Flight Controller
+**Status:** ✅ COMPLETED
+**Tests:** 110/110 passing
 
 ## Overview
 
@@ -84,20 +84,20 @@ ControllerConfig(
     # Certificate thresholds
     eta_max: float = 0.9,           # Max diagonal dominance ratio
     gamma_min: float = 1e-6,        # Min spectral gap
-    
-    # Remediation settings  
+
+    # Remediation settings
     max_remediation_attempts: int = 3,    # Initial certification attempts
     alpha_reduction_factor: float = 0.5,  # Alpha reduction on failure
-    
+
     # Budget limits
     max_wall_time_ms: Optional[float] = None,
     max_iterations: Optional[int] = None,
     max_tuner_moves: int = 10,
-    
+
     # Rollback settings
     max_rollbacks: int = 3,
     rollback_on_cert_failure: bool = True,
-    
+
     # Step settings
     max_step_attempts: int = 3,
     step_alpha_reduction_factor: float = 0.5
@@ -141,7 +141,7 @@ ControllerConfig(
 pytest tests/test_controller.py -v
 ======================== 10 passed, 0 failed ========================
 
-pytest tests/ -x --tb=short  
+pytest tests/ -x --tb=short
 ======================== 110 passed, 0 failed ========================
 ```
 
@@ -157,11 +157,11 @@ pytest tests/ -x --tb=short
 
 ## Design Pattern Compliance
 
-✅ **Functional Core:** Pure functions for certificate assessment and state transitions  
-✅ **Modular Design:** Separate concerns (phases, checkpoints, budgets, telemetry)  
-✅ **Immutable State:** Checkpoint system preserves state integrity  
-✅ **Error Boundaries:** Comprehensive exception handling and recovery  
-✅ **Configuration Injection:** All parameters externally configurable  
+✅ **Functional Core:** Pure functions for certificate assessment and state transitions
+✅ **Modular Design:** Separate concerns (phases, checkpoints, budgets, telemetry)
+✅ **Immutable State:** Checkpoint system preserves state integrity
+✅ **Error Boundaries:** Comprehensive exception handling and recovery
+✅ **Configuration Injection:** All parameters externally configurable
 
 ## Integration Points
 

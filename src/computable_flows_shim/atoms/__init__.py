@@ -6,17 +6,18 @@ each with mathematically rigorous implementations and certificate hooks.
 """
 
 # Import base classes
+# Import all atom implementations (this registers them automatically)
+from . import l1, quadratic, tikhonov, tv, wavelet_l1
 from .base import Atom
 
 # Import registry system
-from .registry import ATOM_REGISTRY, register_atom, get_registered_atoms, is_atom_registered, get_atom_class
-
-# Import all atom implementations (this registers them automatically)
-from . import quadratic
-from . import tikhonov
-from . import l1
-from . import wavelet_l1
-from . import tv
+from .registry import (
+    ATOM_REGISTRY,
+    get_atom_class,
+    get_registered_atoms,
+    is_atom_registered,
+    register_atom,
+)
 
 
 def create_atom(atom_type: str, **params) -> Atom:
@@ -40,11 +41,11 @@ def create_atom(atom_type: str, **params) -> Atom:
 
 
 __all__ = [
-    'Atom',
-    'ATOM_REGISTRY',
-    'create_atom',
-    'register_atom',
-    'get_registered_atoms',
-    'is_atom_registered',
-    'get_atom_class'
+    "ATOM_REGISTRY",
+    "Atom",
+    "create_atom",
+    "get_atom_class",
+    "get_registered_atoms",
+    "is_atom_registered",
+    "register_atom",
 ]

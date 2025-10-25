@@ -91,7 +91,7 @@ Total:                     5 tests ✓ (100% pass rate)
 ```python
 CompiledEnergy = NamedTuple(
     f_value: Callable[[State], float],      # Energy function
-    f_grad: Callable[[State], State],       # Gradient function  
+    f_grad: Callable[[State], State],       # Gradient function
     g_prox: Callable[[State, float], State], # Proximal operator
     L_apply: Callable[[Array], Array],      # Linear operator for FDA
     compile_report: Optional[Dict]          # Metadata

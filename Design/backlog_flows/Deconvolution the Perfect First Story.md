@@ -122,7 +122,7 @@ Here is how you set up the comparison:
     2.  **Timing Loop:** Start the timer, run your main iterative loop for `N` steps, then call `result.block_until_ready()` before stopping the timer. This is essential to get accurate timing in JAX's asynchronous execution model.
     ```python
     import time
-    
+
     # --- Warm-up ---
     _ = your_flow_step(initial_state, ...)
     _.block_until_ready()
@@ -132,7 +132,7 @@ Here is how you set up the comparison:
     final_state = run_your_flow_for_N_iterations(...)
     final_state['main'].block_until_ready() # or whatever your final array is
     end_time = time.time()
-    
+
     elapsed_time = end_time - start_time
     ```
 *   **Win Condition:** Your flow reaches the target PSNR in less wall-clock time than FISTA+TV.

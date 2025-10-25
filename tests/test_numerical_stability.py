@@ -5,9 +5,14 @@ Tests the @numerical_stability_check decorator and related utilities.
 Ensures NaN/Inf detection works correctly with minimal performance overhead.
 """
 
-import pytest
 import jax.numpy as jnp
-from computable_flows_shim.core import numerical_stability_check, NumericalInstabilityError, check_numerical_stability
+import pytest
+
+from computable_flows_shim.core import (
+    NumericalInstabilityError,
+    check_numerical_stability,
+    numerical_stability_check,
+)
 
 
 class TestNumericalStabilityDecorator:
@@ -15,6 +20,7 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_preserves_function_behavior(self):
         """Test that decorator doesn't change normal function behavior."""
+
         @numerical_stability_check
         def add_arrays(x, y):
             return x + y
@@ -28,11 +34,12 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_detects_nan_input(self):
         """Test that decorator detects NaN in inputs."""
+
         @numerical_stability_check
         def identity(x):
             return x
 
-        x = jnp.array([1.0, float('nan'), 3.0])
+        x = jnp.array([1.0, float("nan"), 3.0])
 
         with pytest.raises(NumericalInstabilityError) as exc_info:
             identity(x)
@@ -42,11 +49,12 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_detects_inf_input(self):
         """Test that decorator detects infinity in inputs."""
+
         @numerical_stability_check
         def identity(x):
             return x
 
-        x = jnp.array([1.0, float('inf'), 3.0])
+        x = jnp.array([1.0, float("inf"), 3.0])
 
         with pytest.raises(NumericalInstabilityError) as exc_info:
             identity(x)
@@ -55,6 +63,7 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_detects_nan_output(self):
         """Test that decorator detects NaN in outputs."""
+
         @numerical_stability_check
         def divide_by_zero(x):
             return x / 0.0  # Creates inf, but let's use a function that creates NaN
@@ -73,6 +82,7 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_detects_inf_output(self):
         """Test that decorator detects infinity in outputs."""
+
         @numerical_stability_check
         def divide_by_zero(x):
             return x / 0.0
@@ -86,6 +96,7 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_ignores_non_array_inputs(self):
         """Test that decorator ignores non-JAX array inputs."""
+
         @numerical_stability_check
         def func_with_scalars(x, y, scalar_param=1.0):
             return x + y + scalar_param
@@ -100,6 +111,7 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_with_keyword_arguments(self):
         """Test decorator with keyword arguments."""
+
         @numerical_stability_check
         def func_with_kwargs(x, y=None):
             if y is None:
@@ -119,12 +131,13 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_with_nan_in_kwargs(self):
         """Test decorator detects NaN in keyword arguments."""
+
         @numerical_stability_check
         def add(x, y):
             return x + y
 
         x = jnp.array([1.0, 2.0])
-        y = jnp.array([float('nan'), 4.0])
+        y = jnp.array([float("nan"), 4.0])
 
         with pytest.raises(NumericalInstabilityError) as exc_info:
             add(x, y=y)
@@ -134,6 +147,7 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_with_multiple_outputs(self):
         """Test decorator with functions returning multiple values."""
+
         @numerical_stability_check
         def multiple_outputs(x):
             return x * 2, x + 1, x / 2
@@ -147,28 +161,30 @@ class TestNumericalStabilityDecorator:
 
     def test_decorator_with_dict_output(self):
         """Test decorator with functions returning dictionaries."""
+
         @numerical_stability_check
         def dict_output(x):
             return {
-                'doubled': x * 2,
-                'halved': x / 2,
-                'scalar': 42  # Non-array, should be ignored
+                "doubled": x * 2,
+                "halved": x / 2,
+                "scalar": 42,  # Non-array, should be ignored
             }
 
         x = jnp.array([2.0, 4.0])
         result = dict_output(x)
 
-        assert jnp.allclose(result['doubled'], jnp.array([4.0, 8.0]))
-        assert jnp.allclose(result['halved'], jnp.array([1.0, 2.0]))
-        assert result['scalar'] == 42
+        assert jnp.allclose(result["doubled"], jnp.array([4.0, 8.0]))
+        assert jnp.allclose(result["halved"], jnp.array([1.0, 2.0]))
+        assert result["scalar"] == 42
 
     def test_decorator_with_nan_in_dict_output(self):
         """Test decorator detects NaN in dictionary outputs."""
+
         @numerical_stability_check
         def dict_output_with_nan(x):
             return {
-                'good': x * 2,
-                'bad': jnp.sqrt(-x)  # Creates NaN
+                "good": x * 2,
+                "bad": jnp.sqrt(-x),  # Creates NaN
             }
 
         x = jnp.array([1.0, 4.0])
@@ -191,7 +207,7 @@ class TestManualNumericalStabilityCheck:
 
     def test_manual_check_detects_nan(self):
         """Test manual check detects NaN."""
-        x = jnp.array([1.0, float('nan'), 3.0])
+        x = jnp.array([1.0, float("nan"), 3.0])
 
         with pytest.raises(NumericalInstabilityError) as exc_info:
             check_numerical_stability(x, "test_array")
@@ -200,7 +216,7 @@ class TestManualNumericalStabilityCheck:
 
     def test_manual_check_detects_inf(self):
         """Test manual check detects infinity."""
-        x = jnp.array([1.0, float('inf'), 3.0])
+        x = jnp.array([1.0, float("inf"), 3.0])
 
         with pytest.raises(NumericalInstabilityError) as exc_info:
             check_numerical_stability(x, "test_array")
@@ -236,7 +252,9 @@ class TestPerformanceCharacteristics:
 
         # Should complete quickly (less than 1 second for 1000 calls)
         duration = end_time - start_time
-        assert duration < 1.0, f"Decorator overhead too high: {duration}s for 1000 calls"
+        assert (
+            duration < 1.0
+        ), f"Decorator overhead too high: {duration}s for 1000 calls"
 
         # Verify results are still correct
         assert jnp.allclose(result, jnp.array([3.0, 5.0, 7.0]))
@@ -247,6 +265,7 @@ class TestErrorPropagation:
 
     def test_original_exceptions_preserved(self):
         """Test that non-numerical errors are re-raised unchanged."""
+
         @numerical_stability_check
         def function_that_raises(x):
             raise ValueError("Original error message")
@@ -260,13 +279,14 @@ class TestErrorPropagation:
 
     def test_numerical_errors_take_precedence(self):
         """Test that numerical errors are caught before other errors."""
+
         @numerical_stability_check
         def function_with_nan_and_error(x):
             if jnp.isnan(x).any():
                 raise ValueError("This should not be reached")
             return x
 
-        x = jnp.array([float('nan')])
+        x = jnp.array([float("nan")])
 
         # Should catch NaN first, not the ValueError
         with pytest.raises(NumericalInstabilityError):

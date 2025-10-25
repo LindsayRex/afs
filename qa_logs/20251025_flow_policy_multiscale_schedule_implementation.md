@@ -124,7 +124,7 @@ from computable_flows_shim.controller import FlightController
 # Define execution policies
 flow_policy = FlowPolicy(
     family='preconditioned',
-    discretization='symplectic', 
+    discretization='symplectic',
     preconditioner='jacobi'
 )
 

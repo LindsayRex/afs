@@ -1,15 +1,17 @@
 """
 Contract tests for FDA Lanczos hardening implementation.
 """
+
 import sys
 from functools import partial
 from pathlib import Path
+
 import jax
 import jax.numpy as jnp
 import pytest
 
 # Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from computable_flows_shim.fda.certificates import estimate_gamma_lanczos
 
@@ -31,6 +33,7 @@ class TestLanczosContract:
         When Lanczos is run with sufficient iterations,
         Then it should converge to the smallest eigenvalue.
         """
+
         # Diagonal matrix [[2, 0], [0, 5]] has eigenvalues 2, 5
         def L_apply(v):
             return jnp.array([2.0 * v[0], 5.0 * v[1]], dtype=self.float_dtype)
@@ -39,7 +42,9 @@ class TestLanczosContract:
         gamma = estimate_gamma_lanczos(L_apply, key, (2,), k=10)
 
         # Should converge to min eigenvalue = 2.0
-        assert jnp.isclose(gamma, 2.0, atol=self.tolerance), f"Expected ~2.0, got {gamma}"
+        assert jnp.isclose(
+            gamma, 2.0, atol=self.tolerance
+        ), f"Expected ~2.0, got {gamma}"
 
     def test_lanczos_matrix_free_consistency(self):
         """
@@ -58,7 +63,9 @@ class TestLanczosContract:
         gamma = estimate_gamma_lanczos(L_apply, key, (2,), k=8)
 
         # Should be close to smallest eigenvalue
-        assert jnp.isclose(gamma, true_eigenvals[0], atol=self.tolerance), f"Expected ~{true_eigenvals[0]}, got {gamma}"
+        assert jnp.isclose(
+            gamma, true_eigenvals[0], atol=self.tolerance
+        ), f"Expected ~{true_eigenvals[0]}, got {gamma}"
 
     def test_lanczos_handles_negative_eigenvalues(self):
         """
@@ -66,6 +73,7 @@ class TestLanczosContract:
         When Lanczos estimates the spectral gap,
         Then it should correctly identify negative values.
         """
+
         # Matrix [[-1, 0], [0, 2]] has eigenvalues -1, 2
         def L_apply(v):
             return jnp.array([-1.0 * v[0], 2.0 * v[1]], dtype=self.float_dtype)
@@ -74,7 +82,9 @@ class TestLanczosContract:
         gamma = estimate_gamma_lanczos(L_apply, key, (2,), k=10)
 
         # Should return -1.0 (most negative eigenvalue)
-        assert jnp.isclose(gamma, -1.0, atol=self.tolerance), f"Expected ~-1.0, got {gamma}"
+        assert jnp.isclose(
+            gamma, -1.0, atol=self.tolerance
+        ), f"Expected ~-1.0, got {gamma}"
 
     def test_lanczos_convergence_with_different_k(self):
         """
@@ -82,9 +92,12 @@ class TestLanczosContract:
         When Lanczos is run with increasing k,
         Then estimates should improve (get closer to true value).
         """
+
         def L_apply(v):
             # Matrix with eigenvalues approximately [1.0, 6.0]
-            return jnp.array([2.0 * v[0] + v[1], v[0] + 5.0 * v[1]], dtype=self.float_dtype)
+            return jnp.array(
+                [2.0 * v[0] + v[1], v[0] + 5.0 * v[1]], dtype=self.float_dtype
+            )
 
         key = jax.random.PRNGKey(789)
 
@@ -96,7 +109,9 @@ class TestLanczosContract:
         error_k5 = abs(gamma_k5 - true_min)
         error_k10 = abs(gamma_k10 - true_min)
 
-        assert error_k10 <= error_k5, f"k=10 error {error_k10} should be <= k=5 error {error_k5}"
+        assert (
+            error_k10 <= error_k5
+        ), f"k=10 error {error_k10} should be <= k=5 error {error_k5}"
 
     def test_lanczos_jit_compatibility(self):
         """
@@ -104,6 +119,7 @@ class TestLanczosContract:
         When JIT compiled,
         Then it should execute without errors.
         """
+
         def L_apply(v):
             return jnp.array([3.0 * v[0], 4.0 * v[1]], dtype=self.float_dtype)
 
@@ -124,24 +140,32 @@ class TestLanczosContract:
         Then it should work correctly in transformed space.
         """
         from computable_flows_shim.multi.transform_op import make_transform
-        
+
         # Create a Haar wavelet transform for 4-element vectors
-        transform = make_transform('haar', levels=1, ndim=1)
-        
+        transform = make_transform("haar", levels=1, ndim=1)
+
         # Simple operator that works on coefficient vectors (diagonal scaling)
         def L_coeffs(coeffs_flat):
             # Assume coeffs_flat represents flattened wavelet coefficients
             # Apply simple diagonal operator
             return 2.0 * coeffs_flat  # Scale all coefficients by 2
-        
+
         key = jax.random.PRNGKey(111)
-        
+
         # Test with W-space transform
-        gamma_w_space = estimate_gamma_lanczos(L_coeffs, key, (4,), k=6, transform_op=transform)
-        
+        gamma_w_space = estimate_gamma_lanczos(
+            L_coeffs, key, (4,), k=6, transform_op=transform
+        )
+
         # Test without transform for comparison
-        gamma_physical = estimate_gamma_lanczos(L_coeffs, key, (4,), k=6, transform_op=None)
-        
+        gamma_physical = estimate_gamma_lanczos(
+            L_coeffs, key, (4,), k=6, transform_op=None
+        )
+
         # Both should work and return finite values
-        assert jnp.isfinite(gamma_w_space), f"W-space Lanczos should return finite value, got {gamma_w_space}"
-        assert jnp.isfinite(gamma_physical), f"Physical space Lanczos should return finite value, got {gamma_physical}"
+        assert jnp.isfinite(
+            gamma_w_space
+        ), f"W-space Lanczos should return finite value, got {gamma_w_space}"
+        assert jnp.isfinite(
+            gamma_physical
+        ), f"Physical space Lanczos should return finite value, got {gamma_physical}"

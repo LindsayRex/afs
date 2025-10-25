@@ -1,24 +1,29 @@
 """
 Tests for the Flight Controller.
 """
+
 import sys
 from pathlib import Path
-import jax
-import jax.numpy as jnp
-# Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from computable_flows_shim.energy.specs import EnergySpec, TermSpec, StateSpec
-from computable_flows_shim.energy.compile import compile_energy
+import jax.numpy as jnp
+
+# Add the project root to the Python path
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+import pytest
+
 from computable_flows_shim.api import Op
 from computable_flows_shim.controller import FlightController
-from computable_flows_shim.runtime.step import run_flow_step
+from computable_flows_shim.energy.compile import compile_energy
 from computable_flows_shim.energy.policies import FlowPolicy, MultiscaleSchedule
-import pytest
+from computable_flows_shim.energy.specs import EnergySpec, StateSpec, TermSpec
+from computable_flows_shim.runtime.step import run_flow_step
+
 
 class IdentityOp(Op):
     def __call__(self, x):
         return x
+
 
 def test_controller_runs_loop():
     """
@@ -27,28 +32,32 @@ def test_controller_runs_loop():
     # GIVEN a simple quadratic energy functional
     spec = EnergySpec(
         terms=[
-            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
         ],
-        state=StateSpec(shapes={'x': [1], 'y': [1]})
+        state=StateSpec(shapes={"x": [1], "y": [1]}),
     )
-    op_registry = {'I': IdentityOp()}
+    op_registry = {"I": IdentityOp()}
     compiled = compile_energy(spec, op_registry)
 
     # WHEN we run the flow using the controller for a single step
-    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
-    
+    initial_state = {"x": jnp.array([10.0]), "y": jnp.array([0.0])}
+
     controller = FlightController()
-    final_state = controller.run_certified_flow(initial_state, compiled, num_iterations=1, initial_alpha=0.1)
+    final_state = controller.run_certified_flow(
+        initial_state, compiled, num_iterations=1, initial_alpha=0.1
+    )
 
     # THEN the final state should be the result of one Forward-Backward step
     # 1. F_Dis: z = x - alpha * grad(f(x)) = 10.0 - 0.1 * (10.0 - 0.0) = 9.0
     # 2. F_Proj: prox_g is an identity op since there are no non-smooth terms.
-    assert jnp.allclose(final_state['x'], 9.0, atol=1e-3)
+    assert jnp.allclose(final_state["x"], 9.0, atol=1e-3)
+
 
 class NonDiagonallyDominantOp(Op):
     def __call__(self, x):
         # L = [[1, 2], [2, 1]]. Row 0: |2|/|1| = 2 > 1. Not DD.
         return jnp.array([1.0 * x[0] + 2.0 * x[1], 2.0 * x[0] + 1.0 * x[1]])
+
 
 def test_controller_checks_diagonal_dominance():
     """
@@ -56,12 +65,10 @@ def test_controller_checks_diagonal_dominance():
     """
     # GIVEN an energy functional with a non-diagonally dominant operator
     spec = EnergySpec(
-        terms=[
-            TermSpec(type='tikhonov', op='L', weight=1.0, variable='x')
-        ],
-        state=StateSpec(shapes={'x': [2]})
+        terms=[TermSpec(type="tikhonov", op="L", weight=1.0, variable="x")],
+        state=StateSpec(shapes={"x": [2]}),
     )
-    op_registry = {'L': NonDiagonallyDominantOp()}
+    op_registry = {"L": NonDiagonallyDominantOp()}
     compiled = compile_energy(spec, op_registry)
 
     # WHEN we try to run the flow
@@ -69,11 +76,12 @@ def test_controller_checks_diagonal_dominance():
     with pytest.raises(ValueError, match="System failed certification"):
         controller = FlightController()
         controller.run_certified_flow(
-            initial_state={'x': jnp.array([1.0, 1.0])},
+            initial_state={"x": jnp.array([1.0, 1.0])},
             compiled=compiled,
             num_iterations=10,
-            initial_alpha=0.1
+            initial_alpha=0.1,
         )
+
 
 def test_controller_enforces_lyapunov_descent():
     """
@@ -83,35 +91,36 @@ def test_controller_enforces_lyapunov_descent():
     # GIVEN a simple quadratic energy functional
     spec = EnergySpec(
         terms=[
-            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
         ],
-        state=StateSpec(shapes={'x': [1], 'y': [1]})
+        state=StateSpec(shapes={"x": [1], "y": [1]}),
     )
-    op_registry = {'I': IdentityOp()}
+    op_registry = {"I": IdentityOp()}
     compiled = compile_energy(spec, op_registry)
 
     # AND a malicious step function that increases energy on the second step
     def malicious_step_function(state, compiled, step_alpha):
         # First step is normal
-        if state['x'][0] == 10.0:
+        if state["x"][0] == 10.0:
             return run_flow_step(state, compiled, step_alpha)
         # Second step, deliberately increase the energy by moving away from the minimum
         else:
-            return {'x': jnp.array([99.0]), 'y': state['y']}
+            return {"x": jnp.array([99.0]), "y": state["y"]}
 
     # WHEN we run the flow with the malicious step function
-    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
-    
+    initial_state = {"x": jnp.array([10.0]), "y": jnp.array([0.0])}
+
     # THEN the controller should detect the energy increase and raise an error
     with pytest.raises(ValueError, match="Step failed to decrease energy"):
         controller = FlightController()
         controller.run_certified_flow(
-            initial_state, 
-            compiled, 
-            num_iterations=5, 
+            initial_state,
+            compiled,
+            num_iterations=5,
             initial_alpha=0.1,
-            _step_function_for_testing=malicious_step_function # Inject our malicious function
+            _step_function_for_testing=malicious_step_function,  # Inject our malicious function
         )
+
 
 def test_controller_amber_step_remediation():
     """
@@ -120,40 +129,42 @@ def test_controller_amber_step_remediation():
     # GIVEN a simple quadratic energy functional
     spec = EnergySpec(
         terms=[
-            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
         ],
-        state=StateSpec(shapes={'x': [1], 'y': [1]})
+        state=StateSpec(shapes={"x": [1], "y": [1]}),
     )
-    op_registry = {'I': IdentityOp()}
+    op_registry = {"I": IdentityOp()}
     compiled = compile_energy(spec, op_registry)
 
     # AND a step function that fails with large alpha but succeeds with small alpha
     def picky_step_function(state, compiled, step_alpha):
         if step_alpha > 0.05:  # Large alpha causes energy increase
-            return {'x': jnp.array([state['x'][0] + 10.0]), 'y': state['y']}  # Bad step
+            return {"x": jnp.array([state["x"][0] + 10.0]), "y": state["y"]}  # Bad step
         else:  # Small alpha works
             return run_flow_step(state, compiled, step_alpha)
 
     # WHEN we run the flow with a large initial alpha that needs remediation
-    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
-    
+    initial_state = {"x": jnp.array([10.0]), "y": jnp.array([0.0])}
+
     controller = FlightController()
     final_state = controller.run_certified_flow(
-        initial_state, 
-        compiled, 
-        num_iterations=1, 
+        initial_state,
+        compiled,
+        num_iterations=1,
         initial_alpha=0.1,  # Large alpha that will fail first attempt
-        _step_function_for_testing=picky_step_function
+        _step_function_for_testing=picky_step_function,
     )
 
     # THEN the controller should have remediated and succeeded
     # With small alpha, it should converge closer to 0
-    assert jnp.allclose(final_state['x'], 9.5, atol=1e-3)
+    assert jnp.allclose(final_state["x"], 9.5, atol=1e-3)
+
 
 def test_controller_checks_spectral_gap():
     """
     Tests that the controller refuses to run an unstable system (non-positive spectral gap).
     """
+
     # GIVEN an energy functional with an unstable linear operator (negative eigenvalue)
     class UnstableOp(Op):
         def __call__(self, x):
@@ -161,24 +172,23 @@ def test_controller_checks_spectral_gap():
             return jnp.array([-1.0 * x[0], 2.0 * x[1]])
 
     spec = EnergySpec(
-        terms=[
-            TermSpec(type='tikhonov', op='L', weight=1.0, variable='x')
-        ],
-        state=StateSpec(shapes={'x': [2]})
+        terms=[TermSpec(type="tikhonov", op="L", weight=1.0, variable="x")],
+        state=StateSpec(shapes={"x": [2]}),
     )
-    op_registry = {'L': UnstableOp()}
+    op_registry = {"L": UnstableOp()}
     compiled = compile_energy(spec, op_registry)
-    
+
     # WHEN we try to run the flow
     # THEN the controller should detect the negative spectral gap and raise an error
     with pytest.raises(ValueError, match="System failed certification"):
         controller = FlightController()
         controller.run_certified_flow(
-            initial_state={'x': jnp.array([1.0, 1.0])},
+            initial_state={"x": jnp.array([1.0, 1.0])},
             compiled=compiled,
             num_iterations=10,
-            initial_alpha=0.1
+            initial_alpha=0.1,
         )
+
 
 def test_controller_policy_integration():
     """
@@ -187,27 +197,25 @@ def test_controller_policy_integration():
     # GIVEN a simple quadratic energy functional
     spec = EnergySpec(
         terms=[
-            TermSpec(type='quadratic', op='I', weight=1.0, variable='x', target='y')
+            TermSpec(type="quadratic", op="I", weight=1.0, variable="x", target="y")
         ],
-        state=StateSpec(shapes={'x': [1], 'y': [1]})
+        state=StateSpec(shapes={"x": [1], "y": [1]}),
     )
-    op_registry = {'I': IdentityOp()}
+    op_registry = {"I": IdentityOp()}
     compiled = compile_energy(spec, op_registry)
 
     # AND policy specifications
     flow_policy = FlowPolicy(
-        family='preconditioned',
-        discretization='symplectic',
-        preconditioner='jacobi'
+        family="preconditioned", discretization="symplectic", preconditioner="jacobi"
     )
     multiscale_schedule = MultiscaleSchedule(
-        mode='fixed_schedule',
+        mode="fixed_schedule",
         levels=3,
-        activate_rule='iteration%2==0'  # Activate every 2 iterations
+        activate_rule="iteration%2==0",  # Activate every 2 iterations
     )
 
     # WHEN we run the flow with policies
-    initial_state = {'x': jnp.array([10.0]), 'y': jnp.array([0.0])}
+    initial_state = {"x": jnp.array([10.0]), "y": jnp.array([0.0])}
 
     controller = FlightController()
     final_state = controller.run_certified_flow(
@@ -216,12 +224,12 @@ def test_controller_policy_integration():
         num_iterations=5,
         initial_alpha=0.1,
         flow_policy=flow_policy,
-        multiscale_schedule=multiscale_schedule
+        multiscale_schedule=multiscale_schedule,
     )
 
     # THEN the flow should complete successfully
     # The exact final state depends on policy-driven primitive selection
-    assert 'x' in final_state
-    assert 'y' in final_state
-    assert final_state['x'].shape == (1,)
-    assert final_state['y'].shape == (1,)
+    assert "x" in final_state
+    assert "y" in final_state
+    assert final_state["x"].shape == (1,)
+    assert final_state["y"].shape == (1,)

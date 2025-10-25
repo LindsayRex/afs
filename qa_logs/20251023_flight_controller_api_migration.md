@@ -1,9 +1,9 @@
 # QA Log: Flight Controller API Migration
 
-**Date:** 2025-10-23  
-**Component:** Flight Controller API  
-**Status:** ✅ COMPLETED  
-**Tests:** 110/110 passing  
+**Date:** 2025-10-23
+**Component:** Flight Controller API
+**Status:** ✅ COMPLETED
+**Tests:** 110/110 passing
 
 ## Overview
 
@@ -13,7 +13,7 @@ Successfully migrated the entire AFS codebase from the legacy `run_certified` fu
 
 ### Files Updated
 - **`tests/test_controller.py`**: 5 test functions migrated
-- **`src/scripts/cfs_cli.py`**: 2 CLI command functions migrated  
+- **`src/scripts/cfs_cli.py`**: 2 CLI command functions migrated
 - **`src/computable_flows_shim/api.py`**: 1 public API function migrated
 - **`src/computable_flows_shim/controller.py`**: Legacy function removed
 
@@ -51,7 +51,7 @@ result = controller.run_certified_flow(initial_state, compiled, 100, 0.1, ...)
 - **Before:** Two competing APIs (`run_certified` vs `FlightController`)
 - **After:** One authoritative API (`FlightController`)
 
-### 2. Guide Users to Best Practices  
+### 2. Guide Users to Best Practices
 - **Before:** Legacy function represented incomplete MVP usage
 - **After:** All users automatically get full phase machine, rollback, and safety features
 
@@ -70,13 +70,13 @@ result = controller.run_certified_flow(initial_state, compiled, 100, 0.1, ...)
 pytest tests/test_controller.py -v
 ======================== 10 passed, 0 failed ========================
 
-pytest tests/ -x --tb=short  
+pytest tests/ -x --tb=short
 ======================== 110 passed, 0 failed ========================
 ```
 
 ### CLI Validation
 - ✅ `cfs run` command works with new API
-- ✅ `cfs tune` command works with new API  
+- ✅ `cfs tune` command works with new API
 - ✅ Telemetry and output generation functional
 
 ### API Validation

@@ -71,4 +71,3 @@
         │  - Invariance gates (e.g., path order preserved)        │
         │  - Scale knobs (wavelet basis, CSR graphs, NUMBA)       │
         └──────────────────────────────────────────────────────────┘
-

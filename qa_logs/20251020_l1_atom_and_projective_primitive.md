@@ -1,6 +1,6 @@
 # QA Log: 2025-10-20 - L1 Atom and Projective Primitive
 
-**Components:** 
+**Components:**
 - `src/computable_flows_shim/energy/compile.py`
 - `src/computable_flows_shim/runtime/primitives.py`
 

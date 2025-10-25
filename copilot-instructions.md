@@ -76,7 +76,7 @@ Is the test verifying a real property, or just making the test pass? Only keep t
 - **All mathematical operations must use JAX arrays** - No raw Python lists or numpy arrays in math functions
 - **Reference:** `Design/shim_build/03b_energy_spec_hygiene_spec.md` (JAX Compatibility section)
 
-### Hygiene Requirements  
+### Hygiene Requirements
 - **Decorate ALL mathematical functions** with `@numerical_stability_check`
 - **Use Pydantic models** for ALL data structures (`BaseModel` with field validation)
 - **Apply to:** Energy functions, gradient computations, prox operators, runtime primitives
@@ -84,7 +84,7 @@ Is the test verifying a real property, or just making the test pass? Only keep t
 
 ### Design Pattern Compliance
 - **Functional Core:** Pure mathematical functions with zero side effects
-- **Imperative Shell:** All I/O, validation, error handling in outer layers  
+- **Imperative Shell:** All I/O, validation, error handling in outer layers
 - **Reference:** `Design/shim_build/17_design_pattern.md`
 
 ### Verification Checklist (Pre-commit)
@@ -99,6 +99,3 @@ Is the test verifying a real property, or just making the test pass? Only keep t
 ## Testing guidance
 - Prefer small, focused unit tests built via the TDD cycle.
 - Use repository `pyproject.toml` pytest settings; run with `pytest -q`.
-
-
-

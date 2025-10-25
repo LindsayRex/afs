@@ -7,7 +7,8 @@ Ensures type safety and prevents invalid specifications.
 
 import pytest
 from pydantic import ValidationError
-from computable_flows_shim.energy.specs import EnergySpec, TermSpec, StateSpec
+
+from computable_flows_shim.energy.specs import EnergySpec, StateSpec, TermSpec
 
 
 class TestTermSpecValidation:
@@ -15,47 +16,26 @@ class TestTermSpecValidation:
 
     def test_valid_term_spec(self):
         """Test valid TermSpec creation."""
-        term = TermSpec(
-            type="quadratic",
-            op="A",
-            weight=1.0,
-            variable="x",
-            target="y"
-        )
+        term = TermSpec(type="quadratic", op="A", weight=1.0, variable="x", target="y")
         assert term.type == "quadratic"
         assert term.weight == 1.0
 
     def test_invalid_term_type(self):
         """Test rejection of unknown term types."""
         with pytest.raises(ValidationError) as exc_info:
-            TermSpec(
-                type="invalid_type",
-                op="A",
-                weight=1.0,
-                variable="x"
-            )
+            TermSpec(type="invalid_type", op="A", weight=1.0, variable="x")
         assert "Unknown term type" in str(exc_info.value)
 
     def test_negative_weight(self):
         """Test rejection of negative weights."""
         with pytest.raises(ValidationError) as exc_info:
-            TermSpec(
-                type="quadratic",
-                op="A",
-                weight=-1.0,
-                variable="x"
-            )
+            TermSpec(type="quadratic", op="A", weight=-1.0, variable="x")
         assert "greater_than" in str(exc_info.value)
 
     def test_zero_weight(self):
         """Test rejection of zero weights."""
         with pytest.raises(ValidationError) as exc_info:
-            TermSpec(
-                type="quadratic",
-                op="A",
-                weight=0.0,
-                variable="x"
-            )
+            TermSpec(type="quadratic", op="A", weight=0.0, variable="x")
         assert "greater_than" in str(exc_info.value)
 
     def test_extreme_weight(self):
@@ -65,7 +45,7 @@ class TestTermSpecValidation:
                 type="quadratic",
                 op="A",
                 weight=1e7,  # Above 1e6 limit
-                variable="x"
+                variable="x",
             )
         assert "less_than_equal" in str(exc_info.value)
 
@@ -78,7 +58,7 @@ class TestTermSpecValidation:
             variable="x",
             wavelet="db4",
             levels=3,
-            ndim=2
+            ndim=2,
         )
         assert term.wavelet == "db4"
         assert term.levels == 3
@@ -92,7 +72,7 @@ class TestTermSpecValidation:
                 op="W",
                 weight=1.0,
                 variable="x",
-                levels=0  # Must be > 0
+                levels=0,  # Must be > 0
             )
         assert "levels" in str(exc_info.value)
 
@@ -102,12 +82,7 @@ class TestStateSpecValidation:
 
     def test_valid_state_spec(self):
         """Test valid StateSpec creation."""
-        state = StateSpec(
-            shapes={
-                "x": [10, 20],
-                "y": [5]
-            }
-        )
+        state = StateSpec(shapes={"x": [10, 20], "y": [5]})
         assert state.shapes["x"] == [10, 20]
         assert state.shapes["y"] == [5]
 
@@ -133,13 +108,17 @@ class TestStateSpecValidation:
         """Test rejection of negative dimensions."""
         with pytest.raises(ValidationError) as exc_info:
             StateSpec(shapes={"x": [-1, 10]})
-        assert "All dimensions for variable 'x' must be positive integers" in str(exc_info.value)
+        assert "All dimensions for variable 'x' must be positive integers" in str(
+            exc_info.value
+        )
 
     def test_zero_dimensions(self):
         """Test rejection of zero dimensions."""
         with pytest.raises(ValidationError) as exc_info:
             StateSpec(shapes={"x": [0, 10]})
-        assert "All dimensions for variable 'x' must be positive integers" in str(exc_info.value)
+        assert "All dimensions for variable 'x' must be positive integers" in str(
+            exc_info.value
+        )
 
     def test_too_many_dimensions(self):
         """Test rejection of shapes with too many dimensions."""
@@ -157,7 +136,7 @@ class TestEnergySpecValidation:
             terms=[
                 TermSpec(type="quadratic", op="A", weight=1.0, variable="x", target="y")
             ],
-            state=StateSpec(shapes={"x": [3], "y": [3]})
+            state=StateSpec(shapes={"x": [3], "y": [3]}),
         )
         assert len(spec.terms) == 1
         assert "x" in spec.state.shapes
@@ -165,10 +144,7 @@ class TestEnergySpecValidation:
     def test_empty_terms(self):
         """Test rejection of specs with no terms."""
         with pytest.raises(ValidationError) as exc_info:
-            EnergySpec(
-                terms=[],
-                state=StateSpec(shapes={"x": [3]})
-            )
+            EnergySpec(terms=[], state=StateSpec(shapes={"x": [3]}))
         assert "too_short" in str(exc_info.value)
 
     def test_too_many_terms(self):
@@ -178,10 +154,7 @@ class TestEnergySpecValidation:
             for i in range(51)  # 51 terms > 50 max
         ]
         with pytest.raises(ValidationError) as exc_info:
-            EnergySpec(
-                terms=terms,
-                state=StateSpec(shapes={"x": [3], "y": [3]})
-            )
+            EnergySpec(terms=terms, state=StateSpec(shapes={"x": [3], "y": [3]}))
         assert "too_long" in str(exc_info.value)
 
     def test_validate_against_state_success(self):
@@ -190,7 +163,7 @@ class TestEnergySpecValidation:
             terms=[
                 TermSpec(type="quadratic", op="A", weight=1.0, variable="x", target="y")
             ],
-            state=StateSpec(shapes={"x": [3], "y": [3]})
+            state=StateSpec(shapes={"x": [3], "y": [3]}),
         )
         # Should not raise
         spec.validate_against_state()
@@ -199,9 +172,11 @@ class TestEnergySpecValidation:
         """Test rejection of undefined variables."""
         spec = EnergySpec(
             terms=[
-                TermSpec(type="quadratic", op="A", weight=1.0, variable="x", target="z")  # z not in state
+                TermSpec(
+                    type="quadratic", op="A", weight=1.0, variable="x", target="z"
+                )  # z not in state
             ],
-            state=StateSpec(shapes={"x": [3], "y": [3]})
+            state=StateSpec(shapes={"x": [3], "y": [3]}),
         )
         with pytest.raises(ValueError) as exc_info:
             spec.validate_against_state()
@@ -213,7 +188,7 @@ class TestEnergySpecValidation:
             terms=[
                 TermSpec(type="quadratic", op="A", weight=1.0, variable="x", target="y")
             ],
-            state=StateSpec(shapes={"x": [3], "y": [3], "z": [5]})  # z unused
+            state=StateSpec(shapes={"x": [3], "y": [3], "z": [5]}),  # z unused
         )
         with pytest.warns(UserWarning, match="State variables defined but not used"):
             spec.validate_against_state()
@@ -224,22 +199,18 @@ class TestBackwardCompatibility:
 
     def test_dataclass_import(self):
         """Test that legacy dataclasses can still be imported."""
-        from computable_flows_shim.energy.specs import TermSpecDataclass, StateSpecDataclass, EnergySpecDataclass
+        from computable_flows_shim.energy.specs import (
+            EnergySpecDataclass,
+            StateSpecDataclass,
+            TermSpecDataclass,
+        )
 
         # Should be able to create instances
-        term = TermSpecDataclass(
-            type="quadratic",
-            op="A",
-            weight=1.0,
-            variable="x"
-        )
+        term = TermSpecDataclass(type="quadratic", op="A", weight=1.0, variable="x")
         assert term.type == "quadratic"
 
         state = StateSpecDataclass(shapes={"x": [3]})
         assert state.shapes["x"] == [3]
 
-        spec = EnergySpecDataclass(
-            terms=[term],
-            state=state
-        )
+        spec = EnergySpecDataclass(terms=[term], state=state)
         assert len(spec.terms) == 1

@@ -37,7 +37,7 @@ First published: 19 September 2011
 **This article is part of Special Issue:**
 
     ## Information
-    
+
     ](#pane-pcw-details)
 -   [![](/specs/products/acropolis/pericles/releasedAssets/images/pdf-icon-169a2eb30e52100e76dfa5f4b66998e6.png)PDF](/doi/epdf/10.5402/2011/659672 "ePDF")
 
@@ -130,29 +130,29 @@ On the other hand, by Theorem 1(B) in \[[6](#bib-0006), page 111\], there is a l
 Proposition 2.1. Let _X_ be a smooth projective variety over an algebraically closed field _k_ and _π_ : _Y_ → _X_ and étale Galois cover with Galois group _G_. Let _V_ ∈ _ℐ_ and define _ℰ__V_ as the _𝒪__X_\-module _π_\*(_V_\*⊗_k__𝒪__Y_) _G_ = _e__U_(_π_\*(_V_\*⊗_k__𝒪__Y_)), where _V_\* is the dual representation of _V_ and _U_ is the trivial representation. Then,
 
 -   (1)
-    
+
      ![mathematical equation](/cms/asset/72c6c23c-dafc-4442-a2a4-e3c0fe211b6f/isr3659672-math-0007.png)(2.2)
-    
+
     where _ℐ_ is the set of all irreducible representations of _G_ over _k_ and _r__a__n__k_ _ℰ__V_ = dim_k__V_. Also, one has that _ℰ__V_ = _e__U_(_V_\* ⊗ _e__V_(_π_\*_𝒪__Y_)) and ![mathematical equation](/cms/asset/e9ce24d6-71cb-447a-b112-7f452f006651/isr3659672-math-0008.png),
-    
+
 -   (2)
-    
+
      ![mathematical equation](/cms/asset/7f59dc8c-2832-4257-9333-93f0e41867d5/isr3659672-math-0009.png)(2.3)
-    
+
     where ![mathematical equation](/cms/asset/247d1d37-bfee-4392-90d8-af5df07e022b/isr3659672-math-0010.png),
-    
+
 -   (3)
-    
+
     each _ℰ__V_ is simple (i.e., ![mathematical equation](/cms/asset/3ebdaa49-05f2-4d66-8440-82c4aec5b00e/isr3659672-math-0011.png)) and ![mathematical equation](/cms/asset/6fefb9ad-4c53-42f1-8cc1-a9888fbf8ca0/isr3659672-math-0012.png) if _i_ ≠ _j_,
-    
+
 -   (4)
-    
+
     for any irreducible representation _V_ of _G_ one has that
-    
+
      ![mathematical equation](/cms/asset/33f4e0fc-aa31-41dd-bca6-686466c2fda9/isr3659672-math-0013.png)(2.4)
-    
+
     where ![mathematical equation](/cms/asset/beedce69-a321-46d6-b9e3-474d027e81ed/isr3659672-math-0014.png).
-    
+
 
 Proof. We recall that _k_\[_G_\]≃⨁_V_∈_ℐ__V_⊗_k__V_\* as _k_\[_G_ × _G_\]-modules, where actions are given by ![mathematical equation](/cms/asset/1ece6c16-2f40-4631-9479-2157c02cc6b0/isr3659672-math-0015.png) and _g_1 × _g_2(∑_v_ ⊗ _δ_) = ∑_g_1(_v_) ⊗ _g_2(_δ_), respectively. Thus, we have the following _G_\-invariant isomorphisms:
 
@@ -269,17 +269,17 @@ Proof. In this case, the moduli spaces _ℳ__H_(_d_, 0) and are irreducible, so 
 Proposition 3.11. Let _X_ be projective smooth variety over an algebraically closed field _k_ and let _π_ : _Y_ → _X_ be an étale Galois cover with Galois group _G_, and set _π_\*_𝒪__Y_ = ⨁_V_∈_I__V_⊗_k__ℰ__V_. Let _ℱ_ be a _μ_\-_H_\-stable vector bundle. Then, the following statements are equivalent:
 
 -   (1)
-    
+
     _π_\*_ℱ_ is _μ_\-_π_\*_H_\-stable;
-    
+
 -   (2)
-    
+
      Hom(_ℱ_, _ℱ_ ⊗ _ℰ__V_) = 0  for  all  _V_ ≠ _V_0;
-    
+
 -   (3)
-    
+
     _ℱ_ ⊗ _ℰ__V_ is _μ_\-_H_\-stable for all  _V_ and _ℱ_ ⊗ _ℰ__V_ ≠ _ℱ_ ⊗ _ℰ__W_ for _V_ ≠ _W_.
-    
+
 
 Proof. ([3.9](#disp-0020 "Link to equation"))⇔(2) Since _ℱ_ is _μ_\-_H_\-stable, from Proposition [3.1](#mthst-0004 "Link to mathStatement"), we have that _π_\*_ℱ_ is _μ_\-_π_\*_H_\-polystable; on the other hand,
 
@@ -380,115 +380,115 @@ Now, suppose that _ℰ_ is _μ_\-_H_\-stable; again, by the lemma above, _π_\*_
 ## [References](#)
 
 -   1 Narasimhan M. S. and Seshadri C. S., Stable and unitary vector bundles on a compact Riemann surface, _Annals of Mathematics_. (1965) 82, 540–567, 0184252, [https://doi.org/10.2307/1970710](https://doi.org/10.2307/1970710), ZBL0171.04803.
-    
+
     10.2307/1970710
-    
+
     [Web of Science®](/servlet/linkout?suffix=null&dbid=128&doi=10.5402%2F2011%2F659672&key=A19657072200009&getFTLinkType=true&doiForPubOfPage=10.5402%2F2011%2F659672&refDoi=10.2307%2F1970710&linkType=ISI&linkSource=FULL_TEXT&linkLocation=Reference) [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26volume%3D82%26publication_year%3D1965%26pages%3D540-567%26journal%3DAnnals%2Bof%2BMathematics%26author%3DM.%2BS.%2BNarasimhan%26author%3DC.%2BS.%2BSeshadri%26title%3DStable%2Band%2Bunitary%2Bvector%2Bbundles%2Bon%2Ba%2Bcompact%2BRiemann%2Bsurface&doi=10.5402%2F2011%2F659672&doiOfLink=10.2307%2F1970710&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   2 Lübke M. and Teleman A., The Kobayashi-Hitchin Correspondence, 1995, World Scientific Publishing, River Edge, NJ, USA, 1370660.
-    
+
     10.1142/2660
-    
+
     [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26publication_year%3D1995%26author%3DM.%2BL%25C3%25BCbke%26author%3DA.%2BTeleman%26title%3DThe%2BKobayashi-Hitchin%2BCorrespondence&doi=10.5402%2F2011%2F659672&doiOfLink=10.1142%2F2660&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   3 Gieseker D., Stable vector bundles and the Frobenius morphism, _Annales Scientifiques de l′École Normale Supérieure_. (1973) 6, 95–101, 0325616, ZBL0281.14013.
-    
+
     10.24033/asens.1245
-    
+
     [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26volume%3D6%26publication_year%3D1973%26pages%3D95-101%26journal%3DAnnales%2BScientifiques%2Bde%2Bl%25E2%2580%25B2%25C3%2589cole%2BNormale%2BSup%25C3%25A9rieure%26author%3DD.%2BGieseker%26title%3DStable%2Bvector%2Bbundles%2Band%2Bthe%2BFrobenius%2Bmorphism&doi=10.5402%2F2011%2F659672&doiOfLink=10.24033%2Fasens.1245&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   4 Moriwaki A., Relative Bogomolov′s inequality and the cone of positive divisors on the moduli space of stable curves, _Journal of the American Mathematical Society_. (1998) 11, no. 3, 569–600, 1488349, [https://doi.org/10.1090/S0894%2D0347%2D98%2D00261%2D6](https://doi.org/10.1090/S0894-0347-98-00261-6), ZBL0893.14004.
-    
+
     10.1090/S0894-0347-98-00261-6
-    
+
     [Web of Science®](/servlet/linkout?suffix=null&dbid=128&doi=10.5402%2F2011%2F659672&key=000074331900004&getFTLinkType=true&doiForPubOfPage=10.5402%2F2011%2F659672&refDoi=10.1090%2FS0894-0347-98-00261-6&linkType=ISI&linkSource=FULL_TEXT&linkLocation=Reference) [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26volume%3D11%26publication_year%3D1998%26pages%3D569-600%26journal%3DJournal%2Bof%2Bthe%2BAmerican%2BMathematical%2BSociety%26author%3DA.%2BMoriwaki%26title%3DRelative%2BBogomolov%25E2%2580%25B2s%2Binequality%2Band%2Bthe%2Bcone%2Bof%2Bpositive%2Bdivisors%2Bon%2Bthe%2Bmoduli%2Bspace%2Bof%2Bstable%2Bcurves&doi=10.5402%2F2011%2F659672&doiOfLink=10.1090%2FS0894-0347-98-00261-6&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   5 Langer A., Moduli spaces of sheaves and principal _G_\-bundles, _Proceedings of Symposia in Pure Mathematics_. (2009) 80, 273–308.
-    
+
     10.1090/pspum/080.1/2483939
-    
+
     [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26volume%3D80%26publication_year%3D2009%26pages%3D273-308%26journal%3DProceedings%2Bof%2BSymposia%2Bin%2BPure%2BMathematics%26author%3DA.%2BLanger%26title%3DModuli%2Bspaces%2Bof%2Bsheaves%2Band%2Bprincipal%2BG-bundles&doi=10.5402%2F2011%2F659672&doiOfLink=10.1090%2Fpspum%2F080.1%2F2483939&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   6 Mumford D., Abelian Varieties, 1970, Oxford University Press, London and Tata Institute of Fundamental Research, Bombay, India, 0282985.
-    
+
     [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26publication_year%3D1970%26author%3DD.%2BMumford%26title%3DAbelian%2BVarieties&doi=10.5402%2F2011%2F659672&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   7 Curtis C. W. and Reiner I., Representation Theory of Finite Groups and Associative Algebras, 1962, John Wiley & Sons, New York, NY, USA, Wiley Classics Library, ZBL0729.20016.
-    
+
     [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26publication_year%3D1962%26author%3DC.%2BW.%2BCurtis%26author%3DI.%2BReiner%26title%3DRepresentation%2BTheory%2Bof%2BFinite%2BGroups%2Band%2BAssociative%2BAlgebras&doi=10.5402%2F2011%2F659672&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   8 Huybrechts D. and Lehn M., The Geometry of Moduli Spaces of Sheaves, 1997, Friedrick Vieweg and Son, Aspects of Mathematics, E31, 1450870.
-    
+
     10.1007/978-3-663-11624-0
-    
+
     [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26publication_year%3D1997%26author%3DD.%2BHuybrechts%26author%3DM.%2BLehn%26title%3DThe%2BGeometry%2Bof%2BModuli%2BSpaces%2Bof%2BSheaves&doi=10.5402%2F2011%2F659672&doiOfLink=10.1007%2F978-3-663-11624-0&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   9 Fulton W. and Harris J., Representation Theory: A First Course, 1991, 129, Springer-Verlag, New York, NY, USA, Graduate Texts in Mathematics, 1153249, ZBL0776.60128.
-    
+
     [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26publication_year%3D1991%26author%3DW.%2BFulton%26author%3DJ.%2BHarris%26title%3DRepresentation%2BTheory%253A%2BA%2BFirst%2BCourse&doi=10.5402%2F2011%2F659672&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 -   10 Tarski A., A Decision Method for Elementary Algebra and Geometry, 1948, Rand Corporation Publication, 0028796.
-    
+
     [Google Scholar](/action/getFTRLinkout?url=http%3A%2F%2Fscholar.google.com%2Fscholar_lookup%3Fhl%3Den%26publication_year%3D1948%26author%3DA.%2BTarski%26title%3DA%2BDecision%2BMethod%2Bfor%2BElementary%2BAlgebra%2Band%2BGeometry&doi=10.5402%2F2011%2F659672&linkType=gs&linkLocation=Reference&linkSource=FULL_TEXT)
-    
+
 
 -   [![All articles](/cms/asset/009e33f7-d034-4a5d-8ed1-e35bf26cceb2/default_cover.jpg)](/index/23567872 "All articles")
-    
+
     [All articles  >](/index/23567872 "All articles")
-    
+
 
 googletag.cmd.push(function () { onDvtagReady(function () { googletag.display( 'advert-rail-1' ); }); });
 
 [![](https://pubads.g.doubleclick.net/gampad/ad?iu=$googlePublisherCategory&sz=160x600|160x320|160x160|120x600&tile=2&c=$random)](/action/clickThrough?id=1011&url=https%3A%2F%2Fpubads.g.doubleclick.net%2Fgampad%2Fjump%3Fiu%3D%24googlePublisherCategory%26amp%3Bsz%3D160x600%7C160x320%7C160x160%7C120x600%26amp%3Btile%3D2%26amp%3Bc%3D%24random&loc=%2Fdoi%2Ffull%2F10.5402%2F2011%2F659672%3Fmsockid%3D0ca220e549896afd2b23350048f76bf3&pubId=85187659&placeholderId=1014&productId=101018)
 
 -   [
-    
+
     ## References
-    
+
     ](#pane-pcw-references)
 -   [
-    
+
     ## Related
-    
+
     ](#pane-pcw-related)
 -   [
-    
+
     ## Information
-    
+
     ](#pane-pcw-details)
 
 ### Recommended
 
 -   [Irreducible tensor products for symmetric groups in characteristic 2](https://londmathsoc.onlinelibrary.wiley.com/doi/full/10.1112/plms.12127)
-    
+
     [Lucia Morotti](/authored-by/Morotti/Lucia), 
-    
+
     [Proceedings of the London Mathematical Society](https://londmathsoc.onlinelibrary.wiley.com/journal/1460244x)
-    
+
 -   [Separable injectivity and _C_\*\-tensor products](/doi/full/10.1155/S0161171291000133)
-    
+
     [Tadasi Huruya](/authored-by/Huruya/Tadasi), [Seung-Hyeok Kye](/authored-by/Kye/Seung-Hyeok), 
-    
+
     [International Journal of Mathematics and Mathematical Sciences](/journal/6396)
-    
+
 -   [On p‐power freeness in positive characteristic](/doi/full/10.1002/mana.202000118)
-    
+
     [Hiromu Tanaka](/authored-by/Tanaka/Hiromu), 
-    
+
     [Mathematische Nachrichten](/journal/15222616)
-    
+
 -   [Relative semi‐ampleness in positive characteristic](https://londmathsoc.onlinelibrary.wiley.com/doi/full/10.1112/plms.12323)
-    
+
     [Paolo Cascini](/authored-by/Cascini/Paolo), [Hiromu Tanaka](/authored-by/Tanaka/Hiromu), 
-    
+
     [Proceedings of the London Mathematical Society](https://londmathsoc.onlinelibrary.wiley.com/journal/1460244x)
-    
+
 -   [When is ![urn:x-wiley:0025584X:media:mana201700348:mana201700348-math-0003](https://onlinelibrary.wiley.com/cms/asset/da33779f-95ba-4823-ac90-66e8e28f5ebb/mana201700348-math-0003.png "urn:x-wiley:0025584X:media:mana201700348:mana201700348-math-0003") complemented in tensor products of ![urn:x-wiley:0025584X:media:mana201700348:mana201700348-math-0004](https://onlinelibrary.wiley.com/cms/asset/8e8e626f-01d1-46ca-bb0e-c776840e62c3/mana201700348-math-0004.png "urn:x-wiley:0025584X:media:mana201700348:mana201700348-math-0004")?](/doi/full/10.1002/mana.201700348)
-    
+
     [Vinícius Morelli Cortes](/authored-by/Morelli+Cortes/Vin%C3%ADcius), [Elói Medina Galego](/authored-by/Medina+Galego/El%C3%B3i), [Christian Samuel](/authored-by/Samuel/Christian), 
-    
+
     [Mathematische Nachrichten](/journal/15222616)
-    
+
 
 //domready !function(e,t){typeof module!="undefined"?module.exports=t():typeof define=="function"&&typeof define.amd=="object"?define(t):this\[e\]=t()}("domready",function(){var e=\[\],t,n=document,r=n.documentElement.doScroll,i="DOMContentLoaded",s=(r?/^loaded|^c/:/^loaded|^i|^c/).test(n.readyState);return s||n.addEventListener(i,t=function(){n.removeEventListener(i,t),s=1;while(t=e.shift())t()}),function(t){s?setTimeout(t,0):e.push(t)}}) domready(function(){ $.getScript("https://cdnjs.cloudflare.com/ajax/libs/jQuery.dotdotdot/1.8.3/jquery.dotdotdot.min.js",function(){ $('div.ancillary-content.relateditem div.content').dotdotdot({watch:true}); }); if($('.ancillary-content.relateditem').length){ $('.eh-highlighted-accordion').removeClass('hidden'); } });
 

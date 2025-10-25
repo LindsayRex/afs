@@ -2,7 +2,7 @@
   // ---- Python interpreter (your venv) ----
   "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
 
-  // ---- Pyright/Pylance ----
+  // ---- Pyright/Pylance (Type checking only, no linting) ----
   // Moved to pyrightconfig.json for centralized management
   "python.analysis.typeCheckingMode": "basic",
   "python.analysis.diagnosticMode": "workspace",
@@ -26,31 +26,39 @@
     "**/*.pyc",
     "**/.git/**"
   ],
+  // Disable Pylance's built-in linting (let ruff handle this)
   "python.analysis.diagnosticSeverityOverrides": {
-    "reportMissingImports": "warning",
+    "reportMissingImports": "none",
     "reportMissingTypeStubs": "none",
-    "reportImportCycles": "error",
-    "reportUnusedImport": "warning",
-    "reportUnusedClass": "warning",
-    "reportUnusedFunction": "warning",
-    "reportUnusedVariable": "warning",
-    "reportDuplicateImport": "warning",
-    "reportUnnecessaryIsInstance": "warning",
-    "reportUnnecessaryCast": "warning",
-    "reportUnnecessaryComparison": "warning",
-    "reportAssertAlwaysTrue": "warning",
-    "reportSelfClsParameterName": "warning",
-    "reportImplicitStringConcatenation": "warning",
-    "reportUndefinedVariable": "error",
-    "reportUnboundVariable": "error",
-    "reportInvalidStubStatement": "warning",
-    "reportIncompleteStub": "warning",
-    "reportUnsupportedDunderAll": "warning",
-    "reportUnusedCoroutine": "warning"
+    "reportImportCycles": "none",
+    "reportUnusedImport": "none",
+    "reportUnusedClass": "none",
+    "reportUnusedFunction": "none",
+    "reportUnusedVariable": "none",
+    "reportDuplicateImport": "none",
+    "reportUnnecessaryIsInstance": "none",
+    "reportUnnecessaryCast": "none",
+    "reportUnnecessaryComparison": "none",
+    "reportAssertAlwaysTrue": "none",
+    "reportSelfClsParameterName": "none",
+    "reportImplicitStringConcatenation": "none",
+    "reportUndefinedVariable": "none",
+    "reportUnboundVariable": "none",
+    "reportInvalidStubStatement": "none",
+    "reportIncompleteStub": "none",
+    "reportUnsupportedDunderAll": "none",
+    "reportUnusedCoroutine": "none"
   },
   "python.analysis.extraPaths": [
     "${workspaceFolder}/src"
   ],
+
+  // ---- Ruff (Fast Python Linter) ----
+  "ruff.enable": true,
+  "ruff.lint.enable": true,
+  "ruff.format.enable": true,
+  // Use configuration from pyproject.toml
+  "ruff.configuration": "${workspaceFolder}/pyproject.toml",
 
   // ---- Show all problems ----
   "problems.showCurrentInStatus": true,
@@ -74,7 +82,7 @@
     "**/build/**": true,
     "**/dist/**": true
   },
-  
+
   "files.watcherExclude": {
     "**/.git/**": true,
     "**/__pycache__/**": true,

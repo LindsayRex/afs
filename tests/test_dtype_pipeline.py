@@ -4,19 +4,19 @@ Pipeline-level dtype enforcement tests for AFS.
 Tests end-to-end dtype consistency across the entire AFS processing pipeline,
 validating that all components maintain proper precision and type enforcement.
 """
+
 import sys
 from pathlib import Path
-import pytest
+
 import jax
 import jax.numpy as jnp
-import jax.random as random
+import pytest
 
 # Add the project root to the Python path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from computable_flows_shim import configure_jax_environment
-from computable_flows_shim.multi.transform_op import make_transform
 from computable_flows_shim.fda.certificates import estimate_gamma_lanczos
+from computable_flows_shim.multi.transform_op import make_transform
 
 
 @pytest.mark.dtype_parametrized
@@ -34,10 +34,14 @@ class TestPipelineDtypeEnforcement:
     def sample_signal_1d(self):
         """Generate 1D test signal for pipeline testing."""
         key = jax.random.PRNGKey(42)
-        x = jnp.linspace(0, 4*jnp.pi, 128, dtype=self.float_dtype)
+        x = jnp.linspace(0, 4 * jnp.pi, 128, dtype=self.float_dtype)
         # Create a signal with multiple frequency components
-        signal = jnp.sin(x) + 0.5 * jnp.sin(3*x) + 0.3 * jnp.sin(5*x) + \
-                 0.1 * jax.random.normal(key, x.shape, dtype=self.float_dtype) * 0.1
+        signal = (
+            jnp.sin(x)
+            + 0.5 * jnp.sin(3 * x)
+            + 0.3 * jnp.sin(5 * x)
+            + 0.1 * jax.random.normal(key, x.shape, dtype=self.float_dtype) * 0.1
+        )
         return signal
 
     @pytest.fixture
@@ -48,34 +52,44 @@ class TestPipelineDtypeEnforcement:
         y = jnp.linspace(-2, 2, 64, dtype=self.float_dtype)
         X, Y = jnp.meshgrid(x, y)
         # Create 2D pattern with some noise
-        signal = (jnp.exp(-(X**2 + Y**2)) * jnp.sin(3*X) * jnp.cos(2*Y) + \
-                 0.05 * jax.random.normal(key, X.shape, dtype=self.float_dtype))
+        signal = jnp.exp(-(X**2 + Y**2)) * jnp.sin(3 * X) * jnp.cos(
+            2 * Y
+        ) + 0.05 * jax.random.normal(key, X.shape, dtype=self.float_dtype)
         return signal
 
     def test_transform_pipeline_dtype_consistency(self, sample_signal_1d):
         """Test that transform operations maintain dtype consistency throughout pipeline."""
         # Create wavelet transform
-        transform = make_transform('haar', levels=3, ndim=1)
+        transform = make_transform("haar", levels=3, ndim=1)
 
         # Forward transform
         coeffs = transform.forward(sample_signal_1d)
 
         # Verify coefficients maintain dtype (coeffs is a list of arrays)
         for i, coeff_array in enumerate(coeffs):
-            assert coeff_array.dtype == self.float_dtype, f"Coefficient array {i} dtype {coeff_array.dtype} != expected {self.float_dtype}"
+            assert (
+                coeff_array.dtype == self.float_dtype
+            ), f"Coefficient array {i} dtype {coeff_array.dtype} != expected {self.float_dtype}"
 
         # Inverse transform
         reconstruction = transform.inverse(coeffs)
 
         # Verify reconstruction maintains dtype
-        assert reconstruction.dtype == self.float_dtype, f"Reconstruction dtype {reconstruction.dtype} != expected {self.float_dtype}"
+        assert (
+            reconstruction.dtype == self.float_dtype
+        ), f"Reconstruction dtype {reconstruction.dtype} != expected {self.float_dtype}"
 
         # Verify reconstruction accuracy
-        relative_error = jnp.linalg.norm(reconstruction - sample_signal_1d) / jnp.linalg.norm(sample_signal_1d)
-        assert relative_error < self.tolerance, f"Reconstruction error {relative_error} exceeds tolerance {self.tolerance}"
+        relative_error = jnp.linalg.norm(
+            reconstruction - sample_signal_1d
+        ) / jnp.linalg.norm(sample_signal_1d)
+        assert (
+            relative_error < self.tolerance
+        ), f"Reconstruction error {relative_error} exceeds tolerance {self.tolerance}"
 
     def test_lanczos_pipeline_dtype_consistency(self, sample_signal_1d):
         """Test that Lanczos operations maintain dtype in spectral analysis pipeline."""
+
         # Create a simple linear operator for testing
         def L_apply(v):
             # Simple diagonal operator for testing
@@ -87,7 +101,10 @@ class TestPipelineDtypeEnforcement:
         gamma = estimate_gamma_lanczos(L_apply, key, sample_signal_1d.shape, k=8)
 
         # Verify gamma maintains appropriate dtype (should be real)
-        assert gamma.dtype in [jnp.float32, jnp.float64], f"Gamma dtype {gamma.dtype} not real-valued"
+        assert gamma.dtype in [
+            jnp.float32,
+            jnp.float64,
+        ], f"Gamma dtype {gamma.dtype} not real-valued"
         assert jnp.isfinite(gamma), f"Lanczos result {gamma} should be finite"
 
     def test_wavelet_lanczos_pipeline_integration(self, sample_signal_1d):
@@ -95,7 +112,7 @@ class TestPipelineDtypeEnforcement:
         from computable_flows_shim.multi.transform_op import make_transform
 
         # Create wavelet transform
-        transform = make_transform('haar', levels=2, ndim=1)
+        transform = make_transform("haar", levels=2, ndim=1)
 
         # Define operator in wavelet space
         def L_wavelet(coeffs_flat):
@@ -120,15 +137,19 @@ class TestPipelineDtypeEnforcement:
         )
 
         # Both should be finite and maintain dtype consistency
-        assert jnp.isfinite(gamma_wavelet), f"Wavelet space gamma {gamma_wavelet} should be finite"
-        assert jnp.isfinite(gamma_physical), f"Physical space gamma {gamma_physical} should be finite"
+        assert jnp.isfinite(
+            gamma_wavelet
+        ), f"Wavelet space gamma {gamma_wavelet} should be finite"
+        assert jnp.isfinite(
+            gamma_physical
+        ), f"Physical space gamma {gamma_physical} should be finite"
         assert gamma_wavelet.dtype in [jnp.float32, jnp.float64]
         assert gamma_physical.dtype in [jnp.float32, jnp.float64]
 
     def test_2d_transform_pipeline_dtype_consistency(self, sample_signal_2d):
         """Test 2D transform pipeline maintains dtype consistency."""
         # Create 2D wavelet transform
-        transform = make_transform('haar', levels=2, ndim=2)
+        transform = make_transform("haar", levels=2, ndim=2)
 
         # Forward transform
         coeffs = transform.forward(sample_signal_2d)
@@ -141,22 +162,31 @@ class TestPipelineDtypeEnforcement:
                     check_coeffs_dtype(item)
             else:
                 # It's an array
-                assert coeffs.dtype == self.float_dtype, f"2D coefficient dtype {coeffs.dtype} != expected {self.float_dtype}"
-        
+                assert (
+                    coeffs.dtype == self.float_dtype
+                ), f"2D coefficient dtype {coeffs.dtype} != expected {self.float_dtype}"
+
         check_coeffs_dtype(coeffs)
 
         # Inverse transform
         reconstruction = transform.inverse(coeffs)
 
         # Verify reconstruction maintains dtype
-        assert reconstruction.dtype == self.float_dtype, f"2D reconstruction dtype {reconstruction.dtype} != expected {self.float_dtype}"
+        assert (
+            reconstruction.dtype == self.float_dtype
+        ), f"2D reconstruction dtype {reconstruction.dtype} != expected {self.float_dtype}"
 
         # Verify reconstruction accuracy
-        relative_error = jnp.linalg.norm(reconstruction - sample_signal_2d) / jnp.linalg.norm(sample_signal_2d)
-        assert relative_error < self.tolerance, f"2D reconstruction error {relative_error} exceeds tolerance {self.tolerance}"
+        relative_error = jnp.linalg.norm(
+            reconstruction - sample_signal_2d
+        ) / jnp.linalg.norm(sample_signal_2d)
+        assert (
+            relative_error < self.tolerance
+        ), f"2D reconstruction error {relative_error} exceeds tolerance {self.tolerance}"
 
     def test_dtype_enforcement_across_jit_compilation(self):
         """Test that dtype consistency is maintained across JIT compilation boundaries."""
+
         @jax.jit
         def jit_transform_operation(x):
             # Simple operation that should maintain dtype
@@ -167,7 +197,9 @@ class TestPipelineDtypeEnforcement:
         result = jit_transform_operation(x_float)
 
         # Verify output dtype matches input
-        assert result.dtype == self.float_dtype, f"JIT output dtype {result.dtype} != input dtype {self.float_dtype}"
+        assert (
+            result.dtype == self.float_dtype
+        ), f"JIT output dtype {result.dtype} != input dtype {self.float_dtype}"
 
         # Verify numerical correctness
         expected = 2.0 * x_float + 1.0
@@ -176,8 +208,8 @@ class TestPipelineDtypeEnforcement:
     def test_pipeline_memory_dtype_consistency(self, sample_signal_1d):
         """Test that intermediate computations maintain dtype consistency in memory."""
         # Create a multi-step pipeline
-        transform1 = make_transform('haar', levels=2, ndim=1)
-        transform2 = make_transform('db4', levels=2, ndim=1)
+        transform1 = make_transform("haar", levels=2, ndim=1)
+        transform2 = make_transform("db4", levels=2, ndim=1)
 
         # Step 1: First transform
         coeffs1 = transform1.forward(sample_signal_1d)
@@ -200,7 +232,9 @@ class TestPipelineDtypeEnforcement:
             assert coeff_array.dtype == self.float_dtype
 
         # Step 5: Apply different operation
-        modified_coeffs2 = [coeff_array * 1.2 for coeff_array in coeffs2]  # Amplification
+        modified_coeffs2 = [
+            coeff_array * 1.2 for coeff_array in coeffs2
+        ]  # Amplification
         for coeff_array in modified_coeffs2:
             assert coeff_array.dtype == self.float_dtype
 
@@ -210,19 +244,25 @@ class TestPipelineDtypeEnforcement:
 
         # Verify final result is reasonable (should be attenuated then amplified)
         # The net effect should be some modification of the original signal
-        assert jnp.isfinite(final_signal).all(), "Final pipeline result should be finite"
-        assert not jnp.allclose(final_signal, sample_signal_1d, atol=self.tolerance), "Pipeline should modify signal"
+        assert jnp.isfinite(
+            final_signal
+        ).all(), "Final pipeline result should be finite"
+        assert not jnp.allclose(
+            final_signal, sample_signal_1d, atol=self.tolerance
+        ), "Pipeline should modify signal"
 
     def test_error_propagation_dtype_consistency(self):
         """Test that error calculations maintain dtype consistency."""
         # Create test data with known errors
         x_true = jnp.array([1.0, 2.0, 3.0, 4.0, 5.0], dtype=self.float_dtype)
-        x_approx = x_true + jnp.array([0.01, -0.005, 0.002, 0.008, -0.003], dtype=self.float_dtype)
+        x_approx = x_true + jnp.array(
+            [0.01, -0.005, 0.002, 0.008, -0.003], dtype=self.float_dtype
+        )
 
         # Calculate various error metrics
         abs_error = jnp.abs(x_approx - x_true)
         rel_error = abs_error / jnp.abs(x_true)
-        mse = jnp.mean(abs_error ** 2)
+        mse = jnp.mean(abs_error**2)
         rmse = jnp.sqrt(mse)
         max_error = jnp.max(abs_error)
 

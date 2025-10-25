@@ -11,6 +11,7 @@ Usage (PowerShell):
 You should see ~`workers` python.exe processes and wall-clock time close to
 `duration` seconds (not workers*duration) if parallelism is working.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,8 +38,18 @@ def _worker(seconds: float) -> tuple[int, float]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--workers", type=int, default=max(1, os.cpu_count() or 1), help="Number of processes to launch")
-    ap.add_argument("--duration", type=float, default=3.0, help="Per-process CPU burn duration (seconds)")
+    ap.add_argument(
+        "--workers",
+        type=int,
+        default=max(1, os.cpu_count() or 1),
+        help="Number of processes to launch",
+    )
+    ap.add_argument(
+        "--duration",
+        type=float,
+        default=3.0,
+        help="Per-process CPU burn duration (seconds)",
+    )
     args = ap.parse_args()
 
     workers = max(1, int(args.workers))
@@ -63,11 +74,15 @@ def main() -> None:
     print(f"  logical processors (os.cpu_count): {os.cpu_count()}")
     print(f"  workers launched: {workers}")
     print(f"  distinct worker PIDs: {len(uniq_pids)} -> {uniq_pids}")
-    print(f"  wall time: {wall:.3f}s  |  serial time: {serial:.3f}s  |  "
-          f"speedup: {speedup:.2f}x")
+    print(
+        f"  wall time: {wall:.3f}s  |  serial time: {serial:.3f}s  |  "
+        f"speedup: {speedup:.2f}x"
+    )
     if speedup < 1.5 and workers > 1:
-        print("  note: low speedup suggests multiprocessing isn't engaging; "
-              "check __main__ guard or antivirus/defender interference.")
+        print(
+            "  note: low speedup suggests multiprocessing isn't engaging; "
+            "check __main__ guard or antivirus/defender interference."
+        )
 
 
 if __name__ == "__main__":

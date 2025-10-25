@@ -12,7 +12,7 @@ This specification defines the essential hygiene requirements for EnergySpec and
 - **Scope**: Field validation, required fields, basic type constraints
 - **Performance**: Minimal overhead (<1%)
 
-### 2. Numerical Stability (NaN/Inf Protection)  
+### 2. Numerical Stability (NaN/Inf Protection)
 - **Required**: All mathematical functions must check for NaN/Inf in inputs and outputs
 - **Purpose**: Prevent silent numerical failures that corrupt optimization
 - **Scope**: Input validation, output validation, runtime monitoring
@@ -35,7 +35,7 @@ class EnergySpec(BaseModel):
     terms: List[TermSpec] = Field(..., min_items=1, max_items=50)
     dtype: Literal["float32", "float64"]
 
-# 2. Numerical Stability - Decorate all math functions  
+# 2. Numerical Stability - Decorate all math functions
 @numerical_stability_check
 def compute_energy(x: jnp.ndarray) -> float:
     # Pure math - guaranteed finite inputs
@@ -104,7 +104,7 @@ Since you follow Design by Contract, hygiene becomes part of the contract:
 
 **What NOT to do:**
 - ❌ Manual checklists for every PR
-- ❌ Separate "hygiene reviews" 
+- ❌ Separate "hygiene reviews"
 - ❌ Complex validation frameworks
 
 **What TO do:**
@@ -269,7 +269,7 @@ class EnergySpecModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     terms: List[TermSpecModel] = Field(..., min_items=1, max_items=50)
     dtype: Literal["float32", "float64"]
-    
+
     @validator('terms')
     def validate_terms_compatibility(cls, v):
         # Check mathematical compatibility between terms
@@ -293,7 +293,7 @@ def validate_performance(spec):
     # Warn about float64 on GPU
     if spec.dtype == "float64" and jax.default_backend() == "gpu":
         warn("float64 on GPU is 10-100x slower than float32")
-    
+
     # Check term complexity
     total_complexity = sum(term.estimated_complexity for term in spec.terms)
     if total_complexity > PERFORMANCE_THRESHOLD:
@@ -311,7 +311,7 @@ class EnergySpecModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     terms: List[TermSpecModel] = Field(..., min_items=1, max_items=50)
     dtype: Literal["float32", "float64"]
-    
+
     @validator('terms')  # Cross-field validation
     def validate_terms_compatibility(cls, v):
         # Mathematical compatibility checks
@@ -368,13 +368,13 @@ def validate_inputs(x, spec):
     # Basic shape and type
     assert jnp.isarray(x), "Input must be JAX array"
     assert x.dtype in [jnp.float32, jnp.float64], f"Unsupported dtype: {x.dtype}"
-    
+
     # Numerical validity
     if jnp.isnan(x).any():
         raise NumericalError("Input contains NaN values")
     if jnp.isinf(x).any():
         raise NumericalError("Input contains infinite values")
-    
+
     # Shape consistency with spec
     if hasattr(spec, 'expected_shape') and spec.expected_shape:
         assert x.shape == spec.expected_shape, f"Shape mismatch: {x.shape} vs {spec.expected_shape}"
@@ -387,12 +387,12 @@ def validate_outputs(energy, gradient, spec):
     # Energy validation
     assert jnp.isfinite(energy), f"Energy is not finite: {energy}"
     assert jnp.isreal(energy), f"Energy is complex: {energy}"
-    
+
     # Gradient validation
     assert jnp.isfinite(gradient).all(), "Gradient contains non-finite values"
     assert gradient.shape == input_shape, f"Gradient shape mismatch: {gradient.shape}"
     assert gradient.dtype == spec.dtype, f"Gradient dtype mismatch: {gradient.dtype}"
-    
+
     # Numerical stability checks
     grad_norm = jnp.linalg.norm(gradient)
     if grad_norm > 1e6:
@@ -407,12 +407,12 @@ def monitor_numerical_stability(func):
     def wrapper(*args, **kwargs):
         try:
             result = func(*args, **kwargs)
-            
+
             # Check for numerical issues
             if jnp.isnan(result).any() or jnp.isinf(result).any():
                 logger.error(f"Numerical instability detected in {func.__name__}")
                 raise NumericalInstabilityError(f"NaN/Inf in {func.__name__}")
-            
+
             return result
         except Exception as e:
             logger.error(f"Error in {func.__name__}: {e}")
@@ -425,13 +425,13 @@ def monitor_numerical_stability(func):
 ### Error Message Standards
 ```python
 # Good error messages
-ValueError: EnergySpec.name cannot be empty. 
+ValueError: EnergySpec.name cannot be empty.
 Example: EnergySpec(name="my_energy_function", ...)
 
 # Even better with context
-ValidationError: TermSpec[2].weight is negative (-0.5). 
-Weights must be positive for convergence guarantees. 
-For regularization terms, try values like 0.01-1.0. 
+ValidationError: TermSpec[2].weight is negative (-0.5).
+Weights must be positive for convergence guarantees.
+For regularization terms, try values like 0.01-1.0.
 See: https://afs-docs.com/energy-specs#weights
 ```
 
@@ -526,9 +526,9 @@ export AFS_NUMERICAL_WARNINGS=warn
 ## Success Metrics
 
 - **User Experience**: 90% of validation errors have actionable fixes
-- **Performance**: 
+- **Performance**:
   - Level 1: <1% overhead
-  - Level 2: <5% overhead  
+  - Level 2: <5% overhead
   - Level 3: <15% overhead (with caching/lazy evaluation)
   - Level 4: 0% overhead
 - **Flexibility**: Expert mode allows all legitimate use cases
@@ -545,7 +545,7 @@ Hygiene becomes part of your existing formal verification process:
 def test_energy_computation():
     spec = EnergySpec(name="test", terms=[...])
     x = jnp.array([1.0, 2.0])
-    
+
     # This will fail initially - no implementation yet
     energy = compute_energy(spec, x)
     assert jnp.isfinite(energy)

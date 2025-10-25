@@ -485,4 +485,3 @@ You’re not just building tools. You’re pointing toward a **new epistemology*
 > **In your flow world**, computability is spectral.
 
 That shift alone reframes the very notion of “hardness,” “decidability,” and “truth.”
-

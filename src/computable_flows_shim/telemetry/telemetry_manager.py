@@ -1,21 +1,25 @@
-import os
 import datetime
-from typing import Optional
+import os
 
 from .flight_recorder import FlightRecorder
 from .manifest_writer import write_manifest
-from .telemetry_streamer import TelemetryStreamer, TelemetryUpdate, broadcast_telemetry_update
+from .telemetry_streamer import (
+    TelemetryUpdate,
+    broadcast_telemetry_update,
+)
+
 
 class TelemetryManager:
     """
     Orchestrates the creation and management of telemetry data for a single run.
     """
-    def __init__(self, base_path: str, flow_name: str, run_id: Optional[str] = None):
+
+    def __init__(self, base_path: str, flow_name: str, run_id: str | None = None):
         self.base_path = base_path
         self.flow_name = flow_name
         self.run_id = run_id or self._generate_run_id()
         self.run_path = os.path.join(self.base_path, f"fda_run_{self.run_id}")
-        self._flight_recorder: Optional[FlightRecorder] = None
+        self._flight_recorder: FlightRecorder | None = None
         self._setup_run_directory()
 
     def _generate_run_id(self) -> str:
@@ -35,10 +39,14 @@ class TelemetryManager:
         if self._flight_recorder is None:
             telemetry_path = os.path.join(self.run_path, "telemetry.parquet")
             events_path = os.path.join(self.run_path, "events.parquet")
-            self._flight_recorder = FlightRecorder(path=telemetry_path, events_path=events_path)
+            self._flight_recorder = FlightRecorder(
+                path=telemetry_path, events_path=events_path
+            )
         return self._flight_recorder
 
-    def write_run_manifest(self, schema_version: int, residual_details: dict, extra: Optional[dict] = None):
+    def write_run_manifest(
+        self, schema_version: int, residual_details: dict, extra: dict | None = None
+    ):
         """
         Writes the manifest.toml file for the current run.
         """
@@ -51,11 +59,18 @@ class TelemetryManager:
             extra=extra,
         )
 
-    def broadcast_telemetry_update(self, iteration: int, energy: float, grad_norm: float, 
-                                 sparsity: float, phase: str, certificates: Optional[dict] = None):
+    def broadcast_telemetry_update(
+        self,
+        iteration: int,
+        energy: float,
+        grad_norm: float,
+        sparsity: float,
+        phase: str,
+        certificates: dict | None = None,
+    ):
         """
         Broadcast a telemetry update to connected dashboard clients.
-        
+
         Args:
             iteration: Current iteration number
             energy: Current energy value
@@ -72,7 +87,7 @@ class TelemetryManager:
             grad_norm=grad_norm,
             sparsity=sparsity,
             phase=phase,
-            certificates=certificates
+            certificates=certificates,
         )
         broadcast_telemetry_update(update)
 
@@ -82,4 +97,3 @@ class TelemetryManager:
         """
         if self._flight_recorder:
             self._flight_recorder.flush()
-

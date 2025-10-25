@@ -7,17 +7,11 @@
     "settings": {
         // ---- Python interpreter (your venv) ----
         "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
-        
-        // ---- Pylint configuration ----
-        "pylint.enabled": true,
-        "pylint.interpreter": [
-            "${workspaceFolder}\\.venv\\Scripts\\python.exe"
-        ],
-        "pylint.path": ["${interpreter}"],
-        "pylint.cwd": "${workspaceFolder}",
-        "pylint.args": [
-            "--rcfile=${workspaceFolder}/pyproject.toml"
-        ],
+
+        // ---- Ruff configuration ----
+        "ruff.enable": true,
+        "ruff.organizeImports": true,
+        "ruff.fixAll": true,
 
         // ---- Pyright/Pylance ----
         // Moved to user settings for proper precedence
@@ -39,7 +33,7 @@
             "**/.venv/**": true,
             "**/venv/**": true
         },
-        
+
         "files.watcherExclude": {
             "**/.git/**": true,
             "**/__pycache__/**": true,
@@ -59,7 +53,7 @@
     "extensions": {
         "recommendations": [
             "ms-python.python",
-            "ms-python.pylint",
+            "charliermarsh.ruff",
             "ms-python.black-formatter",
             "ms-python.isort",
             "hbenl.vscode-test-explorer"

@@ -6,8 +6,10 @@ All functions follow the Functional Core/Imperative Shell pattern:
 - Functional Core: Pure computational logic (energy functions, certificates, etc.)
 - Imperative Shell: Orchestration, I/O, telemetry, error handling (this API layer)
 """
-from typing import Any, Dict, Optional, Tuple, Protocol
+
 import os
+from typing import Any, Protocol
+
 
 class Op(Protocol):
     """Protocol for a linear operator used in energy specifications.
@@ -26,14 +28,16 @@ class Op(Protocol):
             def __call__(self, x):
                 return x
     """
+
     def __call__(self, x: Any) -> Any: ...
+
 
 from computable_flows_shim.controller import FlightController
 from computable_flows_shim.telemetry import TelemetryManager
 
 
 def run_certified_with_telemetry(
-    initial_state: Dict[str, Any],
+    initial_state: dict[str, Any],
     compiled: Any,  # CompiledEnergy from energy.compile
     num_iterations: int,
     step_alpha: float,
@@ -41,9 +45,9 @@ def run_certified_with_telemetry(
     run_id: str,
     out_dir: str,
     schema_version: int = 3,
-    residual_details: Optional[Dict[str, Any]] = None,
-    extra_manifest: Optional[Dict[str, Any]] = None
-) -> Tuple[Dict[str, Any], TelemetryManager]:
+    residual_details: dict[str, Any] | None = None,
+    extra_manifest: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], TelemetryManager]:
     """
     Run a certified optimization flow with full telemetry recording.
 
@@ -140,9 +144,7 @@ def run_certified_with_telemetry(
 
     # Initialize telemetry and controller
     telemetry_manager = TelemetryManager(
-        base_path=out_dir,
-        flow_name=flow_name,
-        run_id=run_id
+        base_path=out_dir, flow_name=flow_name, run_id=run_id
     )
 
     controller = FlightController()
@@ -155,7 +157,7 @@ def run_certified_with_telemetry(
         initial_alpha=step_alpha,
         telemetry_manager=telemetry_manager,
         flow_name=flow_name,
-        run_id=run_id
+        run_id=run_id,
     )
 
     # Finalize telemetry
@@ -163,16 +165,12 @@ def run_certified_with_telemetry(
 
     # Write manifest with metadata
     if residual_details is None:
-        residual_details = {
-            "method": "unknown",
-            "norm": "L2",
-            "notes": "not provided"
-        }
+        residual_details = {"method": "unknown", "norm": "L2", "notes": "not provided"}
 
     telemetry_manager.write_run_manifest(
         schema_version=schema_version,
         residual_details=residual_details,
-        extra=extra_manifest or {}
+        extra=extra_manifest or {},
     )
 
     return final_state, telemetry_manager

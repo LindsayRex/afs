@@ -44,7 +44,7 @@ foreach ($pattern in $installPatterns) {
                 } catch {
                     $version = "Unknown version"
                 }
-                
+
                 $foundEnvs += [PSCustomObject]@{
                     Path = $dir.FullName
                     Version = $version
@@ -73,7 +73,7 @@ foreach ($pattern in $venvPatterns) {
                     } catch {
                         $version = "Unknown version"
                     }
-                    
+
                     $foundEnvs += [PSCustomObject]@{
                         Path = $dir.FullName
                         Version = $version
@@ -101,7 +101,7 @@ try {
             } catch {
                 $version = "Unknown version"
             }
-            
+
             $foundEnvs += [PSCustomObject]@{
                 Path = $venvDir
                 Version = $version
@@ -133,7 +133,7 @@ foreach ($pattern in $condaEnvPaths) {
                 } catch {
                     $version = "Unknown version"
                 }
-                
+
                 $foundEnvs += [PSCustomObject]@{
                     Path = $dir.FullName
                     Version = $version

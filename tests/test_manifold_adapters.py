@@ -5,19 +5,24 @@ Following the RED-GREEN-REFACTOR cycle with Design by Contract.
 Tests ensure manifold operations satisfy geometric properties.
 """
 
-import pytest
 import jax
 import jax.numpy as jnp
+import pytest
+
 from computable_flows_shim.runtime.manifolds import (
-    EuclideanManifold, SphereManifold, StiefelManifold, PositiveDefiniteManifold,
-    create_manifold, MANIFOLD_REGISTRY
+    MANIFOLD_REGISTRY,
+    EuclideanManifold,
+    PositiveDefiniteManifold,
+    SphereManifold,
+    StiefelManifold,
+    create_manifold,
 )
 
 
 class TestManifoldAdaptersContract:
     """
     Design by Contract tests for manifold adapters.
-    
+
     Contract: Manifold adapters provide correct geometric operations
     for Riemannian optimization with proper tangent space projections and retractions.
     """
@@ -150,52 +155,52 @@ class TestManifoldAdaptersContract:
 
     def test_manifold_factory(self):
         """RED: Factory function should create correct manifold instances."""
-        euclidean = create_manifold('euclidean')
+        euclidean = create_manifold("euclidean")
         assert isinstance(euclidean, EuclideanManifold)
 
-        sphere = create_manifold('sphere', radius=2.0)
+        sphere = create_manifold("sphere", radius=2.0)
         assert isinstance(sphere, SphereManifold)
         assert sphere.radius == 2.0
 
-        stiefel = create_manifold('stiefel', n=4, k=3)
+        stiefel = create_manifold("stiefel", n=4, k=3)
         assert isinstance(stiefel, StiefelManifold)
         assert stiefel.n == 4 and stiefel.k == 3
 
     def test_unknown_manifold_error(self):
         """RED: Factory should raise error for unknown manifold types."""
         with pytest.raises(ValueError, match="Unknown manifold type"):
-            create_manifold('unknown_manifold')
+            create_manifold("unknown_manifold")
 
     def test_manifold_registry_integrity(self):
         """RED: Registry should contain expected manifold types."""
-        expected_types = {'euclidean', 'sphere', 'stiefel', 'spd'}
+        expected_types = {"euclidean", "sphere", "stiefel", "spd"}
         assert set(MANIFOLD_REGISTRY.keys()) == expected_types
 
     def test_f_dis_with_manifold_support(self):
         """RED: F_Dis should support Riemannian manifolds."""
-        from computable_flows_shim.runtime.primitives import F_Dis
         from computable_flows_shim.runtime.manifolds import SphereManifold
-        
+        from computable_flows_shim.runtime.primitives import F_Dis
+
         # Function with non-zero Riemannian gradient on sphere: f(x) = x[1] (y-coordinate)
         def f_value(state):
-            x = state['x']
+            x = state["x"]
             return x[1]  # y-coordinate
-        
+
         grad_f = jax.grad(f_value)
-        
+
         # Test on sphere manifold
-        manifolds = {'x': SphereManifold(radius=1.0)}
-        
+        manifolds = {"x": SphereManifold(radius=1.0)}
+
         # Start at a point on the sphere
-        state = {'x': jnp.array([1.0, 0.0, 0.0])}
-        
+        state = {"x": jnp.array([1.0, 0.0, 0.0])}
+
         # Apply one gradient step
         new_state = F_Dis(state, grad_f, step_alpha=0.1, manifolds=manifolds)
-        
+
         # Result should still be on the sphere (approximately)
-        x_new = new_state['x']
+        x_new = new_state["x"]
         norm = jnp.sqrt(jnp.sum(x_new**2))
         assert abs(norm - 1.0) < 1e-6
-        
+
         # Should have moved (gradient descent should change the point)
-        assert not jnp.allclose(state['x'], x_new)
+        assert not jnp.allclose(state["x"], x_new)

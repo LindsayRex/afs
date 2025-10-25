@@ -10,7 +10,7 @@ Comprehensive review and fix of Pylance type checking errors across the AFS proj
 
 **Root Cause**: The Pydantic model used `Field(None, ...)` for optional parameters, which Pylance wasn't recognizing as truly optional in the constructor.
 
-**Solution**: 
+**Solution**:
 - Changed optional field definitions from `Optional[T] = Field(None, ...)` to `Optional[T] = None`
 - Added custom field validators to maintain the same validation constraints
 - Preserved all existing validation logic (length limits, value ranges, etc.)
@@ -25,7 +25,7 @@ Comprehensive review and fix of Pylance type checking errors across the AFS proj
 
 **Verification**: Confirmed `specs.py` is explicitly required by design:
 - `03b_energy_spec_hygiene_spec.md`: "All EnergySpec and TermSpec instances must use Pydantic models"
-- `03_energy_spec_compilation.md`: "Parse spec into EnergySpec dataclasses" 
+- `03_energy_spec_compilation.md`: "Parse spec into EnergySpec dataclasses"
 - `01_shim_overview_architecture.md`: Shows EnergySpec as core input to compilation pipeline
 
 ### 3. Pylint Compliance
@@ -37,7 +37,7 @@ Comprehensive review and fix of Pylance type checking errors across the AFS proj
 
 ## Test Suite Integrity
 - ✅ All 42 spec validation tests pass
-- ✅ All 610 runtime tests pass  
+- ✅ All 610 runtime tests pass
 - ✅ Telemetry integration tests pass
 - ✅ No regression in TDD/DbC compliance
 - ✅ JAX dtype integration intact

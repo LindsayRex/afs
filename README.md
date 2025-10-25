@@ -54,7 +54,7 @@ No Violations: The specs correctly separate concerns while providing extensibili
 The afs_v1 folder confirms this approach works - it shows how automatic selection can be built on top of the CFS foundation.
 
 
-## The Core Engine: The Computable Flow Shim(CFS) 
+## The Core Engine: The Computable Flow Shim(CFS)
 
 The heart of this project is the **Computable Flow Shim**, a small, reliable, and reusable runtime engine built on JAX. It is not a complete application, but a "Functional Core" that the AFS will drive.
 
@@ -95,6 +95,93 @@ python -m venv .venv
 pip install -r requirements.txt
 pytest -q
 ```
+
+## Code Quality with Ruff
+
+This project uses **Ruff** for fast, comprehensive Python linting and code formatting. Ruff replaces traditional tools like pylint, flake8, and isort.
+
+### Ruff Commands
+
+```bash
+# Check for all linting errors (1,209+ rules checked)
+ruff check
+
+# Auto-fix what can be fixed safely (fixes ~70% of issues)
+ruff check --fix
+
+# Format code (replaces black)
+ruff format
+
+# Check only specific files
+ruff check src/computable_flows_shim/api.py
+
+# Check only import-related issues
+ruff check --select I
+
+# Check only security issues
+ruff check --select S
+
+# Show detailed statistics
+ruff check --statistics
+```
+
+### VS Code Integration
+
+Ruff is fully integrated with VS Code:
+- **Real-time linting** as you type
+- **Auto-fix on save** available
+- **Problems panel** shows all 1,209+ potential issues
+- **Quick fixes** for many issues
+
+### Pre-commit Hooks
+
+Ruff runs automatically on every commit:
+
+```bash
+# Install hooks (one-time setup)
+pre-commit install
+
+# Manual pre-commit run
+pre-commit run --all-files
+```
+
+### Ruff vs Other Tools
+
+| Feature | Ruff | pylint | flake8 | mypy |
+|---------|------|--------|--------|------|
+| **Speed** | ⚡ 10-100x faster | 🐌 Slow | 🐌 Slow | ⚡ Fast |
+| **Rules** | 800+ built-in | 200+ | 100+ | Type only |
+| **Auto-fix** | ✅ Extensive | ❌ Limited | ❌ Limited | ❌ None |
+| **Formatting** | ✅ Built-in | ❌ | ❌ | ❌ |
+| **Import sorting** | ✅ Built-in | ❌ | ❌ | ❌ |
+
+### Common Ruff Fixes
+
+Ruff can automatically fix most issues:
+
+```bash
+# Fix unused imports
+ruff check --select F401 --fix
+
+# Fix import sorting
+ruff check --select I --fix
+
+# Fix formatting issues
+ruff format
+
+# Fix everything possible
+ruff check --fix && ruff format
+```
+
+### Configuration
+
+Ruff is configured in `pyproject.toml` with:
+- **Comprehensive rule set** (800+ rules enabled)
+- **JAX-only policy** (blocks numpy/torch imports)
+- **Smart exclusions** (ignores 44k+ archived files)
+- **Per-file rules** (different rules for tests vs source)
+
+**Never use pylint, flake8, or isort directly** - ruff handles all of these!
 
 ## JAX Configuration and Type System
 

@@ -6,12 +6,13 @@ All atoms must inherit from these classes and implement their abstract methods.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any
+
 import jax.numpy as jnp
 
 # Type aliases
 Array = jnp.ndarray
-State = Dict[str, Array]
+State = dict[str, Array]
 
 
 class Atom(ABC):
@@ -26,30 +27,24 @@ class Atom(ABC):
     @abstractmethod
     def name(self) -> str:
         """Unique name identifier for this atom type."""
-        pass
 
     @property
     @abstractmethod
     def form(self) -> str:
         """LaTeX mathematical form of this atom."""
-        pass
 
     @abstractmethod
-    def energy(self, state: State, params: Dict[str, Any]) -> float:
+    def energy(self, state: State, params: dict[str, Any]) -> float:
         """Compute the energy contribution of this atom."""
-        pass
 
     @abstractmethod
-    def gradient(self, state: State, params: Dict[str, Any]) -> State:
+    def gradient(self, state: State, params: dict[str, Any]) -> State:
         """Compute the gradient contribution of this atom."""
-        pass
 
     @abstractmethod
-    def prox(self, state: State, step_size: float, params: Dict[str, Any]) -> State:
+    def prox(self, state: State, step_size: float, params: dict[str, Any]) -> State:
         """Apply the proximal operator for this atom."""
-        pass
 
     @abstractmethod
-    def certificate_contributions(self, params: Dict[str, Any]) -> Dict[str, float]:
+    def certificate_contributions(self, params: dict[str, Any]) -> dict[str, float]:
         """Return contributions to FDA certificates (eta_dd, gamma, etc.)."""
-        pass

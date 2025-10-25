@@ -167,7 +167,7 @@ I built you a working “stability coverage” table that lists the major stabil
 * **Open the table**: [stability_coverage_table.csv](sandbox:/mnt/data/stability_coverage_table.csv)
 * (There’s also a tiny summary file.) [summary](sandbox:/mnt/data/stability_coverage_summary.txt)
 
-The table aligns each issue with the FDA steps (State & Invariants, Lens, Energy, Flow, Gap Dial, Multiscale, Sparsity, Certification) from your framework, so it’s directly actionable in your pipeline. 
+The table aligns each issue with the FDA steps (State & Invariants, Lens, Energy, Flow, Gap Dial, Multiscale, Sparsity, Certification) from your framework, so it’s directly actionable in your pipeline.
 
 ### What the table says at a glance
 
@@ -189,32 +189,32 @@ The table aligns each issue with the FDA steps (State & Invariants, Lens, Energy
   * Gradient conflict in multi-objective sums (use Pareto/gradient balancing)
   * Certification (add explicit checks for energy descent, invariants, gap, etc.)
 
-**Rough coverage score:** ~0.55 (0–1). That’s consistent with a pipeline that’s already multiscale-savvy but still missing the *flow* and *certification* guardrails that FDA prescribes. 
+**Rough coverage score:** ~0.55 (0–1). That’s consistent with a pipeline that’s already multiscale-savvy but still missing the *flow* and *certification* guardrails that FDA prescribes.
 
 ---
 
 ### Immediate upgrades (targeted to your gaps)
 
 1. **Constraints → Augmented Lagrangian / ADMM**
-   Replace big penalties with AL/ADMM splits so feasibility is stable and you avoid “bouncing.” Log constraint residuals per iteration. 
+   Replace big penalties with AL/ADMM splits so feasibility is stable and you avoid “bouncing.” Log constraint residuals per iteration.
 
 2. **Nonsmooth terms → Prox + continuation**
-   Start with **Huber/Moreau** smoothing on TV/|·| terms, then anneal the smoothing parameter. Keep the fidelity–regularizer split proximal. 
+   Start with **Huber/Moreau** smoothing on TV/|·| terms, then anneal the smoothing parameter. Keep the fidelity–regularizer split proximal.
 
 3. **Spectral stability → “Gap Dial”**
-   Add a lightweight Hessian-vector product + power/Lanczos to estimate extremal eigenvalues, and automatically tune regularization until the **spectral gap > 0**. Gate step sizes on it. 
+   Add a lightweight Hessian-vector product + power/Lanczos to estimate extremal eigenvalues, and automatically tune regularization until the **spectral gap > 0**. Gate step sizes on it.
 
 4. **Integrator safety → trust-region / adaptive step**
-   Use energy-decrease line search or a trust-region for stiff directions; consider semi-implicit updates on the stiffest terms. 
+   Use energy-decrease line search or a trust-region for stiff directions; consider semi-implicit updates on the stiffest terms.
 
 5. **Redundancy control (if undecimated/dual-tree)**
-   Record frame bounds (A,B) and **normalize band energies by gain** so redundant high-freq bands don’t dominate. Log boundary handling (symmetric vs periodic) to avoid leakage. 
+   Record frame bounds (A,B) and **normalize band energies by gain** so redundant high-freq bands don’t dominate. Log boundary handling (symmetric vs periodic) to avoid leakage.
 
 6. **Multi-objective conflict → balanced descent**
    Add a common-descent or gradient-balancing step (e.g., normalize objective gradients per band/term) rather than a fixed weighted sum.
 
 7. **Certification switchboard**
-   Track per-iteration: energy descent, physics residuals, invariants, spectral gap, and discretization-refinement consistency; fail fast if any certificate breaks. 
+   Track per-iteration: energy descent, physics residuals, invariants, spectral gap, and discretization-refinement consistency; fail fast if any certificate breaks.
 
 ---
 
@@ -222,6 +222,6 @@ The table aligns each issue with the FDA steps (State & Invariants, Lens, Energy
 
 * **Lens & Multiscale** to make energies scale-fair and to run coarse→fine continuation.
 * **Flow & Gap Dial** for stability under dynamics and spectral monitoring.
-* **Certification** to convert “looks good” into guarantees. 
+* **Certification** to convert “looks good” into guarantees.
 
 If you share one concrete run (data type + which energy terms you currently sum), I can pre-fill the catalogue with your exact units/σ estimates, add a default AL/ADMM split, and wire up a tiny “gap dial” routine so you’ve got certificates on day one.

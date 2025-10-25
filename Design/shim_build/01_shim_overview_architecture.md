@@ -70,7 +70,7 @@ It enables forward–backward splitting, multiscale transforms, and certificate-
    [ Energy Compiler ]
         |
    [ Shim Runtime ]
-   /   |   \   
+   /   |   \
 F_Dis F_Proj F_Multi (F_Con)
    \   |   /
    [ FDA, Tuner, Logger ]
