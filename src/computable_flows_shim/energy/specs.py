@@ -72,6 +72,12 @@ class StateSpec(BaseModel):
         ..., min_length=1, description="Variable shapes dictionary"
     )
 
+    # FDA invariants specification
+    invariants: dict | None = Field(
+        None,
+        description="FDA invariants: conserved quantities, constraints, and symmetries",
+    )
+
     @field_validator("shapes")
     @classmethod
     def validate_shapes(cls, v):
@@ -89,6 +95,42 @@ class StateSpec(BaseModel):
                 raise ValueError(
                     f"Shape for variable '{var_name}' has too many dimensions (max 4)"
                 )
+        return v
+
+    @field_validator("invariants")
+    @classmethod
+    def validate_invariants(cls, v):
+        """Validate invariants specification structure."""
+        if v is None:
+            return v
+
+        # Contract: invariants must be a dictionary with specific keys
+        allowed_keys = {"conserved", "constraints", "symmetries"}
+        if not isinstance(v, dict):
+            raise ValueError("invariants must be a dictionary")
+
+        for key in v.keys():
+            if key not in allowed_keys:
+                raise ValueError(
+                    f"Unknown invariant type '{key}'. Allowed: {allowed_keys}"
+                )
+
+        # Contract: conserved and constraints must be dict[str, Callable]
+        for key in ["conserved", "constraints"]:
+            if key in v:
+                if not isinstance(v[key], dict):
+                    raise ValueError(f"invariants.{key} must be a dictionary")
+                for name, func in v[key].items():
+                    if not callable(func):
+                        raise ValueError(f"invariants.{key}['{name}'] must be callable")
+
+        # Contract: symmetries must be list[str]
+        if "symmetries" in v:
+            if not isinstance(v["symmetries"], list):
+                raise ValueError("invariants.symmetries must be a list")
+            if not all(isinstance(s, str) for s in v["symmetries"]):
+                raise ValueError("invariants.symmetries must contain only strings")
+
         return v
 
 

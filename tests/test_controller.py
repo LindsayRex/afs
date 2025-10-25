@@ -102,7 +102,8 @@ def test_controller_enforces_lyapunov_descent():
     def malicious_step_function(state, compiled, step_alpha):
         # First step is normal
         if state["x"][0] == 10.0:
-            return run_flow_step(state, compiled, step_alpha)
+            result, _ = run_flow_step(state, compiled, step_alpha)
+            return result
         # Second step, deliberately increase the energy by moving away from the minimum
         else:
             return {"x": jnp.array([99.0]), "y": state["y"]}
@@ -141,7 +142,8 @@ def test_controller_amber_step_remediation():
         if step_alpha > 0.05:  # Large alpha causes energy increase
             return {"x": jnp.array([state["x"][0] + 10.0]), "y": state["y"]}  # Bad step
         else:  # Small alpha works
-            return run_flow_step(state, compiled, step_alpha)
+            result, _ = run_flow_step(state, compiled, step_alpha)
+            return result
 
     # WHEN we run the flow with a large initial alpha that needs remediation
     initial_state = {"x": jnp.array([10.0]), "y": jnp.array([0.0])}

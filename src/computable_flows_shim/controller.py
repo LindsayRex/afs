@@ -656,7 +656,9 @@ class FlightController:
                 step_alpha_local = current_alpha
 
                 for step_attempt in range(self.config.max_step_attempts):
-                    candidate_state = step_func(state, compiled, step_alpha_local)
+                    candidate_state, invariant_drift_max = step_func(
+                        state, compiled, step_alpha_local
+                    )
                     new_energy = compiled.f_value(candidate_state)
 
                     if new_energy <= energy:
@@ -664,6 +666,17 @@ class FlightController:
                         state = candidate_state
                         energy = new_energy
                         step_succeeded = True
+
+                        # Log invariant drift if computed
+                        # if telemetry_manager and 'invariant_drift_max' in locals():
+                        #     telemetry_manager.flight_recorder.log_event(
+                        #         run_id=run_id,
+                        #         event="INVARIANT_CHECK",
+                        #         payload={
+                        #             "iteration": i,
+                        #             "invariant_drift_max": float(invariant_drift_max),
+                        #         },
+                        #     )
 
                         # Update last good checkpoint
                         last_good_checkpoint = self.create_checkpoint(

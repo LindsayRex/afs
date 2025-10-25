@@ -163,7 +163,7 @@ def test_checkpointing(float_dtype):
         step_alpha = 0.1
 
         for i in range(num_iters):
-            state = run_flow_step(state, compiled, step_alpha)
+            state, _ = run_flow_step(state, compiled, step_alpha)
 
             # Create checkpoint if requested and at interval
             if (i + 1) % 3 == 0:  # checkpoint_interval = 3
@@ -259,7 +259,7 @@ def test_flow_policy_driven_execution_contracts(float_dtype):
     }
 
     # WHEN we execute one flow step
-    result_state = run_flow_step(
+    result_state, _ = run_flow_step(
         state=initial_state,
         compiled=compiled,
         step_alpha=0.01,  # Small step for stability
@@ -321,7 +321,7 @@ def test_flow_policy_basic_execution_contracts(float_dtype):
     }
 
     # WHEN we execute with basic policy
-    result_state = run_flow_step(
+    result_state, _ = run_flow_step(
         state=initial_state,
         compiled=compiled,
         step_alpha=0.1,
@@ -371,7 +371,7 @@ def test_flow_policy_driven_execution(float_dtype):
     # WHEN we run a flow step with policy parameters
     from computable_flows_shim.runtime.engine import run_flow_step
 
-    result_state = run_flow_step(
+    result_state, _ = run_flow_step(
         state=initial_state,
         compiled=compiled,
         step_alpha=0.1,
@@ -428,7 +428,7 @@ def test_multiscale_schedule_runtime_integration_green(float_dtype):
     }
 
     # WHEN we run a flow step with MultiscaleSchedule
-    result_state = run_flow_step(
+    result_state, _ = run_flow_step(
         state=initial_state,
         compiled=compiled,
         step_alpha=0.1,
@@ -439,7 +439,7 @@ def test_multiscale_schedule_runtime_integration_green(float_dtype):
     # THEN it should use the schedule for level activation
     # For fixed_schedule mode, all levels should be active immediately
     # This should result in different behavior than no schedule
-    result_no_schedule = run_flow_step(
+    result_no_schedule, _ = run_flow_step(
         state=initial_state,
         compiled=compiled,
         step_alpha=0.1,
@@ -556,7 +556,7 @@ def test_multiscale_schedule_mode_differences_green(float_dtype):
         )
 
         # Run a step
-        result = run_flow_step(
+        result, _ = run_flow_step(
             state=initial_state,
             compiled=compiled,
             step_alpha=0.1,

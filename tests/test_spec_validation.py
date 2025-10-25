@@ -77,54 +77,87 @@ class TestTermSpecValidation:
         assert "levels" in str(exc_info.value)
 
 
-class TestStateSpecValidation:
-    """Test StateSpec Pydantic validation."""
+class TestStateSpecInvariantsValidation:
+    """Test StateSpec invariants contract validation."""
 
-    def test_valid_state_spec(self):
-        """Test valid StateSpec creation."""
-        state = StateSpec(shapes={"x": [10, 20], "y": [5]})
-        assert state.shapes["x"] == [10, 20]
-        assert state.shapes["y"] == [5]
+    def test_valid_invariants_spec(self):
+        """Test valid invariants specification."""
 
-    def test_empty_shapes(self):
-        """Test rejection of empty shapes dictionary."""
+        def mass_checker(state):
+            return state.sum()
+
+        def balance_checker(state):
+            return state.mean()
+
+        invariants = {
+            "conserved": {"mass": mass_checker},
+            "constraints": {"balance": balance_checker},
+            "symmetries": ["translation", "rotation"],
+        }
+
+        state = StateSpec(shapes={"x": [10, 20]}, invariants=invariants)
+        assert state.invariants == invariants
+
+    def test_invariants_none_allowed(self):
+        """Test that invariants can be None (default)."""
+        state = StateSpec(shapes={"x": [10, 20]})
+        assert state.invariants is None
+
+    def test_invariants_wrong_type(self):
+        """Test rejection of non-dict invariants."""
         with pytest.raises(ValidationError) as exc_info:
-            StateSpec(shapes={})
-        assert "too_short" in str(exc_info.value)
+            StateSpec(shapes={"x": [10, 20]}, invariants="invalid")
+        assert "Input should be a valid dictionary" in str(exc_info.value)
 
-    def test_invalid_shape_type(self):
-        """Test rejection of non-list shapes."""
+    def test_invariants_unknown_key(self):
+        """Test rejection of unknown invariant types."""
         with pytest.raises(ValidationError) as exc_info:
-            StateSpec(shapes={"x": "invalid"})
-        assert "list_type" in str(exc_info.value)
+            StateSpec(shapes={"x": [10, 20]}, invariants={"unknown_type": {}})
+        assert "Unknown invariant type" in str(exc_info.value)
 
-    def test_empty_shape_list(self):
-        """Test rejection of empty shape lists."""
+    def test_conserved_not_dict(self):
+        """Test rejection when conserved is not a dict."""
         with pytest.raises(ValidationError) as exc_info:
-            StateSpec(shapes={"x": []})
-        assert "Shape for variable 'x' must be non-empty list" in str(exc_info.value)
+            StateSpec(shapes={"x": [10, 20]}, invariants={"conserved": "not_a_dict"})
+        assert "invariants.conserved must be a dictionary" in str(exc_info.value)
 
-    def test_negative_dimensions(self):
-        """Test rejection of negative dimensions."""
+    def test_conserved_non_callable(self):
+        """Test rejection when conserved value is not callable."""
         with pytest.raises(ValidationError) as exc_info:
-            StateSpec(shapes={"x": [-1, 10]})
-        assert "All dimensions for variable 'x' must be positive integers" in str(
-            exc_info.value
-        )
+            StateSpec(
+                shapes={"x": [10, 20]},
+                invariants={"conserved": {"mass": "not_callable"}},
+            )
+        assert "must be callable" in str(exc_info.value)
 
-    def test_zero_dimensions(self):
-        """Test rejection of zero dimensions."""
+    def test_constraints_not_dict(self):
+        """Test rejection when constraints is not a dict."""
         with pytest.raises(ValidationError) as exc_info:
-            StateSpec(shapes={"x": [0, 10]})
-        assert "All dimensions for variable 'x' must be positive integers" in str(
-            exc_info.value
-        )
+            StateSpec(shapes={"x": [10, 20]}, invariants={"constraints": "not_a_dict"})
+        assert "invariants.constraints must be a dictionary" in str(exc_info.value)
 
-    def test_too_many_dimensions(self):
-        """Test rejection of shapes with too many dimensions."""
+    def test_constraints_non_callable(self):
+        """Test rejection when constraints value is not callable."""
         with pytest.raises(ValidationError) as exc_info:
-            StateSpec(shapes={"x": [1, 2, 3, 4, 5]})  # 5 dimensions > 4 max
-        assert "Shape for variable 'x' has too many dimensions" in str(exc_info.value)
+            StateSpec(
+                shapes={"x": [10, 20]},
+                invariants={"constraints": {"balance": "not_callable"}},
+            )
+        assert "must be callable" in str(exc_info.value)
+
+    def test_symmetries_not_list(self):
+        """Test rejection when symmetries is not a list."""
+        with pytest.raises(ValidationError) as exc_info:
+            StateSpec(shapes={"x": [10, 20]}, invariants={"symmetries": "not_a_list"})
+        assert "invariants.symmetries must be a list" in str(exc_info.value)
+
+    def test_symmetries_non_string(self):
+        """Test rejection when symmetries contains non-strings."""
+        with pytest.raises(ValidationError) as exc_info:
+            StateSpec(
+                shapes={"x": [10, 20]}, invariants={"symmetries": ["translation", 123]}
+            )
+        assert "invariants.symmetries must contain only strings" in str(exc_info.value)
 
 
 class TestEnergySpecValidation:

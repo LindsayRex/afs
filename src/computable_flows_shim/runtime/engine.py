@@ -4,6 +4,7 @@ import jax.numpy as jnp
 
 from ..energy.compile import CompiledEnergy  # Import canonical CompiledEnergy
 from ..energy.policies import FlowPolicy, MultiscaleSchedule
+from ..fda.certificates import validate_invariants
 from ..telemetry import TelemetryManager
 from .checkpoint import CheckpointManager
 from .primitives import F_Dis, F_Dis_Preconditioned, F_Multi, F_Proj
@@ -24,7 +25,7 @@ def run_flow_step(
     iteration: int = 0,
     telemetry_manager: TelemetryManager | None = None,
     previous_active_levels: list[int] | None = None,
-) -> dict[str, jnp.ndarray]:
+) -> tuple[dict[str, jnp.ndarray], float]:
     """
     Runs one full step of a Forward-Backward Splitting flow.
 
@@ -49,7 +50,7 @@ def run_flow_step(
         previous_active_levels: Mutable list to track previous active levels for event emission
 
     Returns:
-        Updated optimization state
+        Tuple of (updated_state, invariant_drift_max)
     """
     if manifolds is None:
         manifolds = {}
@@ -122,7 +123,28 @@ def run_flow_step(
         )
         state_after_proj = F_Proj(state_after_dis, compiled.g_prox, step_alpha)
 
-    return state_after_proj
+    # Validate FDA invariants if specified
+    invariant_drift_max = 0.0
+    if hasattr(compiled, "invariants_spec") and compiled.invariants_spec is not None:
+        try:
+            invariant_drift_max = validate_invariants(
+                state_after_proj, compiled.invariants_spec
+            )
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
+            # Log invariant validation failure but don't fail the step
+            if telemetry_manager:
+                telemetry_manager.flight_recorder.log_event(
+                    run_id=getattr(telemetry_manager, "run_id", "unknown"),
+                    event="INVARIANT_VALIDATION_ERROR",
+                    payload={
+                        "iteration": iteration,
+                        "error": str(e),
+                        "invariants_spec": compiled.invariants_spec,
+                    },
+                )
+            invariant_drift_max = float("inf")  # Mark as invalid
+
+    return state_after_proj, invariant_drift_max
 
 
 def resume_flow(
@@ -176,7 +198,7 @@ def resume_flow(
 
     # Continue running from checkpoint
     for i in range(start_iteration, start_iteration + remaining_iters):
-        state = run_flow_step(state, compiled, step_alpha)
+        state, _ = run_flow_step(state, compiled, step_alpha)
 
         # Create checkpoint if requested and at interval
         if (i + 1) % checkpoint_interval == 0:

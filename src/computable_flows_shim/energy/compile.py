@@ -22,6 +22,7 @@ class CompiledEnergy(NamedTuple):
     L_apply: Callable
     # Optional compile-time metadata
     compile_report: dict[str, Any] | None = None
+    invariants_spec: dict | None = None  # FDA invariants specification
 
 
 @dataclass
@@ -474,4 +475,5 @@ def compile_energy(spec: EnergySpec, op_registry: dict[str, Any]) -> CompiledEne
         compile_report=_create_compile_report(
             spec, lens_probe_results, unit_normalization_table
         ),
+        invariants_spec=getattr(spec.state, "invariants", None),
     )

@@ -261,3 +261,72 @@ def estimate_eta_dd(L_apply: Callable, input_shape: tuple, eps: float = 1e-9) ->
 
     # The diagonal dominance is the maximum of these ratios
     return float(jnp.max(ratios))
+
+
+def validate_invariants(
+    state: dict[str, jnp.ndarray],
+    invariants_spec: dict | None,
+    reference_values: dict[str, float] | None = None,
+) -> float:
+    """
+    Validate FDA invariants and compute maximum drift.
+
+    Args:
+        state: Current optimization state (dict of JAX arrays)
+        invariants_spec: Invariants specification from StateSpec.invariants
+        reference_values: Optional reference values for conserved quantities
+                          If None, uses first computed values as reference
+
+    Returns:
+        Maximum absolute drift from expected invariant values (invariant_drift_max)
+    """
+    if invariants_spec is None:
+        return 0.0
+
+    if reference_values is None:
+        reference_values = {}
+
+    max_drift = 0.0
+
+    # Validate conserved quantities
+    if "conserved" in invariants_spec:
+        for name, checker in invariants_spec["conserved"].items():
+            if not callable(checker):
+                continue  # Skip invalid checkers
+
+            try:
+                current_value = float(checker(state))
+
+                if name not in reference_values:
+                    # First time seeing this invariant - use as reference
+                    reference_values[name] = current_value
+                    drift = 0.0
+                else:
+                    # Compare to reference value
+                    drift = abs(current_value - reference_values[name])
+
+                max_drift = max(max_drift, drift)
+
+            except (ValueError, TypeError, AttributeError, KeyError):
+                # If checker fails, consider it maximum drift
+                max_drift = max(max_drift, float("inf"))
+
+    # Validate constraints (should be close to zero)
+    if "constraints" in invariants_spec:
+        for checker in invariants_spec["constraints"].values():
+            if not callable(checker):
+                continue  # Skip invalid checkers
+
+            try:
+                constraint_value = float(checker(state))
+                # Constraints should be zero - drift is absolute value
+                drift = abs(constraint_value)
+                max_drift = max(max_drift, drift)
+
+            except (ValueError, TypeError, AttributeError, KeyError):
+                # If checker fails, consider it maximum drift
+                max_drift = max(max_drift, float("inf"))
+
+    # Symmetries are declarative only - no runtime validation yet
+
+    return max_drift
