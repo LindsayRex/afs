@@ -7,46 +7,117 @@ This document provides a comprehensive reference for the AFS Shim API functions.
 
 ## Core API Functions
 
-### `run_certified_with_telemetry()`
+### `run_certified()`
 
 **Location**: `src/computable_flows_shim/api.py`
 
-**Purpose**: Execute certified optimization flows with full telemetry and observability.
+**Purpose**: Execute certified optimization flows using atom-based specifications.
 
 **Signature**:
 ```python
-def run_certified_with_telemetry(
-    initial_state: Dict[str, Any],
-    compiled: CompiledEnergy,
-    num_iterations: int,
-    step_alpha: float,
-    flow_name: str,
-    run_id: str,
-    out_dir: str,
-    schema_version: int = 3,
-    residual_details: Optional[Dict[str, Any]] = None,
-    extra_manifest: Optional[Dict[str, Any]] = None
-) -> Tuple[Dict[str, Any], TelemetryManager]:
+def run_certified(
+    atom_spec: AtomBasedSpec | dict[str, Any]
+) -> tuple[dict[str, Any], TelemetryManager]:
 ```
 
 **Key Features**:
+- High-level atom-based API for optimization problems
+- Automatic conversion from atom specifications to EnergySpec
+- Full telemetry recording with schema v3 compliance
 - RED/AMBER/GREEN phase machine with certificate validation
-- Automatic parameter tuning via GapDial tuner
-- Rollback capability on certificate violations
-- Complete telemetry schema v3 recording
-- Atomic file operations for reliability
+- Automatic parameter tuning and rollback capability
 
 **Integration Points**:
-- Calls `FlightController.run_certified_flow()`
-- Uses `TelemetryManager` for observability
-- Requires `CompiledEnergy` from `compile_energy()`
+- Accepts `AtomBasedSpec` instances or dictionaries
+- Internally calls `atom_spec_to_energy_spec()` for conversion
+- Uses `FlightController.run_certified_flow()` for execution
+- Returns final state and `TelemetryManager` instance
 
 **Error Conditions**:
-- `ValueError`: Certificate validation fails after remediation
-- `RuntimeError`: Step function cannot decrease energy
-- `OSError`: Cannot create/write telemetry files
+- `ValueError`: Invalid atom specification or optimization failure
+- `ValidationError`: Unknown atom types or malformed specifications
+
+**Example**:
+```python
+from computable_flows_shim.api import run_certified
+import jax.numpy as jnp
+
+# Define optimization using atoms
+atom_spec = {
+    "atoms": [
+        {"type": "l1", "params": {"lambda": 0.1}, "weight": 1.0, "variable": "x"}
+    ],
+    "state": {"x": {"shape": [10]}},
+    "initial_state": {"x": jnp.ones(10)},
+    "num_iterations": 100,
+    "step_alpha": 0.1
+}
+
+final_state, telemetry = run_certified(atom_spec)
+```
 
 ---
+
+### `atom_spec_to_energy_spec()`
+
+**Location**: `src/computable_flows_shim/api.py`
+
+**Purpose**: Convert atom-based specifications to EnergySpec format.
+
+**Signature**:
+```python
+def atom_spec_to_energy_spec(
+    atom_spec: AtomBasedSpec
+) -> tuple[Any, dict[str, Any]]:
+```
+
+**Key Features**:
+- Translates high-level atom specifications to low-level EnergySpec
+- Supports quadratic, l1, tikhonov, tv, and wavelet_l1 atoms
+- Generates appropriate operator registry for compilation
+- Maintains mathematical equivalence between specifications
+
+**Integration Points**:
+- Called internally by `run_certified()`
+- Returns tuple of (EnergySpec, op_registry)
+- Compatible with existing `compile_energy()` function
+
+---
+
+### `AtomBasedSpec` Model
+
+**Location**: `src/computable_flows_shim/api.py`
+
+**Purpose**: Pydantic model for atom-based optimization specifications.
+
+**Key Fields**:
+- `atoms`: List of `AtomSpec` objects defining energy terms
+- `state`: Dictionary mapping variable names to shape specifications
+- `initial_state`: Dictionary with JAX arrays for initialization
+- `num_iterations`: Maximum optimization iterations
+- `step_alpha`: Initial step size for gradient descent
+- `flow_name`: Human-readable flow identifier
+- `run_id`: Unique run identifier
+- `out_dir`: Telemetry output directory
+
+**Validation**:
+- Atom types validated against ATOM_REGISTRY
+- State shapes verified as positive integers
+- Initial state consistency checked against state specification
+
+---
+
+### `AtomSpec` Model
+
+**Location**: `src/computable_flows_shim/api.py`
+
+**Purpose**: Specification for individual energy function atoms.
+
+**Key Fields**:
+- `type`: Atom type (quadratic, l1, tikhonov, tv, wavelet_l1)
+- `params`: Type-specific parameters (A, b matrices for quadratic, lambda for regularization)
+- `weight`: Positive coefficient for the energy term
+- `variable`: Variable name this atom applies to
 
 ## Component APIs
 
@@ -97,13 +168,24 @@ Initial State → run_certified_with_telemetry() → Final State + Telemetry
 FlightController (RED→AMBER→GREEN phases) + GapDial Tuner + Checkpoints
 ```
 
+### Atom-Based Optimization Flow
+
+```
+AtomBasedSpec → run_certified() → atom_spec_to_energy_spec() → EnergySpec + Op Registry
+                                      ↓
+compile_energy() → CompiledEnergy → FlightController → Final State + Telemetry
+                                      ↓
+RED→AMBER→GREEN phases + TelemetryManager + Manifest Writer
+```
+
 ### Telemetry Data Flow
 
 ```
-run_certified_with_telemetry()
+run_certified() or run_certified_with_telemetry()
     ↓
 TelemetryManager
     ├── FlightRecorder (telemetry.parquet, events.parquet)
+    │   └── SCALE_ACTIVATED events for multiscale processing
     └── write_run_manifest() (manifest.toml)
 ```
 
@@ -151,24 +233,29 @@ All API functions follow **Functional Core/Imperative Shell**:
 ## Testing Patterns
 
 ### API Contract Tests
-- Parameter validation
-- Return type verification
-- Error condition handling
-- Integration with components
+- Parameter validation for EnergySpec and AtomBasedSpec
+- Return type verification and telemetry schema compliance
+- Error condition handling (certificate failures, invalid atoms)
+- Integration with FlightController and TelemetryManager
+
+### Atom-Based API Tests
+- Atom specification validation and conversion
+- End-to-end optimization with atom-based specs
+- Error handling for unknown atom types
+- Mathematical correctness of atom-to-EnergySpec translation
 
 ### End-to-End Tests
-- Complete optimization flows
-- Telemetry file generation
-- Manifest correctness
-- Phase transitions
+- Complete optimization flows with telemetry
+- Multiscale processing with SCALE_ACTIVATED events
+- Manifest correctness and schema validation
+- Phase transitions (RED→AMBER→GREEN)
 
 ---
 
 ## Future API Extensions
 
 ### Planned Functions
-- `run_certified()`: Simplified version without telemetry
-- `compile_atom_based_energy()`: Atom library integration
+- `compile_atom_based_energy()`: Direct atom compilation (superseded by `run_certified()`)
 - `resume_optimization()`: Checkpoint resumption
 - `analyze_telemetry()`: Post-run analysis tools
 

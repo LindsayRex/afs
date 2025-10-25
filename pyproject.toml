@@ -74,6 +74,26 @@ exclude = [
     "dist",
     "node_modules",
     "venv",
+    # Documentation and non-Python files
+    "*.md",
+    "*.txt",
+    "*.rst",
+    "*.yml",
+    "*.yaml",
+    "*.json",
+    "*.toml",
+    "*.ini",
+    "*.cfg",
+    # Project-specific excludes
+    "docs/",
+    "qa_logs/",
+    "archive/",
+    "background/",
+    "Design/",
+    "logs/",
+    "outputs/",
+    "runs/",
+    "test_output/",
 ]
 
 # Same line length as black
